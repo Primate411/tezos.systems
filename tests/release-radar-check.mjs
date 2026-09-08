@@ -23,24 +23,36 @@ const tezosX = snapshot.candidates.find((candidate) => candidate.kind === 'tezos
 const octez = snapshot.candidates.find((candidate) => candidate.kind === 'octez_release');
 const evmNode = snapshot.candidates.find((candidate) => candidate.kind === 'evm_node_release');
 assert.deepEqual(tezosX.gates.map((gate) => gate.id), RELEASE_RADAR_TEZOS_X_GATES, 'Tezos X keeps the canonical six-gate dependency order');
-assert.equal(tezosX.gates.find((gate) => gate.id === 'proposal')?.status, 'not_started', 'mainnet proposal remains an explicit independent blocker');
-assert.match(tezosX.summary, /kernel 0\.9 was cut on master/, 'the reviewed Tezos X lane includes the current code release');
-assert(tezosX.evidence.some((receipt) => receipt.url.endsWith('/merge_requests/22732')), 'the kernel 0.9 claim keeps its primary release receipt');
-assert(tezosX.evidence.some((receipt) => receipt.url.endsWith('/merge_requests/22695')), 'the Previewnet installer correction keeps its primary receipt');
-assert.match(tezosX.highlight, /does not start mainnet governance or prove a production deployment/, 'the code release cannot impersonate a mainnet deployment');
-assert.equal(octez.confidence, 'low', 'backport activity alone remains low confidence');
-assert.equal(octez.stage, 'Backports merged', 'the Octez lane distinguishes merged backports from a published release');
-assert.match(octez.summary, /still no 25\.2 release tag or public artifact/, 'the merged 25.2 backports cannot impersonate a release');
+assert.equal(tezosX.gates.find((gate) => gate.id === 'proposal')?.status, 'complete', 'a recorded public proposal cannot be erased by an empty current FAST window');
+assert.equal(tezosX.confidence, 'low', 'conflicting platform roadmap and deployment scope prevent a high-confidence full-launch claim');
+assert.equal(tezosX.lifecycle, 'forecast', 'kernel deployment does not silently become a full-platform release');
+assert.match(tezosX.summary, /kernel 7\.1.*completed mainnet deployment/, 'the reviewed lane distinguishes deployed kernel infrastructure');
+assert.match(tezosX.highlight, /broader Tezos X rollout remain separate claims/, 'the scope boundary remains explicit');
+for (const url of [
+  'https://governance.etherlink.com/api/slow/pastPeriods',
+  'https://governance.etherlink.com/api/fast/pastPeriods',
+  'https://status.etherlink.com/incident/1040145',
+  'https://tezos.com/tezos-x'
+]) assert(tezosX.evidence.some(receipt => receipt.url === url), `current rollout judgment keeps its primary receipt: ${url}`);
+assert(tezosX.history.some(row => /Retracted the earlier FAST-null inference/.test(row.reason)), 'the prior mistaken inference is explicitly corrected in history');
+assert.equal(octez.confidence, 'high', 'published binaries and a canonical release support confirmed release confidence');
+assert.equal(octez.lifecycle, 'released');
+assert.equal(octez.releasedAt, '2026-09-02T14:22:03.407Z', 'Octez publication must use released_at, not the August 24 source commit date');
 assert(octez.evidence.some((receipt) => receipt.url === 'https://octez.tezos.com/releases/'), 'the Octez lane checks the canonical public release page');
-assert.equal(evmNode.lifecycle, 'released', 'the direct 0.64 tag is a confirmed release, not a forecast');
-assert.equal(evmNode.excitement, 'high', 'the explicit Previewnet dependency is highlighted');
-assert.match(evmNode.summary, /draft Ganesha native-execution work is not a release/, 'draft Ganesha work cannot impersonate a tagged EVM-node release');
-assert(evmNode.evidence.some((receipt) => receipt.url.endsWith('/merge_requests/22678')), 'the next EVM-node development signal keeps its draft primary receipt');
+assert.equal(evmNode.lifecycle, 'released', 'the direct 0.65 publication is a confirmed release');
+assert.equal(evmNode.label, 'EVM Node 0.65');
+assert.equal(evmNode.releasedAt, '2026-08-24T17:07:09.170Z', 'EVM node publication keeps its separate canonical release clock');
+for (const candidate of [octez, evmNode]) {
+  assert.equal(candidate.horizon, '', 'released artifacts cannot retain a forecast ETA');
+  assert(candidate.evidence.some(receipt => receipt.url.includes('/api/v4/') && receipt.note.includes(candidate.releasedAt)), 'publication time has a directly inspectable primary receipt');
+}
+assert.equal(raw.staleAfterHours, 36, 'a source review does not extend the established freshness budget');
+assert(raw.candidates.every(candidate => candidate.evidence.every(receipt => receipt.observedAt === raw.updatedAt)), 'every current receipt was checked in this substantive review');
 assert.equal(signal.id, 'release-radar');
 assert.equal(signal.kind, 'state', 'the aggregate forecast does not decay like a one-off event');
 assert(
   [
-    `176:${evmNode.id}`,
+    `176:${octez.id}`,
     '166:'
   ].includes(`${signal.score}:${signal.releaseRadar.excitingCandidateId}`),
   'the reviewed signal transitions cleanly after the 14-day recent-release window without a fake completion percentage'
@@ -63,7 +75,7 @@ assert.throws(
 );
 
 const fakeHorizon = structuredClone(raw);
-fakeHorizon.candidates[1].confidence = 'none';
+fakeHorizon.candidates[0].confidence = 'none';
 assert.throws(
   () => normalizeReleaseRadarSnapshot(fakeHorizon, { now: reviewedNow }),
   /cannot publish a horizon without confidence/,

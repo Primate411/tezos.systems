@@ -99,6 +99,7 @@ export async function executeSuiteCatalog(catalog, {
   repeatEach = 1,
   retryFailures = 0,
   retryInfrastructure = 0,
+  signal,
   runAttempt
 } = {}) {
   if (typeof runAttempt !== 'function') throw new Error('runAttempt is required');
@@ -108,6 +109,7 @@ export async function executeSuiteCatalog(catalog, {
   const results = [];
 
   for (const suite of catalog) {
+    signal?.throwIfAborted();
     const suiteStartedAt = Date.now();
     const suiteRepeats = suite.repeatEach == null
       ? repeats
@@ -116,21 +118,25 @@ export async function executeSuiteCatalog(catalog, {
     let suiteStatus = 'passed';
 
     for (let iteration = 1; iteration <= suiteRepeats; iteration += 1) {
+      signal?.throwIfAborted();
       const attempts = [];
       let iterationStatus = 'failed';
 
       for (let attempt = 1; attempt <= retries + 1; attempt += 1) {
+        signal?.throwIfAborted();
         const attemptStartedAt = Date.now();
         await onEvent({ type: 'attempt-start', suite, iteration, attempt, repeats: suiteRepeats, retries });
         let infrastructureRetry = 0;
         while (true) {
           try {
+            signal?.throwIfAborted();
             await runAttempt(suite, {
               iteration,
               attempt,
               diagnostic: attempt > 1,
               infrastructureRetry
             });
+            signal?.throwIfAborted();
             attempts.push({
               attempt,
               durationMs: Date.now() - attemptStartedAt,
@@ -141,6 +147,9 @@ export async function executeSuiteCatalog(catalog, {
             await onEvent({ type: 'attempt-pass', suite, iteration, attempt, status: iterationStatus });
             break;
           } catch (error) {
+            // Shutdown closes the active browser. Its resulting exception is
+            // cancellation, never an assertion or retryable startup failure.
+            signal?.throwIfAborted();
             if (isSmokeInfrastructureError(error) && infrastructureRetry < infrastructureRetries) {
               infrastructureRetry += 1;
               await onEvent({

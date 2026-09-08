@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "kind": "tezos-release-radar",
-  "updatedAt": "2026-08-14T05:54:33.000Z",
+  "updatedAt": "2026-09-08T13:29:03.471Z",
   "staleAfterHours": 36,
-  "expiresAt": "2026-08-28T05:54:33.000Z",
+  "expiresAt": "2026-09-22T13:29:03.471Z",
   "sourceRun": {
-    "label": "Daily Tezos development tracker",
-    "cadence": "Reviewed daily",
-    "method": "Agent-reviewed forecast from primary release, roadmap, and governance evidence"
+    "label": "Primary release evidence review",
+    "cadence": "Review due within 36 hours",
+    "method": "Agent review of canonical release timestamps, published roadmap, complete governance histories and operator deployment receipts"
   },
   "candidates": [
     {
@@ -15,88 +15,94 @@
       "label": "Tezos X Mainnet",
       "kind": "tezos_x_launch",
       "lifecycle": "forecast",
-      "confidence": "medium",
-      "horizon": "Q3 2026 forecast",
-      "stage": "Validating",
-      "summary": "Tezos X kernel 0.9 was cut on master on August 13 and the Previewnet installer was corrected on August 11; mainnet still waits for a public Tezos X Etherlink kernel proposal.",
-      "nextSignal": "Public Tezos X Etherlink kernel proposal or final-kernel declaration",
+      "confidence": "low",
+      "horizon": "Q3 2026 official target",
+      "stage": "Kernel rollout confirmed",
+      "summary": "Etherlink kernel 7.1 has a completed mainnet deployment receipt. The official Tezos X roadmap still labels Q3 activation planned; the broader launch remains unconfirmed in this review.",
+      "nextSignal": "Explicit full Tezos X rollout declaration tied to the deployed kernel and operator compatibility",
       "route": "/tezosx/",
-      "highlight": "The kernel 0.9 code release is meaningful progress, but it does not start mainnet governance or prove a production deployment.",
+      "highlight": "Ganesha introduced the Michelson/NAC infrastructure proposal. Confirmed kernel deployment and the broader Tezos X rollout remain separate claims.",
       "excitement": "medium",
       "gates": [
         {
           "id": "runtime",
           "label": "Runtime hardening",
-          "status": "active",
-          "detail": "Kernel 0.9 was cut on master on August 13 while cross-runtime correctness and RISC-V hardening continue."
+          "status": "validating",
+          "detail": "Ganesha describes the Michelson interface and native atomic composability; kernel deployment does not establish completion of the wider Tezos X roadmap."
         },
         {
           "id": "previewnet",
           "label": "Previewnet stability",
           "status": "validating",
-          "detail": "The public EVM plus Michelson Previewnet remains live and its reset installer was corrected on August 11; validation remains upstream of mainnet."
+          "detail": "The official Previewnet and documentation remain available for testing. A public test environment is not a production-readiness certificate."
         },
         {
           "id": "tooling",
           "label": "Node and tooling compatibility",
           "status": "ready",
-          "detail": "EVM node 0.64, explicitly required for the Previewnet upgrade, was tagged on July 30."
+          "detail": "EVM node 0.65 is published. Ganesha required at least 0.64 and a restart to expose Michelson RPCs after activation; each operator remains responsible for compatibility."
         },
         {
           "id": "proposal",
           "label": "Mainnet proposal readiness",
-          "status": "not_started",
-          "detail": "No public Tezos X mainnet kernel proposal or activation package is visible yet."
+          "status": "complete",
+          "detail": "Ganesha was publicly proposed for the SLOW track. The reviewed archive contains SLOW proposal 40 and promotion 41; the old no-public-proposal claim is retracted."
         },
         {
           "id": "governance",
           "label": "Etherlink governance",
-          "status": "not_started",
-          "detail": "Baker approval cannot begin until the mainnet kernel proposal is submitted."
+          "status": "complete",
+          "detail": "FAST periods 636/637 record the kernel 7.1 proposal and promotion. SLOW and FAST outcomes remain distinct; an empty current window cannot erase historical governance."
         },
         {
           "id": "rollout",
           "label": "Production rollout",
-          "status": "not_started",
-          "detail": "Operator and ecosystem activation remains downstream of approval and scheduling."
+          "status": "active",
+          "detail": "Etherlink reports kernel 7.1 mainnet maintenance completed August 29. Its deployment is confirmed; a separate declaration of the full Tezos X rollout is still required."
         }
       ],
       "evidence": [
         {
-          "label": "Tezos X roadmap update",
-          "url": "https://spotlight.tezos.com/tezos-x-from-roadmap-to-reality/",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "Official roadmap separates Previewnet testing, Etherlink governance, mainnet, and later RISC-V work."
+          "label": "Current official Tezos X roadmap",
+          "url": "https://tezos.com/tezos-x",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "The page labels mainnet activation Q3 2026 and Planned. This is a published target, not an independently confirmed full-rollout date."
         },
         {
-          "label": "Tezos X Previewnet launch",
-          "url": "https://spotlight.tezos.com/introducing-tezos-x-previewnet/",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "Previewnet is public; the post says the mainnet step follows testing through an Etherlink proposal."
+          "label": "Ganesha proposal and scope",
+          "url": "https://spotlight.tezos.com/announcing-ganesha-etherlink-7th-upgrade-proposal/",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "The July 31 post describes Michelson/NAC infrastructure, a SLOW-track proposal, the 0.64 operator minimum and a separate later full Tezos X rollout."
         },
         {
-          "label": "Tezos X kernel 0.9 release",
-          "url": "https://gitlab.com/tezos/tezos/-/merge_requests/22732",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "The release cut merged on master on August 13; it is a code artifact, not proof of Previewnet deployment or mainnet activation."
+          "label": "Complete official SLOW period archive",
+          "url": "https://governance.etherlink.com/api/slow/pastPeriods",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "SLOW 40/41 record the August proposal and promotion. Period 41 has Nay-dominant voting power; its result must not be conflated with later FAST votes."
         },
         {
-          "label": "Previewnet installer correction",
-          "url": "https://gitlab.com/tezos/tezos/-/merge_requests/22695",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "The reset installer was corrected on August 11; this operational fix is not a mainnet proposal or activation."
+          "label": "Complete official FAST period archive",
+          "url": "https://governance.etherlink.com/api/fast/pastPeriods",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "FAST 636/637 record proposal 00db5a8b279b9915f7ffef420347b5d9667ac4e73a9c766b7ef71513f748f52c67 and August 28 promotion. Current-window absence is not historical absence."
         },
         {
-          "label": "EVM node 0.64 tag",
-          "url": "https://gitlab.com/tezos/tezos/-/tags/octez-evm-node-v0.64",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "0.64 remains the latest protected EVM-node tag in the reviewed canonical tag list."
+          "label": "Etherlink 7.1 mainnet deployment",
+          "url": "https://status.etherlink.com/incident/1040145",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "Official maintenance names kernel 7.1 mainnet activation, beginning August 29 at 19:45:14 UTC and ending at 20:45:14 UTC. This is an operator deployment receipt."
         },
         {
-          "label": "Current Etherlink FAST governance storage",
-          "url": "https://tzkt.io/KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo/storage/",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "The current proposal window had no winning candidate in the reviewed storage receipt, so mainnet governance has not begun."
+          "label": "Tezos X documentation scope",
+          "url": "https://x.tezos.com/docs/",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "Documentation still describes an experimental testnet. This lag relative to kernel deployment is exposed as a source discrepancy, not resolved by inventing a full launch."
+        },
+        {
+          "label": "EVM node 0.65 release receipt",
+          "url": "https://gitlab.com/api/v4/projects/tezos%2Ftezos/releases/octez-evm-node-v0.65",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "The canonical release record identifies version 0.65 and released_at 2026-08-24T17:07:09.170Z; source commit time is a separate clock."
         }
       ],
       "history": [
@@ -117,6 +123,18 @@
           "previousConfidence": "medium",
           "confidence": "medium",
           "reason": "Kernel 0.9 was cut on master and the Previewnet installer was corrected, but the reviewed FAST governance window still has no winning mainnet-kernel candidate."
+        },
+        {
+          "observedAt": "2026-09-05T13:09:49.448Z",
+          "previousConfidence": "medium",
+          "confidence": "low",
+          "reason": "Retracted the earlier FAST-null inference after reviewing SLOW/FAST histories and the 7.1 deployment. Q3 remains an official target; conflicting rollout documentation lowers confidence in the full-launch forecast."
+        },
+        {
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "previousConfidence": "low",
+          "confidence": "low",
+          "reason": "September 8 re-review: canonical release records and complete SLOW/FAST histories are unchanged; the completed kernel 7.1 deployment remains distinct from the roadmap target and experimental-testnet documentation. No new full-rollout declaration was confirmed in these reviewed sources."
         }
       ]
     },
@@ -124,27 +142,33 @@
       "id": "octez-v25-2",
       "label": "Octez 25.2",
       "kind": "octez_release",
-      "lifecycle": "forecast",
-      "confidence": "low",
-      "horizon": "weeks",
-      "stage": "Backports merged",
-      "summary": "As reviewed August 14, the named 25.2 DAL backport train is merged but there is still no 25.2 release tag or public artifact.",
-      "nextSignal": "Release version bump, candidate packaging, or octez-v25.2 tag",
-      "route": "https://gitlab.com/tezos/tezos/-/merge_requests/22623",
-      "highlight": "The merged backport train strengthens the release signal, but it does not supply a date or a release artifact.",
+      "lifecycle": "released",
+      "confidence": "high",
+      "horizon": "",
+      "stage": "Published",
+      "summary": "Octez 25.2 is published with binaries on the canonical release page. Its GitLab release record dates publication to September 2; the August 24 source-commit date is not the release date.",
+      "nextSignal": "A separately published next Octez release or release candidate",
+      "route": "https://octez.tezos.com/releases/",
+      "highlight": "Published binaries and the canonical tag replace the old backport-only forecast.",
       "gates": [],
       "evidence": [
         {
-          "label": "25.2 DAL backport cluster",
-          "url": "https://gitlab.com/tezos/tezos/-/merge_requests/22623",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "The merge request targeting Octez 25.2 merged into v25-release on August 5 with a passing pipeline."
+          "label": "Canonical Octez releases and binaries",
+          "url": "https://octez.tezos.com/releases/",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "The official page identifies Octez 25.2 as latest and exposes x86_64 and arm64 binaries with SHA-256 checksums."
         },
         {
-          "label": "Canonical Octez tags",
-          "url": "https://octez.tezos.com/releases/",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "The canonical Octez release page still identifies 25.1 as the latest published release."
+          "label": "Octez 25.2 protected tag",
+          "url": "https://gitlab.com/tezos/tezos/-/tags/octez-v25.2",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "Protected tag at f606285304de0294926946b8b474a1e38a5b5972. The tag page shows the source commit date; the release record supplies publication time."
+        },
+        {
+          "label": "Octez 25.2 publication timestamp",
+          "url": "https://gitlab.com/api/v4/projects/tezos%2Ftezos/releases/octez-v25.2",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "released_at is 2026-09-02T14:22:03.407Z and upcoming_release is false. The deprecated GitLab page points users to octez.tezos.com/releases/."
         }
       ],
       "history": [
@@ -158,48 +182,56 @@
           "previousConfidence": "low",
           "confidence": "low",
           "reason": "The DAL backport train merged successfully, but no version bump, package, candidate, or 25.2 tag is published yet."
+        },
+        {
+          "observedAt": "2026-09-05T13:09:49.448Z",
+          "previousConfidence": "low",
+          "confidence": "high",
+          "reason": "Canonical binaries, the protected tag and a September 2 release record confirm 25.2 shipped. The earlier backport-only forecast is superseded."
+        },
+        {
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "previousConfidence": "high",
+          "confidence": "high",
+          "reason": "September 8 re-review confirmed the same published operator release against its canonical tag list, release record, and downloadable artifacts. Publication time and release scope are unchanged."
         }
       ],
-      "recentRelease": {
-        "label": "Octez 25.1",
-        "releasedAt": "2026-07-20T18:47:47.000Z",
-        "url": "https://gitlab.com/tezos/tezos/-/tags/octez-v25.1",
-        "summary": "Latest tagged Octez L1 node release."
-      }
+      "releasedAt": "2026-09-02T14:22:03.407Z",
+      "excitement": "high"
     },
     {
-      "id": "evm-node-v0-64",
-      "label": "EVM Node 0.64",
+      "id": "evm-node-v0-65",
+      "label": "EVM Node 0.65",
       "kind": "evm_node_release",
       "lifecycle": "released",
       "confidence": "high",
       "horizon": "",
-      "stage": "Tagged",
-      "summary": "EVM node 0.64 remains the latest protected tag; draft Ganesha native-execution work is not a release.",
-      "nextSignal": "Protected EVM-node tag carrying Ganesha native execution or another operator release",
-      "route": "https://gitlab.com/tezos/tezos/-/tags/octez-evm-node-v0.64",
-      "highlight": "0.64 remains the current operator release; Ganesha support is still draft work without a tag.",
+      "stage": "Published",
+      "summary": "EVM node 0.65 is the latest protected EVM-node tag in the reviewed canonical list, with a published release and static binaries. It is separate from the Tezos X full-rollout decision.",
+      "nextSignal": "A separately published next EVM-node tag or release candidate",
+      "route": "https://gitlab.com/tezos/tezos/-/releases/octez-evm-node-v0.65",
+      "highlight": "0.65 supersedes the previous 0.64 release receipt; operator release publication does not certify the full Tezos X launch.",
       "excitement": "high",
-      "releasedAt": "2026-07-30T14:45:09.000Z",
+      "releasedAt": "2026-08-24T17:07:09.170Z",
       "gates": [],
       "evidence": [
         {
-          "label": "EVM node 0.64 tag",
-          "url": "https://gitlab.com/tezos/tezos/-/tags/octez-evm-node-v0.64",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "Protected canonical tag at commit 12a44fed."
+          "label": "Canonical protected release tags",
+          "url": "https://gitlab.com/tezos/tezos/-/tags",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "The reviewed list identifies octez-evm-node-v0.65 as the latest protected EVM-node tag, at commit 0ee84d6b."
         },
         {
-          "label": "EVM node 0.64 release request",
-          "url": "https://gitlab.com/tezos/tezos/-/merge_requests/22648",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "Merged July 30 with a passing pipeline and an explicit Tezos X Previewnet requirement."
+          "label": "EVM node 0.65 tag",
+          "url": "https://gitlab.com/tezos/tezos/-/tags/octez-evm-node-v0.65",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "Protected version 0.65 tag at 0ee84d6bf5fe976c5a657ce3be092ce256d035d8."
         },
         {
-          "label": "Draft EVM-node Ganesha native execution",
-          "url": "https://gitlab.com/tezos/tezos/-/merge_requests/22678",
-          "observedAt": "2026-08-14T05:54:33.000Z",
-          "note": "The request remains an open draft targeting master with no release tag; it is a development signal, not a shipped operator artifact."
+          "label": "EVM node 0.65 release and publication",
+          "url": "https://gitlab.com/api/v4/projects/tezos%2Ftezos/releases/octez-evm-node-v0.65",
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "note": "The canonical record supplies released_at 2026-08-24T17:07:09.170Z, upcoming_release false and a static-binaries package link."
         }
       ],
       "history": [
@@ -213,14 +245,28 @@
           "previousConfidence": "high",
           "confidence": "high",
           "reason": "The canonical protected tag replaced the forecast with a confirmed release."
+        },
+        {
+          "observedAt": "2026-09-05T13:09:49.448Z",
+          "previousConfidence": "high",
+          "confidence": "high",
+          "reason": "Version 0.65 has a canonical August 24 publication record and static binaries. It supersedes 0.64; draft work is no longer used as the release-status proxy."
+        },
+        {
+          "observedAt": "2026-09-08T13:29:03.471Z",
+          "previousConfidence": "high",
+          "confidence": "high",
+          "reason": "September 8 re-review confirmed the same published operator release against its canonical tag list, release record, and downloadable artifacts. Publication time and release scope are unchanged."
         }
       ]
     }
   ],
   "methodology": [
-    "Octez, the EVM node, Tezos X Previewnet, Tezos X mainnet, and Tezos L1 protocol proposals are tracked as separate release lanes.",
-    "Confidence comes from direct artifacts and coordinated evidence, never raw merge volume or a fake completion percentage.",
-    "Q3 2026 is an agent forecast, not a scheduled activation date; Etherlink governance timing begins only after a public proposal exists.",
-    "The browser renders this reviewed daily artifact and marks it stale; it does not infer release readiness from GitLab activity."
+    "Octez, the EVM node, Tezos X Previewnet, kernel governance, kernel deployment and the full Tezos X rollout remain separate claims.",
+    "Confidence comes from direct artifacts and coordinated evidence, never raw merge volume or a completion percentage.",
+    "Q3 2026 is the current official roadmap target, not a confirmed full-rollout date. Deployed kernel infrastructure does not settle contradictory platform documentation.",
+    "Governance review checks complete SLOW and FAST histories. An empty current FAST window cannot prove that no public proposal or governance vote has ever existed.",
+    "releasedAt uses the canonical release record publication clock, never a source commit timestamp. Review timestamps describe this review and do not refresh upstream facts.",
+    "The browser renders reviewed evidence, marks the receipt stale after 36 hours and removes it at expiry. Extending those clocks requires another substantive source review."
   ]
 }

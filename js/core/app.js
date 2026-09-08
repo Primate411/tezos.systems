@@ -70,7 +70,7 @@ import {
 import { resolveTezReverseNames } from './tezos-domains.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 let closeCycleHistoryChamber, initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal;
-import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
+import { ensureCardShareButton, initShare, initProtocolShare, setLiveAPY } from '../ui/share.js';
 import { activateChamberDialog, deactivateChamberDialog, requestChamberClose, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { activateOverlayDialog, deactivateOverlayDialog, reconcileOverlayEnvironment } from '../ui/overlay-stack.js';
@@ -129,40 +129,139 @@ let activateHotTodaySignal, initDailyBriefing, initHotTodayIsland, updateDailyBr
 let initStateOfTezos;
 let closeNetworkHealthChamber, initNetworkHealth, refreshNetworkHealth;
 let initHeroSearch;
-let initNativeExplorer;
 import { initSiteWayfinder } from '../ui/wayfinder.js';
 
 // Legacy controllers can open without fetching or initializing the dashboard graph.
 const APP_FEATURE_LOADERS = {
     'history': () => loadChamberFeature('history', { initialize: false }).then(module => { ({ closeCycleHistoryChamber, initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal } = module); return module; }),
-    'governance-alerts': () => import('../features/governance-alerts.js').then(module => { ({ initGovernanceAlerts } = module); return module; }),
-    'whales': () => import('../features/whales.js').then(module => { ({ initWhaleTracker } = module); return module; }),
-    'sleeping-giants': () => import('../features/sleeping-giants.js').then(module => { ({ initSleepingGiants } = module); return module; }),
-    'price': () => import('../features/price.js').then(module => { ({ initPriceBar } = module); return module; }),
-    'streak': () => import('../features/streak.js').then(module => { ({ initStreak } = module); return module; }),
-    'comparison': () => import('../features/comparison.js').then(module => { ({ initComparison, updateComparison } = module); return module; }),
-    'my-baker': () => import('../features/my-baker.js').then(module => { ({ init: initMyBaker, refresh: refreshMyBaker } = module); return module; }),
-    'calculator': () => import('../features/calculator.js').then(module => { ({ initCalculator } = module); return module; }),
-    'moments': () => import('../features/moments.js').then(module => { ({ checkMoments, initMomentsTimeline } = module); return module; }),
-    'baker-report-card': () => import('../features/baker-report-card.js').then(module => { ({ initBakerReportCard } = module); return module; }),
+    'governance-alerts': () => importAppFeatureModule('governance-alerts', '../features/governance-alerts.js').then(module => { ({ initGovernanceAlerts } = module); return module; }),
+    'whales': () => importAppFeatureModule('whales', '../features/whales.js').then(module => { ({ initWhaleTracker } = module); return module; }),
+    'sleeping-giants': () => importAppFeatureModule('sleeping-giants', '../features/sleeping-giants.js').then(module => { ({ initSleepingGiants } = module); return module; }),
+    'price': () => importAppFeatureModule('price', '../features/price.js').then(module => { ({ initPriceBar } = module); return module; }),
+    'streak': () => importAppFeatureModule('streak', '../features/streak.js').then(module => { ({ initStreak } = module); return module; }),
+    'comparison': () => importAppFeatureModule('comparison', '../features/comparison.js').then(module => { ({ initComparison, updateComparison } = module); return module; }),
+    'my-baker': () => importAppFeatureModule('my-baker', '../features/my-baker.js').then(module => { ({ init: initMyBaker, refresh: refreshMyBaker } = module); return module; }),
+    'calculator': () => importAppFeatureModule('calculator', '../features/calculator.js').then(module => { ({ initCalculator } = module); return module; }),
+    'moments': () => importAppFeatureModule('moments', '../features/moments.js').then(module => { ({ checkMoments, initMomentsTimeline } = module); return module; }),
+    'baker-report-card': () => importAppFeatureModule('baker-report-card', '../features/baker-report-card.js').then(module => { ({ initBakerReportCard } = module); return module; }),
     'my-tezos': () => loadChamberFeature('my', { initialize: false }).then(module => { ({ initMyTezos, refreshMyTezos } = module); return module; }),
-    'upgrade-effect': () => import('../features/upgrade-effect.js').then(module => { ({ initUpgradeEffect } = module); return module; }),
-    'cycle-pulse': () => import('../features/cycle-pulse.js').then(module => { ({ initCyclePulse, updateCyclePulse } = module); return module; }),
-    'price-intelligence': () => import('../features/price-intelligence.js').then(module => { ({ initPriceIntelligence, updatePriceIntelligence } = module); return module; }),
-    'rewards-tracker': () => import('../features/rewards-tracker.js').then(module => { ({ initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } = module); return module; }),
-    'daily-briefing': () => import('../features/daily-briefing.js').then(module => { ({ activateHotTodaySignal, initDailyBriefing, initHotTodayIsland, updateDailyBriefing, updateHotTodayIsland } = module); return module; }),
-    'state-of-tezos': () => import('../features/state-of-tezos.js').then(module => { ({ initStateOfTezos } = module); return module; }),
+    'upgrade-effect': () => importAppFeatureModule('upgrade-effect', '../features/upgrade-effect.js').then(module => { ({ initUpgradeEffect } = module); return module; }),
+    'cycle-pulse': () => importAppFeatureModule('cycle-pulse', '../features/cycle-pulse.js').then(module => { ({ initCyclePulse, updateCyclePulse } = module); return module; }),
+    'price-intelligence': () => importAppFeatureModule('price-intelligence', '../features/price-intelligence.js').then(module => { ({ initPriceIntelligence, updatePriceIntelligence } = module); return module; }),
+    'rewards-tracker': () => importAppFeatureModule('rewards-tracker', '../features/rewards-tracker.js').then(module => { ({ initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } = module); return module; }),
+    'daily-briefing': () => importAppFeatureModule('daily-briefing', '../features/daily-briefing.js').then(module => { ({ activateHotTodaySignal, initDailyBriefing, initHotTodayIsland, updateDailyBriefing, updateHotTodayIsland } = module); return module; }),
+    'state-of-tezos': () => importAppFeatureModule('state-of-tezos', '../features/state-of-tezos.js').then(module => { ({ initStateOfTezos } = module); return module; }),
     'network-health': () => loadChamberFeature('health', { initialize: false }).then(module => { ({ closeNetworkHealthChamber, initNetworkHealth, refreshNetworkHealth } = module); return module; }),
-    'search': () => import('../features/search.js').then(module => { ({ initHeroSearch } = module); return module; }),
-    'native-explorer': () => import('../features/native-explorer.js').then(module => { ({ initNativeExplorer } = module); return module; })
+    'search': () => importAppFeatureModule('search', '../features/search.js').then(module => { ({ initHeroSearch } = module); return module; }),
+    'native-explorer': () => importAppFeatureModule('native-explorer', '../features/native-explorer.js')
 };
 const appFeaturePromises = new Map();
+const appFeatureModules = new Map();
+const appFeatureAttempts = new Map();
+const OPTIONAL_APP_FEATURES = new Set(['calculator', 'comparison', 'state-of-tezos', 'native-explorer']);
+const initializedOptionalFeatures = new Set();
+let latestComparisonStats = {};
+
+function importAppFeatureModule(id, path) {
+    const attempt = appFeatureAttempts.get(id) || 0;
+    return import(attempt ? `${path}?app-retry=${attempt}` : path);
+}
+
 function ensureAppFeature(id) {
-    if (!appFeaturePromises.has(id)) appFeaturePromises.set(id, APP_FEATURE_LOADERS[id]().catch(error => {
-        appFeaturePromises.delete(id);
-        throw error;
-    }));
+    if (!appFeaturePromises.has(id)) {
+        const promise = APP_FEATURE_LOADERS[id]().then(module => {
+            appFeatureModules.set(id, module);
+            return module;
+        }).catch(error => {
+            appFeaturePromises.delete(id);
+            appFeatureAttempts.set(id, (appFeatureAttempts.get(id) || 0) + 1);
+            throw error;
+        });
+        appFeaturePromises.set(id, promise);
+    }
     return appFeaturePromises.get(id);
+}
+
+function publishComparisonStats(stats) {
+    latestComparisonStats = stats;
+    if (initializedOptionalFeatures.has('comparison') && document.getElementById('comparison-section')?.classList.contains('visible')) {
+        updateComparison(stats);
+    }
+}
+
+function wireDeferredAppFeature(id, selector, initialize, { restore = false } = {}) {
+    const button = document.querySelector(selector);
+    if (!button || button.dataset.lazyAppFeatureWired) return;
+    button.dataset.lazyAppFeatureWired = id;
+    const title = button.title;
+    let pending = null;
+    const prepare = () => {
+        if (initializedOptionalFeatures.has(id)) return Promise.resolve();
+        if (!pending) {
+            pending = ensureAppFeature(id).then(() => {
+                if (!initializedOptionalFeatures.has(id)) {
+                    initialize();
+                    initializedOptionalFeatures.add(id);
+                }
+            }).finally(() => { pending = null; });
+        }
+        return pending;
+    };
+    button._prepareDeferredFeature = prepare;
+    button.addEventListener('click', async event => {
+        if (initializedOptionalFeatures.has(id)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (button.getAttribute('aria-busy') === 'true') return;
+        const route = location.href;
+        let cancelled = false;
+        const cancel = event => { if (event.key === 'Escape') cancelled = true; };
+        document.addEventListener('keydown', cancel);
+        button.setAttribute('aria-busy', 'true');
+        button.title = 'Loading tool…';
+        try {
+            await prepare();
+            if (dashboardInitialization) await dashboardInitialization;
+            button.title = title;
+            if (!cancelled && location.href === route && button.isConnected) button.click();
+        } catch (error) {
+            console.warn(`${id} unavailable; activate again to retry:`, error);
+            button.title = 'Tool unavailable — activate again to retry';
+        } finally {
+            button.removeAttribute('aria-busy');
+            document.removeEventListener('keydown', cancel);
+        }
+    }, true);
+    if (restore) prepare().catch(error => {
+        console.warn(`Saved ${id} view unavailable; activate again to retry:`, error);
+        button.title = 'Tool unavailable — activate again to retry';
+    });
+}
+
+function initOptionalAppLaunchers() {
+    wireDeferredAppFeature('calculator', '#calc-toggle', () => initCalculator(), {
+        restore: localStorage.getItem('tezos-systems-calc-visible') === 'true'
+    });
+    wireDeferredAppFeature('comparison', '#comparison-toggle', () => initComparison(latestComparisonStats), {
+        restore: localStorage.getItem('tezos-systems-comparison-visible') === 'true'
+    });
+    wireDeferredAppFeature('state-of-tezos', '#state-of-tezos-btn', () => initStateOfTezos());
+}
+
+function initNativeExplorerLauncher() {
+    let nativeIntent = 0;
+    window.TezosNativeExplorer = {
+        async open(...args) {
+            const intent = ++nativeIntent;
+            const route = location.href;
+            const module = await ensureAppFeature('native-explorer');
+            if (intent === nativeIntent && location.href === route) return module.openNativeExplorer(...args);
+        },
+        close() {
+            nativeIntent += 1;
+            return appFeatureModules.get('native-explorer')?.closeNativeExplorer();
+        }
+    };
 }
 
 const MY_TEZOS_CSS_URL = versionedAsset('/css/my-tezos.min.css');
@@ -337,6 +436,7 @@ async function init({ applyInitialRoute = true, initialChamber = '' } = {}) {
     // Wire the actual disclosures and intent listeners before the async boundary.
     safe('chambersSurface', initChambersSurface);
     safe('lazyChamberLaunchers', initLazyChamberLaunchers);
+    safe('optionalAppLaunchers', initOptionalAppLaunchers);
     await prepareDashboardDependencies();
     debugLog('Initializing Tezos Systems dashboard...');
 
@@ -393,13 +493,10 @@ async function init({ applyInitialRoute = true, initialChamber = '' } = {}) {
     safe('myBaker', initMyBaker);
 
     // Initialize Rewards Calculator
-    safe('calculator', initCalculator);
     safe('bakerReportCard', initBakerReportCard);
-    safe('stateOfTezos', initStateOfTezos);
 
     safe('momentsTimeline', initMomentsTimeline);
     safe('comparisonToggle', initComparisonToggle);
-    safe('comparison', () => initComparison({}));
     safe('cyclePulse', () => initCyclePulse({}));
     safe('dailyBriefing', () => initDailyBriefing({}, 0));
     safe('hotTodayIsland', () => initHotTodayIsland({}, 0));
@@ -415,7 +512,9 @@ async function init({ applyInitialRoute = true, initialChamber = '' } = {}) {
     safe('siteWayfinder', initSiteWayfinder);
     safe('siteMapRouter', initSiteMapRouter);
     safe('heroSearch', initHeroSearch);
-    safe('nativeExplorer', initNativeExplorer);
+    // Publish the lazy explorer after startup route normalization, at the same
+    // point as its former eager initializer, so an immediate open is retained.
+    safe('nativeExplorerLauncher', initNativeExplorerLauncher);
     safe('uptimeClock', initUptimeClock);
     safe('chambersToggle', initChambersToggle);
     safe('tezosStatsToggle', initTezosStatsToggle);
@@ -658,7 +757,7 @@ async function refreshInBackground({ includeHeavy = true } = {}) {
             cycleTimeRemaining: heroStats.cycleTimeRemaining ?? state.currentStats?.cycleTimeRemaining,
             _quality: qualityStats?._quality ?? heroStats._quality ?? state.currentStats?._quality,
         };
-        updateComparison(comparisonStats);
+        publishComparisonStats(comparisonStats);
         updateCyclePulse(comparisonStats);
         const bgXtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
         updateDailyBriefing(comparisonStats, bgXtzPrice);
@@ -1062,7 +1161,7 @@ async function updateStats(newStats) {
     }
 
     // Update comparison section with live Tezos data
-    updateComparison(state.currentStats);
+    publishComparisonStats(state.currentStats);
 
     // Update new engagement features
     updateCyclePulse(state.currentStats);
@@ -3171,9 +3270,10 @@ function initComparisonToggle() {
         const newState = !isVisible;
         localStorage.setItem(COMPARISON_VISIBLE_KEY, String(newState));
         updateVis(newState);
+        if (newState) publishComparisonStats(latestComparisonStats);
     });
 
-    // Default ON (visible) unless user explicitly hid it
+    // Default OFF; restore only an explicitly saved comparison view.
     const stored = localStorage.getItem(COMPARISON_VISIBLE_KEY);
     const isVisible = stored === 'true'; // null = false (default OFF)
     updateVis(isVisible);
@@ -5197,7 +5297,7 @@ function renderProtocolTimeline(protocols) {
     if (countEl) countEl.textContent = upgradeCount;
     const aboutUpgrades = document.getElementById('about-upgrades');
     if (aboutUpgrades) aboutUpgrades.textContent = upgradeCount;
-    updateComparison?.(state.currentStats);
+    publishComparisonStats(state.currentStats);
 
     if (currentProtocol) {
         const headerProtocolEl = document.getElementById('header-current-protocol');
@@ -6158,7 +6258,7 @@ let protocolHistoryChamberCloseTimer = null;
 
 async function ensureProtocolAnthologyCss() {
     try {
-        await ensureChamberStylesheet('protocol-anthology-css', versionedAsset('/css/protocol-anthology.css'));
+        await ensureChamberStylesheet('protocol-anthology-css', versionedAsset('/css/protocol-anthology.min.css'));
         return true;
     } catch (error) {
         console.warn('Protocol Anthology styles unavailable; open again to retry:', error);
@@ -6528,7 +6628,7 @@ export function seedChamberFeature(entryId, module) {
 }
 
 export function prepareDashboardDependencies() {
-    return Promise.all(Object.keys(APP_FEATURE_LOADERS).map(ensureAppFeature));
+    return Promise.all(Object.keys(APP_FEATURE_LOADERS).filter(id => !OPTIONAL_APP_FEATURES.has(id)).map(ensureAppFeature));
 }
 
 // The standalone pilot installs the body before starting this same module.
@@ -7149,8 +7249,16 @@ function applyDeepLink() {
         ROOT_DASHBOARD_TITLE || undefined
     );
 
-    const showToggleSection = (toggleId, sectionId, options = {}) => {
+    const showToggleSection = async (toggleId, sectionId, options = {}) => {
+        const route = location.href;
         const toggle = document.getElementById(toggleId);
+        try {
+            await toggle?._prepareDeferredFeature?.();
+        } catch (error) {
+            console.warn('Requested tool unavailable; activate its control to retry:', error);
+            return;
+        }
+        if (location.href !== route) return;
         const section = document.getElementById(sectionId);
         const isVisible = section && (
             section.classList.contains('visible') ||
@@ -7268,7 +7376,7 @@ function applyDeepLink() {
             Promise.resolve().then(() => closeCycleHistoryChamber?.({ preserveRoute: true }))
         ];
         if (document.getElementById('native-explorer-overlay')) {
-            closeTasks.push(import('../features/native-explorer.js').then((module) => module.closeNativeExplorer?.()));
+            closeTasks.push(Promise.resolve(window.TezosNativeExplorer.close()));
         }
         await Promise.allSettled(closeTasks);
 
@@ -7509,7 +7617,7 @@ function applyDeepLink() {
     if (nativeEntity) {
         const [kind, value] = nativeEntity;
         openHashModal(
-            () => import('../features/native-explorer.js').then(({ openNativeExplorer }) => openNativeExplorer(kind, value)),
+            () => window.TezosNativeExplorer.open(kind, value),
             `Failed to open native ${kind} view`
         );
     }

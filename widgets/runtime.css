@@ -1,0 +1,28 @@
+/* Reserve one stable source/retry row in every embed, including failures. */
+.widget { padding-bottom: 25px; }
+.widget-meta {
+  position: absolute; bottom: 4px; left: 8px; right: 8px;
+  height: 15px; display: flex; align-items: center; gap: 5px;
+  font-size: 8px; line-height: 15px; white-space: nowrap;
+}
+.widget-freshness { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: .65; }
+.widget-meta .footer { position: static; flex-shrink: 0; font-size: 8px; line-height: 15px; }
+.widget-retry {
+  appearance: none; flex: 0 0 35px; border: 0; padding: 0;
+  background: transparent; color: var(--text); font: inherit; cursor: pointer; opacity: .7;
+}
+.widget-retry:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
+/* Widgets have no intended perpetual motion after the first reading. */
+.widget .dot { animation: none; }
+.widget[data-quiet-refresh-settled] *,
+.widget[data-quiet-refreshing] * { animation: none !important; transition: none !important; }
+.widget[data-quiet-refresh-settled] .loading { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .widget *, body { animation: none !important; transition: none !important; }
+}
+/* The gauge retains its intrinsic layout even inside the 120px default frame. */
+@media (max-height: 140px) {
+  .widget:has(.gauge-wrap) { padding-top: 5px; gap: 0; }
+  .gauge-wrap { margin: 0; }
+  .gauge { height: 58px; }
+}

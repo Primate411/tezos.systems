@@ -14,6 +14,7 @@ import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
+import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml } from '../core/utils.js';
 import { getChamberScrollContainer,
     activateChamberDialog,
@@ -234,7 +235,7 @@ async function fetchEntrySummary() {
 async function fetchSnapshot(summary = lastEntrySummary) {
     if (activeSnapshotFetch) return activeSnapshotFetch;
     const sourceReceipt = summary?.source || null;
-    activeSnapshotFetch = fetchJsonText(ECOSYSTEM_SNAPSHOT_URL)
+    activeSnapshotFetch = fetchGeneratedSnapshot(ECOSYSTEM_SNAPSHOT_URL)
         .then(async ({ value, text }) => {
             await validateSnapshot(value);
             await assertSnapshotMatchesProjection(value, text, sourceReceipt, { label: 'Ecosystem snapshot' });

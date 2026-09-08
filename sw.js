@@ -6,7 +6,7 @@
  * so installing an update does not download the whole site.
  */
 
-const CACHE_NAME = 'tezos-systems-v629';
+const CACHE_NAME = 'tezos-systems-v630';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 const CURRENT_CACHES = new Set([CACHE_NAME, RUNTIME_CACHE]);
 
@@ -69,6 +69,8 @@ const NETWORK_ONLY_DATA_PATHS = new Set([
 ]);
 
 function isNetworkOnlyDataPath(pathname) {
+    // Transport encoding never changes the source's freshness/cache policy.
+    pathname = pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, '');
     return NETWORK_ONLY_DATA_PATHS.has(pathname)
         || /^\/data\/maxis\/seasons\/[^/]+\/(?:summary|rules)\.json$/.test(pathname);
 }

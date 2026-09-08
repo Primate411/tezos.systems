@@ -20,6 +20,7 @@ import {
   unstableSuiteResults
 } from './lib/smoke-harness.mjs';
 import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
+import { createSmokeLifecycle, SmokeCancelledError } from './lib/smoke-lifecycle.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 import { chooseLiveHeadDepth } from './live-head-depth-smoke.mjs';
 import { smokeTallScreen } from './tall-screen-smoke.mjs';
@@ -31,6 +32,11 @@ import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
 import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
 import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
+import { checkInspectorKeyboardReceipt } from './lib/network-health-harness-check.mjs';
+import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
+import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
+import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
+import { encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -67,6 +73,7 @@ const smokeSuiteCosts = SUITE_COSTS_PATH
   ? JSON.parse(readFileSync(SUITE_COSTS_PATH, 'utf8'))
   : defaultSmokeSuiteCosts;
 let affectedSelectionReport = null;
+let smokeLifecycle;
 
 function stableTestValue(value) {
   if (Array.isArray(value)) return value.map(stableTestValue);
@@ -238,7 +245,7 @@ const DEFERRED_CHAMBER_HEAVY_DATA_PATHS = [
 
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
-const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
+const SAMPLE_ADDRESS_3 = 'tz1PendingBaker111111111111111111111';
 const SAMPLE_CONTRACT = 'KT1V5XKmeypanMS9pR65REpqmVejWBZURuuT';
 const SAMPLE_IDLE_ADDRESS = 'tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb';
 const SAMPLE_ETHERLINK_ADDRESS = '0x1111111111111111111111111111111111111111';
@@ -534,7 +541,7 @@ const sampleBakers = [
     stakersCount: 12,
     stakedBalance: 700000000000,
     bakingPower: 950000000000,
-    consensusAddress: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa',
+    consensusAddress: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQ',
     balance: 900000000000,
     software: { version: 'v25.0', date: '2026-06-16T11:58:56Z' }
   },
@@ -1723,7 +1730,7 @@ async function installFeatureMocks(context, options = {}) {
   ];
   const pagedBakerTail = Array.from({ length: 499 }, (_, index) => ({
     ...sampleBakers[2],
-    address: `tz1SmokePagedBaker${String(index + 1).padStart(4, '0')}xxxxxxxxxxxxxxxx`,
+    address: `tz1SmokePagedBaker${String(index + 1).padStart(4, '0').replace(/\d/g, digit => 'ABCDEFGHJK'[Number(digit)])}`.padEnd(36, 'x'),
     alias: `Paged Baker ${String(index + 1).padStart(4, '0')}`,
     stakingBalance: 690000000000 - index * 1000000,
     bakingPower: 410000000000 - index * 100000,
@@ -1811,8 +1818,8 @@ async function installFeatureMocks(context, options = {}) {
     if (parsedUrl.pathname.endsWith('/data/release-radar.json')) {
       return fulfillJson(route, {
         ...releaseRadarFixture,
-        updatedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        updatedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
       });
     }
 
@@ -2637,13 +2644,14 @@ async function installFeatureMocks(context, options = {}) {
         return fulfillJson(route, { level: 12345678, cycle: 1143, cycle_position: 1234 });
       }
       if (url.includes('/metadata')) {
+        const requestedLevel = Number(parsedUrl.pathname.match(/\/blocks\/(\d+)\/metadata$/)?.[1]);
         return fulfillJson(route, {
           level_info: nullCycleTiming
             ? { cycle: null, cycle_position: null }
             : {
                 cycle: Number(cycleMilestone?.cycle) || 1143,
                 cycle_position: cycleMilestone
-                  ? rpcMetadataLevel - Number(cycleMilestone.startLevel)
+                  ? (requestedLevel || rpcMetadataLevel) - Number(cycleMilestone.startLevel)
                   : 1234
               }
         });
@@ -2875,6 +2883,9 @@ async function installFeatureMocks(context, options = {}) {
       }
       if (/\/blocks\/[^/]+\/level/.test(url)) {
         return fulfillJson(route, 12344000);
+      }
+      if (/^\/v1\/blocks\/\d+$/.test(parsedUrl.pathname)) {
+        return fulfillJson(route, { level: Number(parsedUrl.pathname.split('/').pop()), hash: 'BLockSmokeReceipt', timestamp: new Date(Date.now() - 1000).toISOString(), round: 0, baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }, validations: 7000, transactions: 0 });
       }
       if (url.includes('/blocks?')) {
         const params = new URL(url).searchParams;
@@ -3116,7 +3127,7 @@ async function installFeatureMocks(context, options = {}) {
             timestamp: new Date(Date.now() - 14 * 86400000).toISOString(),
             sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
             publicKey: 'BLpkSmokeActiveConsensusKey111111111111111111111111111111111111111111111111',
-            publicKeyHash: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa',
+            publicKeyHash: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQ',
             activationCycle: 1136,
             status: 'applied'
           },
@@ -3627,6 +3638,17 @@ async function installFeatureMocks(context, options = {}) {
           delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', active: true },
           firstActivity: 458753,
           firstActivityTime: '2019-05-30T00:00:00Z'
+        });
+      }
+      if (parsedUrl.pathname === `/v1/accounts/${SAMPLE_ADDRESS_3}`) {
+        const baker = sampleBakers.find(({ address }) => address === SAMPLE_ADDRESS_3);
+        return fulfillJson(route, {
+          ...baker,
+          type: 'delegate',
+          active: true,
+          delegate: { address: baker.address, alias: baker.alias, active: true },
+          firstActivity: 12300000,
+          firstActivityTime: '2026-07-01T00:00:00Z'
         });
       }
       if (url.includes(`/accounts/${SAMPLE_IDLE_ADDRESS}`) && !url.includes('/operations?')) {
@@ -4974,8 +4996,9 @@ async function waitForServer(url) {
   const deadline = Date.now() + 10000;
   let lastError;
   while (Date.now() < deadline) {
+    smokeLifecycle?.signal.throwIfAborted();
     try {
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetch(url, { cache: 'no-store', signal: smokeLifecycle?.signal });
       if (response.ok) return;
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
@@ -4999,6 +5022,21 @@ async function startLocalServer() {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe']
   });
+  const stop = async () => {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    await new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        child.kill('SIGKILL');
+      }, 2000);
+      child.once('exit', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      child.kill();
+    });
+  };
+  const untrack = smokeLifecycle?.track(stop);
+  child.once('exit', () => untrack?.());
 
   let output = '';
   child.stdout.on('data', (chunk) => { output += chunk.toString(); });
@@ -5008,32 +5046,25 @@ async function startLocalServer() {
   try {
     await waitForServer(`${baseUrl}/`);
   } catch (error) {
-    child.kill();
+    await stop();
+    smokeLifecycle?.signal.throwIfAborted();
     throw new SmokeInfrastructureError(`${error.message}\n${output}`, { cause: error });
   }
 
   return {
     baseUrl,
-    stop: async () => {
-      if (child.exitCode !== null || child.signalCode !== null) return;
-      child.kill();
-      await new Promise((resolve) => {
-        const timeout = setTimeout(resolve, 2000);
-        child.once('exit', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-      });
-    }
+    stop
   };
 }
 
 async function startSmokeServer() {
   let lastError;
   for (let retry = 0; retry <= RETRY_INFRASTRUCTURE; retry += 1) {
+    smokeLifecycle?.signal.throwIfAborted();
     try {
       return await startLocalServer();
     } catch (error) {
+      smokeLifecycle?.signal.throwIfAborted();
       lastError = isSmokeInfrastructureError(error)
         ? error
         : new SmokeInfrastructureError(`local smoke server startup failed: ${error.message}`, { cause: error });
@@ -5123,11 +5154,17 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS, option
 
 async function launchChromium(chromium) {
   try {
-    return await launchPlaywrightChromium(chromium, {
+    smokeLifecycle?.signal.throwIfAborted();
+    const browser = await launchPlaywrightChromium(chromium, {
       executablePath: BROWSER_EXECUTABLE_PATH,
       headless: HEADLESS,
+      launchOptions: { handleSIGINT: false, handleSIGTERM: false },
       logger: log
     });
+    const untrack = smokeLifecycle?.track(() => browser.close());
+    browser.once('disconnected', () => untrack?.());
+    smokeLifecycle?.signal.throwIfAborted();
+    return browser;
   } catch (error) {
     throw new SmokeInfrastructureError(`Chromium startup failed before the suite began: ${error.message}`, { cause: error });
   }
@@ -5498,7 +5535,7 @@ function withHarnessDiagnostic(error, diagnostic) {
   return wrapped;
 }
 
-async function writeSmokeResults({ results, selectedSuites, baseUrl }) {
+async function writeSmokeResults({ results, selectedSuites, baseUrl, cancelled = null }) {
   const summary = summarizeSuiteResults(results, selectedSuites.length);
   const estimatedDurationSeconds = selectedSuites.reduce(
     (total, suite) => total + (Number(smokeSuiteCosts[suite.name]) || 10),
@@ -5526,6 +5563,7 @@ async function writeSmokeResults({ results, selectedSuites, baseUrl }) {
     },
     selectedSuites: selectedSuites.map((suite) => suite.name),
     estimatedDurationSeconds,
+    ...(cancelled ? { cancelled } : {}),
     summary,
     results
   };
@@ -5543,6 +5581,7 @@ async function writeSmokeResults({ results, selectedSuites, baseUrl }) {
       `### Browser smoke${SHARD ? ` shard ${SHARD.value}` : ''}`,
       '',
       `**${formatSuiteSummary(results, selectedSuites.length)}**`,
+      ...(cancelled ? [`Cancelled by ${cancelled.signal}; the interrupted attempt is not a passing test.`] : []),
       '',
       '| Suite | Result | Duration |',
       '| --- | --- | ---: |',
@@ -10943,6 +10982,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await page.waitForFunction(() => document.querySelector('.feature-copy-link[data-copy-hash="#compare"]')?.textContent?.trim() === '✓', null, { timeout: 3000 });
   await page.locator('#explore-bakers-staking > summary').click();
   await page.locator('#calc-toggle').click();
+  await page.locator('#calculator-section.visible').waitFor({ state: 'visible', timeout: 5000 });
   await expectClassContains(page.locator('#calculator-section'), 'visible', `${label} #calculator-section`);
   await page.locator('#calc-amount').fill('10000');
   await page.waitForFunction(() => {
@@ -11857,7 +11897,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         && presentation.releaseIndex <= 1
         && /Release Radar/i.test(presentation.text)
         && /Tezos X Mainnet/i.test(presentation.text)
-        && /Q3 2026 forecast/i.test(presentation.text),
+        && /Q3 2026 official target/i.test(presentation.text),
       `release radar pulse ${label}: the priority forecast or its 14-day release transition drifted ${JSON.stringify(presentation)}`
     );
     assert(
@@ -11866,7 +11906,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         && presentation.embeddedEvidenceCount === 0
         && presentation.openButtonCount === 1
         && /Full radar/i.test(presentation.shelfText)
-        && /Public Tezos X Etherlink kernel proposal or final-kernel declaration/.test(presentation.shelfText)
+        && /Explicit full Tezos X rollout declaration/.test(presentation.shelfText)
         && presentation.held === 'paused'
         && presentation.described === 'pulse-ticker-shelf',
       `release radar pulse ${label}: compact forecast summary or overlay action drifted ${JSON.stringify(presentation)}`
@@ -11949,20 +11989,20 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         && overlayPresentation.boundaryCount === 4
         && overlayPresentation.nextCount === 3
         && overlayPresentation.recentCount === 2
-        && overlayPresentation.historyCount === 7
-        && overlayPresentation.evidenceCount === 11
+        && overlayPresentation.historyCount === releaseRadarFixture.candidates.reduce((sum, candidate) => sum + candidate.history.length, 0)
+        && overlayPresentation.evidenceCount === releaseRadarFixture.candidates.reduce((sum, candidate) => sum + candidate.evidence.length, 0)
         && overlayPresentation.confidenceCount === 4,
       `release radar pulse ${label}: full intelligence overlay lost lanes or receipts ${JSON.stringify(overlayPresentation)}`
     );
     assert(
       /Octez 25\.2/.test(overlayPresentation.text)
-        && /EVM Node 0\.64/.test(overlayPresentation.text)
+        && /EVM Node 0\.65/.test(overlayPresentation.text)
         && /Mainnet proposal readiness/.test(overlayPresentation.text)
         && /Dependency boundaries/.test(overlayPresentation.text)
         && /Status-change ledger/.test(overlayPresentation.text)
         && /Every receipt used in the current review/.test(overlayPresentation.text)
-        && /(?:Current daily receipt|This receipt is past its daily review point)/.test(overlayPresentation.text)
-        && /Reviewed daily/.test(overlayPresentation.text),
+        && /(?:Current review receipt|This receipt is past its review deadline)/.test(overlayPresentation.text)
+        && /Review due within 36 hours/.test(overlayPresentation.text),
       `release radar pulse ${label}: expanded forecast context drifted ${JSON.stringify(overlayPresentation)}`
     );
     assert(
@@ -12037,7 +12077,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
       };
     });
     assert(
-      quietBefore.active && quietBefore.dialogTop > 0 && quietBefore.selection === 'Public',
+      quietBefore.active && quietBefore.dialogTop > 0 && quietBefore.selection === releaseRadarFixture.candidates.find(candidate => candidate.id === 'tezos-x-mainnet').nextSignal.slice(0, 6),
       `release radar pulse ${label}: expanded overlay quiet-refresh fixture did not initialize ${JSON.stringify(quietBefore)}`
     );
 
@@ -14698,8 +14738,11 @@ async function smokeMyTezosBalanceHistory(browser, baseUrl) {
 
   await page.route('**/context/contracts/**/full_balance', (route) => route.abort());
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#my-tezos-btn').click();
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
+  // The retained address route can already restore the drawer on reload.
+  if (!await page.locator('#my-tezos-drawer').evaluate(node => node.classList.contains('open'))) {
+    await page.locator('#my-tezos-btn').click();
+  }
   await page.locator('#my-tezos-tab-portfolio').click();
   await page.waitForFunction(() => {
     const chart = window.Chart?.getChart(document.querySelector('#portfolio-history-chart'));
@@ -15931,9 +15974,10 @@ async function smokeMyTezosSubdomainInput(browser, baseUrl) {
 
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `my tezos subdomain input: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 5000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos subdomain input drawer');
   await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#my-baker-input').fill(domain);
@@ -16921,6 +16965,7 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
 }
 
 async function smokeNetworkHealthChamber(browser, baseUrl) {
+  await checkInspectorKeyboardReceipt(browser, baseUrl);
   const { smokeLiveHeadDepth } = await import('./live-head-depth-smoke.mjs');
   await smokeLiveHeadDepth(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
   log('ok - five depth choices, custom validation, persistence, refresh, and responsive geometry');
@@ -18832,7 +18877,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
           return Boolean(openInspector && hit && openInspector.contains(hit) && openInspector.matches(':hover'));
         }, { level: expectedLevel, ...pointer }, { timeout: 5000 });
         stage = 'focus-inspector-receipt';
-        await inspector.locator('a, button, [tabindex]:not([tabindex="-1"])').first().focus({ timeout: 5000 });
+        // A reader's trusted keyboard input ends an earlier Chamber's pending
+        // opener restore. Programmatic focus alone has no such input receipt
+        // and may be reclaimed during its remaining 24 animation frames.
+        await inspector.locator('a, button, [tabindex]:not([tabindex="-1"])').first().press('Tab', { timeout: 5000 });
         stage = 'settle-inspector-handoff';
         await page.waitForFunction((level) => {
           const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
@@ -21057,9 +21105,17 @@ async function smokeMaxisChamber(browser, baseUrl) {
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
   });
   await integrityContext.route('**/data/maxis/seasons/**/passports/*.json', async (route) => {
-    const response = await route.fetch();
-    const raw = await response.text();
-    await route.fulfill({ response, body: `${raw}\n ` });
+    const source = new URL(route.request().url());
+    source.pathname = source.pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, '');
+    const response = await route.fetch({ url: source.href });
+    const shard = await response.json();
+    shard.smokeAlteredReceipt = true;
+    // Keep the transport internally valid so the independent season receipt,
+    // not just the outer decoder, must reject the altered original bytes.
+    const raw = `${JSON.stringify(shard, null, 2)}\n`;
+    const transport = await encodeGeneratedTransport(raw, source.pathname,
+      value => createHash('sha256').update(value).digest('hex'));
+    await fulfillJson(route, transport);
   });
   const integrityPage = await integrityContext.newPage();
   attachIssueCollectors(integrityPage, 'tezos maxis Passport integrity', issues);
@@ -21354,7 +21410,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
   attachIssueCollectors(page, 'launcher projections', issues);
   page.on('request', (request) => {
     try {
-      initialPaths.push(new URL(request.url()).pathname);
+      initialPaths.push(new URL(request.url()).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, ''));
     } catch {
       // Ignore malformed third-party diagnostics.
     }
@@ -21522,7 +21578,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
   attachIssueCollectors(noSubtlePage, 'plain-HTTP launcher receipts', noSubtleIssues);
   noSubtlePage.on('request', (request) => {
     try {
-      noSubtlePaths.push(new URL(request.url()).pathname);
+      noSubtlePaths.push(new URL(request.url()).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, ''));
     } catch {
       // Ignore malformed third-party diagnostics.
     }
@@ -21792,7 +21848,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
   attachIssueCollectors(fallbackPage, 'launcher projection fallback', fallbackIssues);
   fallbackPage.on('request', (request) => {
     try {
-      fallbackPaths.push(new URL(request.url()).pathname);
+      fallbackPaths.push(new URL(request.url()).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, ''));
     } catch {
       // Ignore malformed third-party diagnostics.
     }
@@ -21919,7 +21975,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
   attachIssueCollectors(deploySkewPage, 'Capital launcher deploy skew', deploySkewIssues);
   deploySkewPage.on('request', (request) => {
     try {
-      deploySkewPaths.push(new URL(request.url()).pathname);
+      deploySkewPaths.push(new URL(request.url()).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, ''));
     } catch {
       // Ignore malformed third-party diagnostics.
     }
@@ -22033,7 +22089,8 @@ async function smokeCapitalChamber(browser, baseUrl) {
   await context.route('**/data/capital-snapshot.json*', async (route) => {
     capitalSnapshotRequests += 1;
     if (!capitalSnapshotFixture) {
-      const response = await route.fetch();
+      // Mutation fixtures read the public source; transport parity is checked separately.
+const response = await route.fetch({ url: new URL('/data/capital-snapshot.json', route.request().url()).href });
       const sourceText = await response.text();
       capitalSnapshotFixture = JSON.parse(sourceText);
       return route.fulfill({ status: response.status(), contentType: 'application/json', body: sourceText });
@@ -23814,7 +23871,8 @@ async function smokeMineralsChamber(browser, baseUrl) {
         });
       }
       if (!snapshotFixture) {
-        const response = await route.fetch();
+        // Mutation fixtures read the public source; transport parity is checked separately.
+const response = await route.fetch({ url: new URL('/data/minerals-snapshot.json', route.request().url()).href });
         const text = await response.text();
         snapshotFixtureText = text;
         snapshotFixture = JSON.parse(text);
@@ -25413,7 +25471,8 @@ async function smokeEcosystemActivity(browser, baseUrl) {
   await context.route('**/data/ecosystem-stats.json*', async (route) => {
     ecosystemSnapshotRequests += 1;
     if (!ecosystemSnapshotFixture) {
-      const response = await route.fetch();
+      // Mutation fixtures read the public source; transport parity is checked separately.
+const response = await route.fetch({ url: new URL('/data/ecosystem-stats.json', route.request().url()).href });
       ecosystemSnapshotText = await response.text();
       ecosystemSnapshotFixture = JSON.parse(ecosystemSnapshotText);
       return route.fulfill({ status: response.status(), contentType: 'application/json', body: ecosystemSnapshotText });
@@ -32292,7 +32351,7 @@ async function smokeWidgetBuilder(browser, baseUrl) {
 }
 
 async function smokeOptionalStartup(browser, baseUrl) {
-  const optionalPaths = new Set(['/js/features/changelog.js', '/js/features/hen-mode.js', '/css/protocol-anthology.css']);
+  const optionalPaths = new Set(['/js/features/changelog.js', '/js/features/hen-mode.js', '/css/protocol-anthology.min.css']);
   for (const [theme, width] of [['matrix', 1280], ['clean', 390]]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
     await installFeatureMocks(context);
@@ -32388,7 +32447,7 @@ async function smokeOptionalStartup(browser, baseUrl) {
     await henGate;
     return route.continue();
   });
-  await page.route('**/css/protocol-anthology.css*', route => ++styleAttempts === 1
+  await page.route('**/css/protocol-anthology.min.css*', route => ++styleAttempts === 1
     ? route.fulfill({ status: 503, contentType: 'text/css', body: '' }) : route.continue());
   await page.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'load' });
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
@@ -35648,7 +35707,7 @@ async function smokeLazyChamberLoading(browser, baseUrl) {
   const requestedPaths = [];
   page.on('request', (request) => {
     const url = new URL(request.url());
-    if (url.origin === new URL(baseUrl).origin) requestedPaths.push(url.pathname);
+    if (url.origin === new URL(baseUrl).origin) requestedPaths.push(url.pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, ''));
   });
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `lazy Chamber loading: dashboard failed with HTTP ${response?.status()}`);
@@ -37075,6 +37134,9 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'valley-theme', description: 'Valley lazy renderer, data motion, lifecycle, reading-state preservation, reduced motion, and responsive geometry', run: () => smokeValleyTheme(browser, baseUrl) },
     { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },
     { name: 'widget-builder', description: 'Standalone widget builder type picker, preview sizing, and embed code tabs', run: () => smokeWidgetBuilder(browser, baseUrl) },
+    { name: 'widget-refresh', description: 'Widgets retain last-good readings through source failures and preserve visibility, focus, selection, and reader state during refresh', run: () => smokeWidgetRefresh(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'source-payloads', description: 'Validated source reads and prices recover honestly while retaining reader state', run: () => smokeSourcePayloads(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'optional-tools-lazy', description: 'Optional tools and share rendering load on intent, retain early actions, and recover after failed imports', run: () => smokeOptionalToolsLazy(browser, baseUrl, { installFeatureMocks, clickFeatureLauncher, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'optional-startup', description: 'Changelog, HEN runtime, and Anthology styles load only on intent, preserve routes, and recover from failed or cancelled loads', run: () => smokeOptionalStartup(browser, baseUrl) },
     { name: 'hen-mode', description: 'HEN overlay startup and exit path', run: () => smokeHenMode(browser, baseUrl) },
     { name: 'route-formatting', description: 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile', run: () => smokeRouteFormatting(browser, baseUrl) },
@@ -37141,12 +37203,17 @@ async function main() {
     return;
   }
 
-  const server = await startSmokeServer();
+  smokeLifecycle = createSmokeLifecycle({ logger: log });
+  let server;
   let sharedBrowser;
+  let suites = [];
+  let activeAttempt = null;
+  const completedResults = [];
   try {
+    server = await startSmokeServer();
     const { chromium } = await loadPlaywright();
     log(`Smoke target: ${server.baseUrl}`);
-    const suites = selectSuites(getSuiteCatalog(null, server.baseUrl));
+    suites = selectSuites(getSuiteCatalog(null, server.baseUrl));
     if (affectedSelectionReport) {
       log(`Affected smoke: ${affectedSelectionReport.mode} · ${affectedSelectionReport.reason}`);
     }
@@ -37251,9 +37318,15 @@ async function main() {
       repeatEach: REPEAT_EACH,
       retryFailures: RETRY_FAILURES,
       retryInfrastructure: RETRY_INFRASTRUCTURE,
+      signal: smokeLifecycle.signal,
       runAttempt,
       onEvent: ({ type, suite, iteration, attempt, repeats, retries, infrastructureRetry, infrastructureRetries, error, result }) => {
+        if (type === 'suite-complete') {
+          completedResults.push(result);
+          activeAttempt = null;
+        }
         if (type === 'attempt-start') {
+          activeAttempt = { suite: suite.name, iteration, attempt };
           const detail = [
             repeats > 1 ? `repeat ${iteration}/${repeats}` : '',
             retries > 0 ? `attempt ${attempt}/${retries + 1}` : ''
@@ -37279,6 +37352,18 @@ async function main() {
     if (unstableSuiteResults(results).length) {
       throw aggregateSmokeFailure(results, suites.length);
     }
+  } catch (error) {
+    if (smokeLifecycle.signal.aborted) {
+      const reason = smokeLifecycle.signal.reason;
+      await writeSmokeResults({
+        results: completedResults,
+        selectedSuites: suites,
+        baseUrl: server?.baseUrl || BASE_URL,
+        cancelled: { signal: reason.signalName, activeAttempt }
+      }).catch(failure => log(`warn - could not write cancellation ledger: ${failure.message}`));
+      throw reason;
+    }
+    throw error;
   } finally {
     if (sharedBrowser) {
       try {
@@ -37287,11 +37372,14 @@ async function main() {
         log(`warn - browser close failed: ${error.message}`);
       }
     }
-    await server.stop();
+    await server?.stop();
+    await smokeLifecycle.close();
+    smokeLifecycle.dispose();
   }
+  smokeLifecycle.signal.throwIfAborted();
 }
 
 main().catch((error) => {
   console.error(`fail - ${error.stack || error.message}`);
-  process.exit(isSmokeInfrastructureError(error) ? 75 : 1);
+  process.exit(error instanceof SmokeCancelledError ? error.exitCode : isSmokeInfrastructureError(error) ? 75 : 1);
 });

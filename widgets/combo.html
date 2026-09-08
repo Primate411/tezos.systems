@@ -55,17 +55,22 @@
   .change-dn{color:#ef4444}
   @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.6}}
 </style>
+<link rel="stylesheet" href="./runtime.css">
 </head>
 <body>
 <div class="widget">
   <div class="strip" id="strip">
     <!-- dynamically filled -->
   </div>
-  <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=combo" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  <div class="widget-meta">
+    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
+    <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=combo" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  </div>
 </div>
 <script type="module">
 import {
-  applyWidgetTheme,
+  applyWidgetTheme, createWidgetView, setWidgetText, requireWidgetNumber, requireWidgetProtocol, requireWidgetBakers, widgetNumber,
   COMBO_STAT_OPTIONS,
   escapeHtml,
   fetchWidgetJson,
@@ -106,89 +111,61 @@ import {
 
   function setVal(key,val,classes=''){
     const el=cards[key];
-    if(el){el.textContent=val;el.className='stat-val'+(classes?' '+classes:'');el.classList.remove('loading')}
+    if(el){setWidgetText(el,val);el.className='stat-val'+(classes?' '+classes:'');el.classList.remove('loading')}
   }
 
+  const view=createWidgetView({source:stats.includes('price')?'TzKT / CoinGecko':'TzKT'});
   async function fetchData(){
     const needs=new Set(stats);
+    const values={};
     const fetches=[];
-
-    if(needs.has('bakers')){
-      if(needs.has('tz4')){
-        fetches.push(
-          fetchWidgetJson(WIDGET_ENDPOINTS.activeBakers())
-            .then(bakers=>{
-              setVal('bakers',formatCount(poweredBakers(bakers).length));
-              setVal('tz4',formatPercent(summarizeTz4Power(bakers),1));
-            })
-            .catch(()=>{setVal('bakers','—');setVal('tz4','—')})
-        );
-      }else{
-        fetches.push(
-          fetchWidgetJson(WIDGET_ENDPOINTS.activeBakerCount())
-            .then(count=>setVal('bakers',formatCount(count)))
-            .catch(()=>setVal('bakers','—'))
-        );
-      }
-    } else if(needs.has('tz4')){
-      fetches.push(
-        fetchWidgetJson(WIDGET_ENDPOINTS.activeBakers())
-          .then(bakers=>setVal('tz4',formatPercent(summarizeTz4Power(bakers),1)))
-          .catch(()=>setVal('tz4','—'))
-      );
+    const put=(key,value,classes='')=>{values[key]=[value,classes]};
+    if(needs.has('tz4')){
+      fetches.push(fetchWidgetJson(WIDGET_ENDPOINTS.activeBakers()).then(raw=>{
+        const bakers=requireWidgetBakers(raw);
+        const ratio=summarizeTz4Power(bakers);
+        if(ratio===null) throw new Error('Unavailable tz4 power');
+        put('tz4',formatPercent(ratio));
+        if(needs.has('bakers')) put('bakers',formatCount(poweredBakers(bakers).length));
+      }));
+    } else if(needs.has('bakers')) {
+      fetches.push(fetchWidgetJson(WIDGET_ENDPOINTS.activeBakerCount())
+        .then(count=>put('bakers',formatCount(requireWidgetNumber(count,{integer:true})))));
     }
-
     if(needs.has('price')){
-      fetches.push(
-        fetchWidgetJson(WIDGET_ENDPOINTS.price())
-          .then(d=>{
-            const usd=d.tezos?.usd;
-            const chg=d.tezos?.usd_24h_change;
-            const cls=chg!=null?(chg>=0?'change-up':'change-dn'):'';
-            setVal('price',usd?'$'+usd.toFixed(4):'—',cls);
-          })
-          .catch(()=>setVal('price','—'))
-      );
+      fetches.push(fetchWidgetJson(WIDGET_ENDPOINTS.price()).then(data=>{
+        const usd=requireWidgetNumber(data?.tezos?.usd,{minimum:Number.MIN_VALUE});
+        const change=widgetNumber(data?.tezos?.usd_24h_change);
+        put('price','$'+usd.toFixed(4),change===null?'':change>=0?'change-up':'change-dn');
+      }));
     }
-
     if(needs.has('blocks')||needs.has('cycle')||needs.has('health')){
-      fetches.push(
-        fetchWidgetJson(WIDGET_ENDPOINTS.head())
-          .then(d=>{
-            if(needs.has('blocks'))setVal('blocks',d.level?.toLocaleString()||'—');
-            if(needs.has('cycle'))setVal('cycle',d.cycle?.toLocaleString()||'—');
-            if(needs.has('health'))setVal('health',formatHeadAge(d.timestamp));
-          })
-          .catch(()=>{
-            if(needs.has('blocks'))setVal('blocks','—');
-            if(needs.has('cycle'))setVal('cycle','—');
-            if(needs.has('health'))setVal('health','—');
-          })
-      );
+      fetches.push(fetchWidgetJson(WIDGET_ENDPOINTS.head()).then(head=>{
+        if(needs.has('blocks')) put('blocks',formatCount(requireWidgetNumber(head?.level,{integer:true,minimum:1})));
+        if(needs.has('cycle')) put('cycle',formatCount(requireWidgetNumber(head?.cycle,{integer:true})));
+        if(needs.has('health')){
+          if(typeof head?.timestamp!=='string'||!Number.isFinite(Date.parse(head.timestamp))) throw new Error('Unavailable head time');
+          put('health',formatHeadAge(head.timestamp));
+        }
+      }));
     }
-
     if(needs.has('staking')){
-      fetches.push(
-        fetchWidgetJson(WIDGET_ENDPOINTS.statistics())
-          .then(stats=>{
-            setVal('staking',formatPercent(stakingRatioFromStats(stats),1));
-          })
-          .catch(()=>setVal('staking','—'))
-      );
+      fetches.push(fetchWidgetJson(WIDGET_ENDPOINTS.statistics()).then(data=>{
+        const ratio=stakingRatioFromStats(data);
+        if(ratio===null) throw new Error('Unavailable staking ratio');
+        put('staking',formatPercent(ratio));
+      }));
     }
-
     if(needs.has('protocol')){
-      fetches.push(
-        fetchWidgetJson(WIDGET_ENDPOINTS.currentProtocol())
-          .then(d=>setVal('protocol',protocolAlias(d)))
-          .catch(()=>setVal('protocol','—'))
-      );
+      fetches.push(fetchWidgetJson(WIDGET_ENDPOINTS.currentProtocol()).then(data=>put('protocol',protocolAlias(requireWidgetProtocol(data)))));
     }
-
-    await Promise.allSettled(fetches);
+    // Settle every source before releasing the controller's non-overlap lock.
+    const results=await Promise.allSettled(fetches);
+    const failure=results.find(result=>result.status==='rejected');
+    if(failure) throw failure.reason;
+    return ()=>stats.forEach(key=>setVal(key,...values[key]));
   }
-
-  startWidgetRefresh(fetchData,settings.refreshMs);
+  startWidgetRefresh(fetchData,settings.refreshMs,view);
 })();
 </script>
 </body>

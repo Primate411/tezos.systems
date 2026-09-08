@@ -72,6 +72,7 @@
   @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.6}}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 </style>
+<link rel="stylesheet" href="./runtime.css">
 </head>
 <body>
 <div class="widget" id="widget">
@@ -79,11 +80,15 @@
   <div id="content">
     <div class="no-baker">Add ?baker=tz1… to URL</div>
   </div>
-  <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=baker-card" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  <div class="widget-meta">
+    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
+    <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=baker-card" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  </div>
 </div>
 <script type="module">
 import {
-  applyWidgetTheme,
+  applyWidgetTheme, createWidgetView, setWidgetText, syncWidgetHtml, widgetNumber,
   escapeHtml,
   fetchWidgetJson,
   formatCompact,
@@ -99,48 +104,51 @@ import {
 
   const contentEl=document.getElementById('content');
 
+  if(!baker) {
+    setWidgetText(document.querySelector('.widget-freshness'),'No baker selected');
+    document.querySelector('.widget-freshness').dataset.state='configuration';
+    document.querySelector('.widget-retry').hidden=true;
+    return;
+  }
+  setWidgetText(contentEl.querySelector('.no-baker'),'Loading baker…');
+  const view=createWidgetView({notFound:true,empty:error=>setWidgetText(contentEl.querySelector('.no-baker'),error.status===404?'Baker not found':'Baker unavailable')});
+
   async function fetchData(){
-    if(!baker){return}
-    try{
-      const d=await fetchWidgetJson(WIDGET_ENDPOINTS.baker(baker),{memoryCache:false});
-      if(!d||d.error){
-        contentEl.innerHTML='<div class="no-baker">Baker not found</div>';
-        return;
-      }
-      const name=d.alias||shortAddress(d.address);
-      const staking=d.stakingBalance?d.stakingBalance/1e6:null;
-      const delegators=d.numDelegators??null;
-      const votingPower=d.votingPower!=null?(d.votingPower/1e6):null;
+      const d=await fetchWidgetJson(WIDGET_ENDPOINTS.baker(baker));
+      if(!d || d.address!==baker || typeof d.active!=='boolean') throw new Error('Unavailable baker record');
+      const name=typeof d.alias==='string'&&d.alias?d.alias:shortAddress(d.address);
+      const staking=widgetNumber(d.stakingBalance);
+      const delegators=widgetNumber(d.numDelegators);
+      const votingPower=widgetNumber(d.votingPower);
       const active=d.active!==false;
 
-      contentEl.innerHTML=`
+      return () => syncWidgetHtml(contentEl,`
         <div class="header">
           <div class="avatar">${escapeHtml(name.charAt(0).toUpperCase())}</div>
           <div class="baker-info">
             <div class="baker-name">${escapeHtml(name)}</div>
             <div class="baker-addr">${escapeHtml(d.address)}</div>
           </div>
-          <div class="status-dot ${active?'':'inactive'}"></div>
+          <div class="status-dot ${active?'':'inactive'}" role="img" aria-label="${active?'Active baker':'Inactive baker'}"></div>
         </div>
         <div class="stats-grid">
           <div class="stat">
-            <div class="stat-val">${staking!=null?formatCompact(staking):'—'}</div>
-            <div class="stat-lbl">XTZ Staked</div>
+            <div class="stat-val">${staking!==null&&staking>=0?formatCompact(staking/1e6):'—'}</div>
+            <div class="stat-lbl">Staking Balance</div>
           </div>
           <div class="stat">
-            <div class="stat-val">${delegators!=null?formatCount(delegators):'—'}</div>
+            <div class="stat-val">${delegators!==null&&Number.isSafeInteger(delegators)&&delegators>=0?formatCount(delegators):'—'}</div>
             <div class="stat-lbl">Delegators</div>
           </div>
           <div class="stat">
-            <div class="stat-val">${votingPower!=null?formatCompact(votingPower):'—'}</div>
+            <div class="stat-val">${votingPower!==null&&votingPower>=0?formatCompact(votingPower/1e6):'—'}</div>
             <div class="stat-lbl">Voting Power</div>
           </div>
         </div>
-      `;
-    }catch(e){contentEl.innerHTML='<div class="no-baker">Baker not found</div>'}
+      `);
   }
 
-  startWidgetRefresh(fetchData,settings.refreshMs);
+  startWidgetRefresh(fetchData,settings.refreshMs,view);
 })();
 </script>
 </body>

@@ -8,6 +8,7 @@ import { requestChamberClose } from '../ui/chamber-accessibility.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { versionedAsset } from '../core/asset-version.js';
 import { sha256Text } from '../core/sha256.js';
+import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml, formatUtcDateTime } from '../core/utils.js';
 import { isTezDomainName, normalizeTezDomainName, resolveTezDomainAddress } from '../core/tezos-domains.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
@@ -1920,9 +1921,9 @@ async function loadPassportShard(address, { seasonId = chamberState.seasonId || 
         // against the manifest's shard hash (and content root when present).
         // Normal HTTP caching therefore saves repeat transfers while still
         // allowing validators such as ETag to revalidate the stable URL.
-        const response = await fetch(url, { cache: 'default', headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`);
-        const raw = await response.text();
+        const sourceUrl = new URL(url, window.location.origin);
+        if (sourceUrl.origin !== window.location.origin) throw new Error('Passport shard must use a first-party source.');
+        const { value: payload, text: raw } = await fetchGeneratedSnapshot(sourceUrl.pathname, { cache: 'default' });
         const expectedHash = config.shardHashes?.[shard];
         await verifyPassportShardText(raw, expectedHash, shard);
         if (expectedHash && config.contentRoot) {
@@ -1934,12 +1935,6 @@ async function loadPassportShard(address, { seasonId = chamberState.seasonId || 
             if (actualRoot.toLowerCase() !== String(config.contentRoot).toLowerCase()) {
                 throw new Error('The Passport shard hash catalog does not match its season content root. Retry after the season artifacts finish publishing.');
             }
-        }
-        let payload;
-        try {
-            payload = JSON.parse(raw);
-        } catch {
-            throw new Error(`Passport shard ${shard} is not valid JSON. Retry after the season artifacts finish publishing.`);
         }
         const shardIdentityMatches = Number(payload?.schema) === 2
             && String(payload?.seasonId || '') === String(seasonId)

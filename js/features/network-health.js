@@ -193,7 +193,7 @@ function ensureNetworkHealthCss() {
     // Passing Blocks shares its activity controls and receipt pills with Live
     // Head. Standalone routes do not inherit the dashboard's stylesheet.
     return Promise.all([
-        ensureChamberStylesheet('hero-search-css', versionedAsset('/css/hero-search.css')),
+        ensureChamberStylesheet('hero-search-css', versionedAsset('/css/hero-search.min.css')),
         ensureChamberStylesheet('network-health-css', NETWORK_HEALTH_CSS_URL)
     ]);
 }

@@ -14,6 +14,7 @@ import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
+import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { getChamberScrollContainer,
     activateChamberDialog,
@@ -302,19 +303,8 @@ async function validateEntrySummary(summary) {
 function fetchCapitalSnapshot(summary = lastEntrySummary) {
     if (activeFetch) return activeFetch;
     const sourceReceipt = summary?.source || null;
-    activeFetch = fetch(CAPITAL_SNAPSHOT_URL, {
-        cache: 'no-cache',
-        headers: { Accept: 'application/json' }
-    })
-        .then(async (response) => {
-            if (!response.ok) throw new Error(`Capital snapshot HTTP ${response.status}`);
-            const sourceText = await response.text();
-            let snapshot;
-            try {
-                snapshot = JSON.parse(sourceText);
-            } catch {
-                throw new Error('Capital snapshot is not valid JSON.');
-            }
+    activeFetch = fetchGeneratedSnapshot(CAPITAL_SNAPSHOT_URL)
+        .then(async ({ value: snapshot, text: sourceText }) => {
             await validateSnapshot(snapshot);
             await assertSnapshotMatchesProjection(snapshot, sourceText, sourceReceipt, { label: 'Capital snapshot' });
             void snapshotCache.save(sourceText, summary);

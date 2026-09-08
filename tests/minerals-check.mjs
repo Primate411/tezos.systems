@@ -522,7 +522,7 @@ assert.match(feature, /No buy, sell, swap, bridge, or redeem action is provided/
 for (const snippet of [
   "const MINERALS_SNAPSHOT_URL = '/data/minerals-snapshot.json'",
   "const MINERALS_ENTRY_SUMMARY_URL = '/data/minerals-entry-summary.json'",
-  "fetch(MINERALS_SNAPSHOT_URL, { cache: 'no-cache'",
+  'fetchGeneratedSnapshot(MINERALS_SNAPSHOT_URL)',
   "fetch(MINERALS_ENTRY_SUMMARY_URL, { cache: 'no-cache'",
   'mineralsSnapshotHash(summary)',
   "import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js'",

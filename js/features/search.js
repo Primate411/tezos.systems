@@ -39,7 +39,7 @@ import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 import { setHomeBlockVisible } from '../ui/home-layout.js';
 import { activateOverlayDialog, deactivateOverlayDialog } from '../ui/overlay-stack.js';
 
-const HERO_SEARCH_CSS_URL = versionedAsset('/css/hero-search.css');
+const HERO_SEARCH_CSS_URL = versionedAsset('/css/hero-search.min.css');
 
 const RUNTIME_QUICK_CHIPS = [
     { label: 'KT1', value: 'KT1' },
@@ -1481,7 +1481,7 @@ export function initHeroSearch() {
     };
 
     const rerenderCurrentQuery = (key) => {
-        if (isOpen && bakerSearchKey(input.value) === key) render();
+        if (isOpen && bakerSearchKey(input.value) === key) render(false);
     };
 
     const queueNameLookups = (value) => {
@@ -1564,7 +1564,7 @@ export function initHeroSearch() {
             entityResolutionCache.set(entity.value, { valid, account });
         })().finally(() => {
             entityResolutionInFlight.delete(entity.value);
-            if (isOpen && parseSearchEntity(input.value)?.value === entity.value) render();
+            if (isOpen && parseSearchEntity(input.value)?.value === entity.value) render(false);
         });
         entityResolutionInFlight.set(entity.value, promise);
     };
@@ -1676,7 +1676,8 @@ export function initHeroSearch() {
 
     const ensureProtocols = () => {
         loadProtocols().then(() => {
-            if (isOpen) render();
+            // Enrich the current reading without retrying a different failed source.
+            if (isOpen) render(false);
         });
     };
 

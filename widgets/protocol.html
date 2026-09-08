@@ -51,6 +51,7 @@
   @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.6}}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 </style>
+<link rel="stylesheet" href="./runtime.css">
 </head>
 <body>
 <div class="widget">
@@ -68,42 +69,41 @@
     </div>
   </div>
   <div class="sub">Self-amending · On-chain upgrade path</div>
-  <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=protocol" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  <div class="widget-meta">
+    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
+    <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=protocol" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  </div>
 </div>
 <script type="module">
 import {
-  applyWidgetTheme,
-  fetchWidgetJson,
-  protocolAlias,
-  startWidgetRefresh,
-  WIDGET_ENDPOINTS
+  applyWidgetTheme, createWidgetView, fetchWidgetBatch, setWidgetText,
+  startWidgetRefresh, WIDGET_ENDPOINTS, protocolAlias, requireWidgetProtocol
 } from './runtime.js';
 import { countProtocolUpgrades } from '../js/core/protocol-count.js';
 
-(function(){
-  const settings=applyWidgetTheme();
-
-  const protoEl=document.getElementById('proto');
-  const upgradesEl=document.getElementById('upgrades');
-  const versionEl=document.getElementById('version');
-
-  async function fetchData(){
-    try{
-      const [proto,all]=await Promise.all([
-        fetchWidgetJson(WIDGET_ENDPOINTS.currentProtocol()),
-        fetchWidgetJson(WIDGET_ENDPOINTS.protocols())
-      ]);
-      if(proto){
-        protoEl.textContent=protocolAlias(proto);
-        protoEl.classList.remove('loading');
-        upgradesEl.textContent=Array.isArray(all)?countProtocolUpgrades(all):'—';
-        versionEl.textContent=proto.code!=null?proto.code:'—';
-      }
-    }catch(e){protoEl.textContent='—';protoEl.classList.remove('loading')}
-  }
-
-  startWidgetRefresh(fetchData,settings.refreshMs);
-})();
+const settings = applyWidgetTheme();
+const protoEl = document.getElementById('proto');
+const upgradesEl = document.getElementById('upgrades');
+const versionEl = document.getElementById('version');
+const view = createWidgetView({ empty: () => setWidgetText(protoEl, '—') });
+async function fetchData() {
+  const [proto, all] = await fetchWidgetBatch([
+    WIDGET_ENDPOINTS.currentProtocol(),
+    WIDGET_ENDPOINTS.protocols()
+  ]);
+  requireWidgetProtocol(proto);
+  if (!Array.isArray(all) || !all.length) throw new Error('Unavailable protocol history');
+  all.forEach(requireWidgetProtocol);
+  const upgrades = countProtocolUpgrades(all, 0);
+  return () => {
+    setWidgetText(protoEl, protocolAlias(proto));
+    protoEl.classList.remove('loading');
+    setWidgetText(upgradesEl, upgrades);
+    setWidgetText(versionEl, proto.code);
+  };
+}
+startWidgetRefresh(fetchData, settings.refreshMs, view);
 </script>
 </body>
 </html>

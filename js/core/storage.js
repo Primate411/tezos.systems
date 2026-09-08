@@ -5,6 +5,7 @@
 
 import { CACHE_TTLS } from './config.js';
 import { debugLog } from './utils.js';
+import { validateCachedStats } from './source-payloads.mjs';
 
 const STORAGE_KEYS = {
     stats: 'tezos-systems-stats',
@@ -18,7 +19,7 @@ const STORAGE_KEYS = {
     momentsDismissed: 'tezos-systems-moments-dismissed'
 };
 
-const STATS_CACHE_VERSION = 'tzkt-staking-v1';
+const STATS_CACHE_VERSION = 'validated-stats-v2';
 const PROTOCOLS_CACHE_VERSION = 'protocols-v2';
 
 // Cache TTL from config
@@ -37,6 +38,7 @@ export function saveStats(stats) {
             debugLog('💾 Partial or unavailable stats were not cached');
             return;
         }
+        validateCachedStats(stats);
         const observedAt = Date.parse(stats?._quality?.observedAt || '');
         const timestamp = Number.isFinite(observedAt) && observedAt > 0
             ? Math.min(Date.now(), observedAt)
@@ -70,14 +72,15 @@ export function loadStats() {
         }
         
         // Check if cache is still valid
-        const age = Date.now() - parseInt(timestamp);
-        if (age > CACHE_TTL) {
+        const captured = Number(timestamp);
+        const age = Date.now() - captured;
+        if (!Number.isFinite(captured) || captured <= 0 || age < 0 || age > CACHE_TTL) {
             debugLog('📦 Cached stats expired');
             return null;
         }
         
         debugLog(`📦 Loaded cached stats (${Math.round(age / 60000)}min old)`);
-        return JSON.parse(stats);
+        return validateCachedStats(JSON.parse(stats));
     } catch (error) {
         console.warn('Failed to load cached stats:', error);
         return null;
@@ -92,7 +95,7 @@ export function loadStatsTimestamp() {
     try {
         if (localStorage.getItem(STORAGE_KEYS.statsVersion) !== STATS_CACHE_VERSION) return 0;
         const timestamp = Number(localStorage.getItem(STORAGE_KEYS.timestamp));
-        return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : 0;
+        return Number.isFinite(timestamp) && timestamp > 0 && timestamp <= Date.now() ? timestamp : 0;
     } catch {
         return 0;
     }

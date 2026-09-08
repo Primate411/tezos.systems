@@ -3343,7 +3343,7 @@ function renderReleaseRadarOverlayMarkup(signal) {
       <p>The reviewed decision board for Tezos X, Octez, and the EVM node. Every lane stays separate so a software tag cannot masquerade as mainnet readiness.</p>
       <div class="release-radar-overlay-receipt" aria-label="Release Radar review receipt">
         <span><small>Reviewed</small><strong>${escapeHtml(releaseRadarDateLabel(radar.updatedAt, { includeTime: true }))}</strong></span>
-        <span><small>Freshness</small><strong>${radar.stale ? 'Review due — recheck timing' : radar.sourceState === 'last-good' ? 'Last-good receipt' : 'Current daily receipt'}</strong></span>
+        <span><small>Freshness</small><strong>${radar.stale ? 'Review due — recheck timing' : radar.sourceState === 'last-good' ? 'Last-good receipt' : 'Current review receipt'}</strong></span>
         <span><small>${radar.stale ? 'Review due since' : 'Next review due'}</small><strong>${escapeHtml(releaseRadarDateLabel(radar.staleAtMs, { includeTime: true }))}</strong></span>
         <span><small>Review window ends</small><strong>${escapeHtml(releaseRadarDateLabel(radar.expiresAt, { includeTime: true }))}</strong></span>
       </div>
@@ -3351,7 +3351,7 @@ function renderReleaseRadarOverlayMarkup(signal) {
 
     ${radar.stale ? `
       <p class="release-radar-overlay-review-note" data-quiet-key="release-radar-overlay-review-note">
-        This receipt is past its daily review point. The evidence stays visible; recheck forecast timing against the next tracker receipt.
+        This receipt is past its review deadline. The evidence stays visible; recheck forecast timing against the next tracker receipt.
       </p>
     ` : ''}
 

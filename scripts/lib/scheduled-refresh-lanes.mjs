@@ -18,13 +18,16 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   {
     id: 'maxis-season',
     label: 'Maxis crowns and protocol season',
-    targets: ['data/maxis-leaders.json', 'data/maxis/manifest.json', 'data/maxis/seasons'],
+    targets: ['data/maxis-leaders.json', 'data/maxis/manifest.json', 'data/maxis/seasons', 'data/transports/v1/data/maxis/seasons'],
     refresh: [command('scripts/refresh-maxis-data.mjs', [], {
       attempts: 3,
       retryBaseMs: 60_000,
       retryCapMs: 120_000
-    })],
-    validate: [command('scripts/refresh-maxis-data.mjs', ['--check'])]
+    }), command('scripts/generate-chamber-transports.mjs', ['--only', 'maxis'])],
+    validate: [
+      command('scripts/refresh-maxis-data.mjs', ['--check']),
+      command('scripts/generate-chamber-transports.mjs', ['--only', 'maxis', '--check'])
+    ]
   },
   {
     id: 'maxis-careers',
@@ -43,17 +46,18 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   {
     id: 'capital',
     label: 'Capital Chamber',
-    targets: ['data/capital-snapshot.json'],
-    refresh: [command('scripts/refresh-capital-data.mjs')],
-    validate: [command('scripts/refresh-capital-data.mjs', ['--check'])]
+    targets: ['data/capital-snapshot.json', 'data/transports/v1/data/capital-snapshot.json'],
+    refresh: [command('scripts/refresh-capital-data.mjs'), command('scripts/generate-chamber-transports.mjs', ['--only', 'capital'])],
+    validate: [command('scripts/refresh-capital-data.mjs', ['--check']), command('scripts/generate-chamber-transports.mjs', ['--only', 'capital', '--check'])]
   },
   {
     id: 'minerals',
     label: 'Critical Minerals Chamber',
-    targets: ['data/minerals-snapshot.json', 'data/minerals-entry-summary.json'],
-    refresh: [command('scripts/refresh-minerals-data.mjs')],
+    targets: ['data/minerals-snapshot.json', 'data/minerals-entry-summary.json', 'data/transports/v1/data/minerals-snapshot.json'],
+    refresh: [command('scripts/refresh-minerals-data.mjs'), command('scripts/generate-chamber-transports.mjs', ['--only', 'minerals'])],
     validate: [
       command('scripts/refresh-minerals-data.mjs', ['--check']),
+      command('scripts/generate-chamber-transports.mjs', ['--only', 'minerals', '--check']),
       command('tests/minerals-check.mjs')
     ]
   },
@@ -80,10 +84,11 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   {
     id: 'ecosystem',
     label: 'Ecosystem Activity',
-    targets: ['data/ecosystem-stats.json'],
-    refresh: [command('scripts/refresh-ecosystem-stats.mjs')],
+    targets: ['data/ecosystem-stats.json', 'data/transports/v1/data/ecosystem-stats.json'],
+    refresh: [command('scripts/refresh-ecosystem-stats.mjs'), command('scripts/generate-chamber-transports.mjs', ['--only', 'ecosystem'])],
     validate: [
       command('scripts/refresh-ecosystem-stats.mjs', ['--check']),
+      command('scripts/generate-chamber-transports.mjs', ['--only', 'ecosystem', '--check']),
       command('tests/ecosystem-stats-check.mjs')
     ]
   },

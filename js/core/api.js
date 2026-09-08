@@ -7,6 +7,8 @@ import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START, SUPABASE_CONFIG } fr
 import { loadDataAsset } from './data-assets.js';
 import { HISTORY_FRESHNESS_LIMITS } from './freshness-contracts.mjs';
 import { calculatePercentage } from './utils.js';
+import { requestFingerprint, withRequestDeadline } from './request-policy.mjs';
+import { validateStatistics, validateConstants, validateRpcScalar, validateRpcAmount, validateVotingPeriod, validateHeader, validateMetadata, validateBakers, validateCount, validateVoteTally, validateLbBlocks } from './source-payloads.mjs';
 
 export { HISTORY_FRESHNESS_LIMITS };
 
@@ -133,20 +135,14 @@ function qualityFromSettled(entries, fallbacks) {
  * Check if cached data is still valid
  */
 function isCacheValid(key) {
-    return cache.timestamps[key] && (Date.now() - cache.timestamps[key]) < cache.ttl;
+    const age = Date.now() - cache.timestamps[key];
+    return cache.timestamps[key] > 0 && age >= 0 && age < cache.ttl;
 }
 
 function abortError(message = 'The operation was aborted.') {
     if (typeof DOMException === 'function') return new DOMException(message, 'AbortError');
     const error = new Error(message);
     error.name = 'AbortError';
-    return error;
-}
-
-function timeoutError(timeoutMs) {
-    if (typeof DOMException === 'function') return new DOMException(`Request timed out after ${timeoutMs}ms.`, 'TimeoutError');
-    const error = new Error(`Request timed out after ${timeoutMs}ms.`);
-    error.name = 'TimeoutError';
     return error;
 }
 
@@ -161,36 +157,17 @@ function requestSignal(resource, options) {
  * AbortSignal. Each retry gets a fresh deadline; a caller abort ends the whole
  * retry sequence immediately.
  */
-export async function fetchWithDeadline(resource, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS) {
-    const callerSignal = requestSignal(resource, options);
-    const controller = new AbortController();
-    const fetchOptions = { ...options, signal: controller.signal };
-    let timeoutId = null;
-    let deadlineStarted = false;
-
-    const forwardAbort = () => controller.abort(callerSignal?.reason || abortError());
-    if (callerSignal?.aborted) forwardAbort();
-    else if (callerSignal) callerSignal.addEventListener('abort', forwardAbort, { once: true });
-
-    const startDeadline = () => {
-        if (deadlineStarted) return;
-        deadlineStarted = true;
-        if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
-            timeoutId = setTimeout(() => controller.abort(timeoutError(timeoutMs)), timeoutMs);
-        }
-    };
-
+export async function fetchWithDeadline(resource, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS, consume = response => response) {
     const queueAware = typeof window !== 'undefined'
         && window.__tzktThrottle?.supportsDispatchHook === true;
-    if (queueAware) fetchOptions.__tezosSystemsOnDispatch = startDeadline;
-    else startDeadline();
-
-    try {
-        return await fetch(resource, fetchOptions);
-    } finally {
-        if (timeoutId) clearTimeout(timeoutId);
-        if (callerSignal) callerSignal.removeEventListener('abort', forwardAbort);
-    }
+    return withRequestDeadline(async (signal, onDispatch) => {
+        const response = await fetch(resource, {
+            ...options,
+            signal,
+            ...(queueAware ? { __tezosSystemsOnDispatch: onDispatch } : {})
+        });
+        return consume(response);
+    }, { timeoutMs, signal: requestSignal(resource, options), deferUntilDispatch: queueAware });
 }
 
 function sleepWithSignal(delayMs, signal) {
@@ -237,10 +214,21 @@ let _statsPromise = null;
 export async function fetchSharedStats() {
     // Request lifetime owns deduplication; fetchWithRetry owns the data TTL.
     if (!_statsPromise) {
-        _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`)
+        _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`, { validate: validateStatistics })
             .finally(() => { _statsPromise = null; });
     }
     return _statsPromise;
+}
+
+function defaultPayloadValidator(url, responseType) {
+    if (responseType !== 'json') return null;
+    try {
+        const parsed = new URL(url);
+        const source = new URL(API_URLS.tzkt);
+        if (parsed.origin === source.origin && parsed.pathname.startsWith(`${source.pathname.replace(/\/$/, '')}/`)
+            && parsed.pathname.endsWith('/count')) return validateCount;
+    } catch { /* Relative/local assets own their schemas at their consumers. */ }
+    return null;
 }
 
 /**
@@ -251,26 +239,41 @@ export async function fetchWithRetry(url, options = {}, retries = 3) {
         memoryCache = true,
         timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
         responseType = 'json',
+        validate = defaultPayloadValidator(url, responseType),
         ...fetchOptions
     } = options || {};
     const callerSignal = fetchOptions.signal || null;
 
     if (callerSignal?.aborted) throw callerSignal.reason || abortError();
 
-    // Check cache first
-    if (memoryCache && isCacheValid(url)) {
-        return cache.data[url];
+    const headers = new Headers(fetchOptions.headers || {});
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+    const cacheKey = memoryCache && fetchOptions.cache !== 'no-store'
+        && ['GET', 'HEAD'].includes(String(fetchOptions.method || 'GET').toUpperCase())
+        ? requestFingerprint(url, { ...fetchOptions, headers }, { responseType }) : null;
+    // This cache owns only successful read observations. In-flight sharing is
+    // owned by the named source fetchers, never by another caller's signal.
+    if (cacheKey && isCacheValid(cacheKey)) {
+        const cached = cache.data[cacheKey];
+        try {
+            if (validate) validate(cached);
+            return cached;
+        } catch {
+            delete cache.data[cacheKey];
+            delete cache.timestamps[cacheKey];
+        }
     }
 
     for (let i = 0; i < retries; i++) {
         try {
-            const response = await fetchWithDeadline(url, {
-                ...fetchOptions,
-                headers: {
-                    'Accept': 'application/json',
-                    ...fetchOptions.headers
-                }
-            }, timeoutMs);
+            const { response, data } = await fetchWithDeadline(url, {
+                ...fetchOptions, headers
+            }, timeoutMs, async response => {
+                if (!response.ok) return { response };
+                const data = responseType === 'text' ? await response.text() : await response.json();
+                if (validate) validate(data);
+                return { response, data };
+            });
 
             if (response.status === 429) {
                 // Rate limited — respect Retry-After or use exponential backoff
@@ -283,7 +286,9 @@ export async function fetchWithRetry(url, options = {}, retries = 3) {
                         ? Math.max(0, retryAfterDate - Date.now())
                         : 0;
                 if (i === retries - 1) {
-                    throw new Error(`HTTP 429: rate limit persisted after ${retries} attempt${retries === 1 ? '' : 's'}`);
+                    const error = new Error(`HTTP 429: rate limit persisted after ${retries} attempt${retries === 1 ? '' : 's'}`);
+                    error.status = 429;
+                    throw error;
                 }
                 const requestedBackoffMs = retryAfterMs > 0 ? retryAfterMs : 2000 * Math.pow(2, i);
                 const backoffMs = Math.min(MAX_RETRY_AFTER_MS, Math.max(0, requestedBackoffMs));
@@ -294,14 +299,23 @@ export async function fetchWithRetry(url, options = {}, retries = 3) {
             }
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+                error.status = response.status;
+                throw error;
             }
 
-            const data = responseType === 'text' ? await response.text() : await response.json();
-            
-            if (memoryCache) {
-                cache.data[url] = data;
-                cache.timestamps[url] = Date.now();
+            if (cacheKey) {
+                cache.data[cacheKey] = data;
+                cache.timestamps[cacheKey] = Date.now();
+                const keys = Object.keys(cache.timestamps).sort((a, b) => cache.timestamps[a] - cache.timestamps[b]);
+                let retained = keys.length;
+                for (const key of keys) {
+                    if (!isCacheValid(key) || retained > 256) {
+                        retained--;
+                        delete cache.data[key];
+                        delete cache.timestamps[key];
+                    }
+                }
             }
             
             return data;
@@ -330,7 +344,7 @@ export async function fetchCurrentVotingPeriod({ force = false } = {}) {
     const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
     const request = fetchWithRetry(
         url,
-        { cache: force ? 'no-store' : 'default', memoryCache: false },
+        { cache: force ? 'no-store' : 'default', memoryCache: false, validate: validateVotingPeriod },
         2
     ).then((period) => {
         if (_currentVotingPeriodPromise === request) {
@@ -349,10 +363,8 @@ export async function fetchCurrentVotingPeriod({ force = false } = {}) {
  * Fetch text response (for RPC endpoints that return raw values)
  */
 async function fetchText(url) {
-    if (isCacheValid(url)) {
-        return cache.data[url];
-    }
-    return fetchWithRetry(url, { responseType: 'text' });
+    const validate = url.endsWith('/current_yearly_rate') ? validateRpcScalar : validateRpcAmount;
+    return fetchWithRetry(url, { responseType: 'text', validate });
 }
 
 /**
@@ -364,7 +376,8 @@ async function fetchText(url) {
 export async function fetchVoteTally() {
     try {
         const votes = await fetchWithRetry(
-            `${ENDPOINTS.tzkt.base}/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower`
+            `${ENDPOINTS.tzkt.base}/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower`,
+            { validate: validateVoteTally }
         );
         if (!Array.isArray(votes)) return null;
         let yay = 0, nay = 0, pass = 0;
@@ -382,9 +395,9 @@ export async function fetchVoteTally() {
 }
 
 async function fetchLiquidityBakingSubsidyState() {
-    const blocks = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`);
+    const blocks = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`, { validate: validateLbBlocks });
     const latest = Array.isArray(blocks) ? blocks[0] : null;
-    const ema = Number(latest?.lbToggleEma);
+    const ema = latest?.lbToggleEma == null || latest.lbToggleEma === '' ? NaN : Number(latest.lbToggleEma);
     const hasEma = Number.isFinite(ema);
     return {
         disabled: hasEma && ema >= LB_EMA_DISABLE_THRESHOLD,
@@ -399,8 +412,10 @@ function parseMutezText(value) {
 }
 
 export function getTzktTotalStaked(stats = {}) {
-    const total = Number(stats.totalOwnStaked || 0) + Number(stats.totalExternalStaked || 0);
-    return total > 0 ? total : Number(stats.totalFrozen || 0);
+    if (stats.totalOwnStaked != null && stats.totalExternalStaked != null) {
+        return Number(stats.totalOwnStaked) + Number(stats.totalExternalStaked);
+    }
+    return stats.totalFrozen == null ? NaN : Number(stats.totalFrozen);
 }
 
 export function getTzktTotalDelegated(stats = {}) {
@@ -429,7 +444,7 @@ export function getExternalStakerApy(grossStakeApy, edgeOfBakingOverStaking) {
 let _constantsPromise = null;
 function fetchSharedConstants() {
     if (!_constantsPromise) {
-        _constantsPromise = fetchWithRetry(`${API_URLS.octez}/chains/main/blocks/head/context/constants`)
+        _constantsPromise = fetchWithRetry(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, { validate: validateConstants })
             .catch(() => null)
             .finally(() => { _constantsPromise = null; });
     }
@@ -471,7 +486,7 @@ async function _doFetchBakers() {
     // current baking power. TzKT exposes the active consensus key directly;
     // historical update_consensus_key ops can include keys that are still pending.
     const bakerUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&select=address,consensusAddress,bakingPower&limit=${FETCH_LIMITS.bakers}`;
-    const delegates = await fetchWithRetry(bakerUrl);
+    const delegates = await fetchWithRetry(bakerUrl, { validate: validateBakers });
     if (!Array.isArray(delegates)) {
         throw new Error('Unexpected active baker response');
     }
@@ -499,9 +514,11 @@ async function _doFetchBakers() {
  * Fetch cycle info from Octez RPC.
  */
 export async function fetchCycleInfo() {
-    const header = await fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`);
-    const headId = encodeURIComponent(header?.hash || 'head');
-    const metadata = await fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/${headId}/metadata`);
+    const header = await fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`, { validate: validateHeader });
+    // Octez /header does not normally include a hash. Pin metadata to the
+    // validated level so a head advance cannot mix adjacent cycle receipts.
+    const headId = encodeURIComponent(header.level);
+    const metadata = await fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/${headId}/metadata`, { validate: validateMetadata });
     const levelInfo = metadata.level_info || {};
     const head = {
         level: header.level,
@@ -515,6 +532,7 @@ export async function fetchCycleInfo() {
     const cycleNumber = levelInfo.cycle == null ? null : Number(levelInfo.cycle);
     if (!Number.isFinite(currentLevel) || !Number.isFinite(cyclePosition) || cyclePosition < 0) {
         return {
+            _quality: { status: 'partial', observedAt: new Date().toISOString(), error: 'Cycle timing inputs unavailable' },
             cycle: Number.isFinite(cycleNumber) ? cycleNumber : null,
             blockLevel: Number.isFinite(currentLevel) ? currentLevel : null,
             blockTime: header.timestamp || null,
@@ -783,7 +801,7 @@ export async function fetchIssuance() {
             && rawLbEma !== ''
             && Number.isFinite(Number(rawLbEma));
         const lbDisabled = lbStateKnown ? Boolean(lbState.disabled) : null;
-        const lbSubsidy = Number(constants?.liquidity_baking_subsidy);
+        const lbSubsidy = constants?.liquidity_baking_subsidy == null ? NaN : Number(constants.liquidity_baking_subsidy);
         const lbRateInputsKnown = Boolean(constants)
             && Number.isFinite(supplyMutez)
             && supplyMutez > 0
@@ -876,15 +894,11 @@ async function fetchContractCalls() {
 }
 
 let _recentActivityCutoffPromise = null;
-let _recentActivityCutoffTimestamp = 0;
 async function fetchRecentActivityCutoffLevel() {
-    if (_recentActivityCutoffPromise && Date.now() - _recentActivityCutoffTimestamp < 5000) {
-        return _recentActivityCutoffPromise;
-    }
+    if (_recentActivityCutoffPromise) return _recentActivityCutoffPromise;
 
-    _recentActivityCutoffTimestamp = Date.now();
     _recentActivityCutoffPromise = (async () => {
-        const head = await fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.head}`);
+        const head = await fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.head}`, { validate: validateHeader });
         let blockDelaySeconds = 6;
         try {
             const constants = await fetchSharedConstants();
@@ -897,8 +911,8 @@ async function fetchRecentActivityCutoffLevel() {
         }
 
         const recentBlocks = Math.ceil((24 * 60 * 60) / blockDelaySeconds);
-        return Math.max(0, (head?.level || 0) - recentBlocks);
-    })();
+        return Math.max(0, head.level - recentBlocks);
+    })().finally(() => { _recentActivityCutoffPromise = null; });
 
     return _recentActivityCutoffPromise;
 }
@@ -958,14 +972,12 @@ export async function fetchStakingRatio() {
         
         const rpcFrozenStake = frozenStakeResult.status === 'fulfilled'
             ? parseMutezText(frozenStakeResult.value)
-            : 0;
-        const tzktStaked = ownStaked !== null && externalStaked !== null && ownStaked + externalStaked > 0
+            : null;
+        const tzktStaked = ownStaked !== null && externalStaked !== null
             ? ownStaked + externalStaked
-            : legacyFrozen !== null && legacyFrozen > 0
-                ? legacyFrozen
-                : 0;
-        const totalStaked = tzktStaked || rpcFrozenStake || 0;
-        if (totalStaked <= 0) {
+            : legacyFrozen;
+        const totalStaked = tzktStaked ?? rpcFrozenStake;
+        if (totalStaked === null || totalStaked < 0 || totalStaked > totalSupply) {
             return {
                 _quality: {
                     status: 'unavailable',
@@ -1154,7 +1166,8 @@ export async function fetchStakingAPY() {
         const fallbackSupplyMutez = supplyResult.status === 'fulfilled' ? parseMutezText(supplyResult.value) : 0;
         const fallbackFrozenStakeMutez = frozenStakeResult.status === 'fulfilled' ? parseMutezText(frozenStakeResult.value) : 0;
         const supplyMutez = Number(stats.totalSupply || 0) || fallbackSupplyMutez || 0;
-        const stakedMutez = getTzktTotalStaked(stats) || fallbackFrozenStakeMutez || 0;
+        const sourceStaked = getTzktTotalStaked(stats);
+        const stakedMutez = Number.isFinite(sourceStaked) ? sourceStaked : fallbackFrozenStakeMutez;
         const delegatedMutez = hasDelegatedFields
             ? ownDelegatedMutez + externalDelegatedMutez
             : NaN;
@@ -1487,8 +1500,8 @@ export async function fetchHeroStats() {
 export async function checkApiHealth() {
     try {
         const [tzktHealth, octezHealth] = await Promise.allSettled([
-            fetchWithRetry(`${ENDPOINTS.tzkt.base}/head`, { memoryCache: false }, 1),
-            fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`, { memoryCache: false }, 1)
+            fetchWithRetry(`${ENDPOINTS.tzkt.base}/head`, { memoryCache: false, validate: validateHeader }, 1),
+            fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`, { memoryCache: false, validate: validateHeader }, 1)
         ]);
         
         return {

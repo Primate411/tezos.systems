@@ -1,6 +1,7 @@
 import '../js/core/tzkt-throttle.js';
 import { fetchWithRetry } from '../js/core/api.js';
 import { API_URLS, FETCH_LIMITS, STAKING_TARGET } from '../js/core/config.js';
+import { quietlyMutate, quietlySyncHtml } from '../js/core/quiet-refresh.js';
 import { DEFAULT_THEME, THEME_COLORS, THEMES } from '../js/ui/theme.js';
 
 const WIDGET_REFRESH_DEFAULT_SECONDS = 60;
@@ -280,25 +281,131 @@ export function normalizeComboStats(stats, fallback = ['bakers', 'price', 'block
 }
 
 export async function fetchWidgetJson(url, options = {}) {
-    return fetchWithRetry(url, { cache: 'no-store', memoryCache: true, ...options }, 2);
+    // A refreshed timestamp must describe a new source response, not a memory-cache hit.
+    return fetchWithRetry(url, { cache: 'no-store', ...options, memoryCache: false }, 2);
 }
 
-export function startWidgetRefresh(fetcher, refreshMs) {
+export async function fetchWidgetBatch(urls) {
+    const results = await Promise.allSettled(urls.map(url => fetchWidgetJson(url)));
+    const failure = results.find(result => result.status === 'rejected');
+    if (failure) throw failure.reason;
+    return results.map(result => result.value);
+}
+
+/** Load first, then commit one complete reading only while the embed is visible. */
+export function startWidgetRefresh(fetcher, refreshMs, view = null) {
     const intervalMs = Math.max(WIDGET_REFRESH_MIN_SECONDS * 1000, refreshMs);
     let lastRun = 0;
     let inFlight = false;
+    let pending = null;
+    const apply = (outcome) => {
+        if (view) view.commit(outcome);
+        else if (!outcome.error && typeof outcome.render === 'function') outcome.render();
+    };
     const runIfVisible = () => {
         if (document.hidden || inFlight) return;
         lastRun = Date.now();
         inFlight = true;
-        Promise.resolve().then(fetcher).catch(() => {}).finally(() => { inFlight = false; });
+        Promise.resolve().then(fetcher)
+            .then(render => ({ render, receivedAt: Date.now() }), error => ({ error }))
+            .then(outcome => {
+                if (document.hidden) pending = outcome;
+                else apply(outcome);
+            })
+            .catch(() => {})
+            .finally(() => { inFlight = false; });
     };
     const intervalId = window.setInterval(runIfVisible, intervalMs);
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && Date.now() - lastRun >= intervalMs) runIfVisible();
+        if (document.hidden || inFlight) return;
+        // A response that completed while hidden is applied once on return. If
+        // already due, discard it and make one new complete catch-up request.
+        if (Date.now() - lastRun >= intervalMs) {
+            pending = null;
+            runIfVisible();
+        } else if (pending) {
+            const outcome = pending;
+            pending = null;
+            apply(outcome);
+        }
     });
+    view?.retry.addEventListener('click', runIfVisible);
     runIfVisible();
     return intervalId;
+}
+
+/** Existing text nodes preserve selection and SVG/control identity. */
+export function setWidgetText(element, value) {
+    const text = String(value);
+    if (element.childNodes.length === 1 && element.firstChild.nodeType === Node.TEXT_NODE) {
+        if (element.firstChild.nodeValue !== text) element.firstChild.nodeValue = text;
+    } else if (element.textContent !== text) element.textContent = text;
+}
+
+export function syncWidgetHtml(element, html) {
+    quietlySyncHtml(element, html);
+}
+
+export function createWidgetView({ source = 'TzKT', empty = null, notFound = false } = {}) {
+    const root = document.querySelector('.widget');
+    const status = root.querySelector('.widget-freshness');
+    const retry = root.querySelector('.widget-retry');
+    let lastGoodAt = null;
+    return {
+        retry,
+        commit({ render, error, receivedAt }) {
+            quietlyMutate(root, () => {
+                if (!error) {
+                    render();
+                    lastGoodAt = receivedAt;
+                } else if (lastGoodAt === null) {
+                    empty?.(error);
+                    root.querySelectorAll('.loading').forEach(element => element.classList.remove('loading'));
+                }
+                const missing = notFound && error?.status === 404;
+                const state = error ? (missing ? 'missing' : lastGoodAt === null ? 'unavailable' : 'stale') : 'current';
+                const clock = lastGoodAt === null ? '' : new Date(lastGoodAt).toISOString().slice(11, 16);
+                const age = lastGoodAt === null ? '' : Math.max(0, Math.floor((Date.now() - lastGoodAt) / 60000)) + 'm';
+                const label = error ? (missing ? 'Not found' : lastGoodAt === null ? 'Unavailable' : 'Stale ' + age) : clock + ' UTC';
+                setWidgetText(status, source + ' · ' + label);
+                status.dataset.state = state;
+                status.title = source + (error ? (missing ? ': baker not found' : ': refresh unavailable') : ': source received')
+                    + (lastGoodAt === null ? '' : '; last successful reading ' + new Date(lastGoodAt).toISOString());
+                if (lastGoodAt !== null) status.dataset.lastGoodAt = String(lastGoodAt);
+                setWidgetText(retry, error ? 'Retry' : 'Refresh');
+            });
+        }
+    };
+}
+
+// JSON null, blanks and booleans are absence, not numeric zero.
+export function widgetNumber(value) {
+    if (typeof value !== 'number' && (typeof value !== 'string' || !value.trim())) return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+}
+
+export function requireWidgetNumber(value, { integer = false, minimum = 0 } = {}) {
+    const number = widgetNumber(value);
+    if (number === null || number < minimum || (integer && !Number.isSafeInteger(number))) {
+        throw new Error('Unavailable numeric reading');
+    }
+    return number;
+}
+
+export function requireWidgetProtocol(protocol) {
+    if (!protocol || typeof protocol.hash !== 'string' || !protocol.hash.trim()) throw new Error('Unavailable protocol');
+    requireWidgetNumber(protocol.code, { integer: true });
+    return protocol;
+}
+
+export function requireWidgetBakers(bakers) {
+    if (!Array.isArray(bakers) || !bakers.length) throw new Error('Unavailable baker catalog');
+    for (const baker of bakers) {
+        if (!baker || typeof baker.address !== 'string') throw new Error('Unavailable baker identity');
+        requireWidgetNumber(baker.bakingPower);
+    }
+    return bakers;
 }
 
 export function escapeHtml(value) {
@@ -312,13 +419,13 @@ export function escapeHtml(value) {
 }
 
 export function formatCount(value) {
-    const number = Number(value);
-    return Number.isFinite(number) ? number.toLocaleString('en-US') : '—';
+    const number = widgetNumber(value);
+    return number !== null ? number.toLocaleString('en-US') : '—';
 }
 
 export function formatCompact(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return '—';
+    const number = widgetNumber(value);
+    if (number === null) return '—';
     const abs = Math.abs(number);
     if (abs >= 1e9) return `${(number / 1e9).toFixed(2)}B`;
     if (abs >= 1e6) return `${(number / 1e6).toFixed(2)}M`;
@@ -327,8 +434,8 @@ export function formatCompact(value) {
 }
 
 export function formatPercent(value, decimals = 1) {
-    const number = Number(value);
-    return Number.isFinite(number) ? `${number.toFixed(decimals)}%` : '—';
+    const number = widgetNumber(value);
+    return number !== null ? `${number.toFixed(decimals)}%` : '—';
 }
 
 export function shortAddress(address) {
@@ -343,9 +450,17 @@ export function poweredBakers(bakers) {
 }
 
 export function stakingRatioFromStats(stats) {
-    const staked = Number(stats?.totalOwnStaked || 0) + Number(stats?.totalExternalStaked || 0) || Number(stats?.totalFrozen || 0);
-    const supply = Number(stats?.totalSupply || 0);
-    return staked && supply ? (staked / supply) * 100 : null;
+    const supply = widgetNumber(stats?.totalSupply);
+    const own = widgetNumber(stats?.totalOwnStaked);
+    const external = widgetNumber(stats?.totalExternalStaked);
+    // Legacy totalFrozen is usable only when both modern fields are absent.
+    // One missing modern field is an incomplete snapshot, not a zero component.
+    const modern = stats?.totalOwnStaked != null || stats?.totalExternalStaked != null;
+    const staked = modern
+        ? own !== null && external !== null && own >= 0 && external >= 0 ? own + external : null
+        : widgetNumber(stats?.totalFrozen);
+    return supply !== null && supply > 0 && staked !== null && staked >= 0 && staked <= supply
+        ? (staked / supply) * 100 : null;
 }
 
 export function targetLabel() {

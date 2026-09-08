@@ -24,7 +24,7 @@ export async function smokeStandaloneChamberLifecycle(browser, baseUrl, { instal
     let release;
     const gate = new Promise(resolve => { release = resolve; });
     try {
-      await context.route('**/js/features/state-of-tezos.js', async route => {
+      await context.route('**/js/features/search.js', async route => {
         const response = await route.fetch(); await gate; await route.fulfill({ response });
       });
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -61,7 +61,7 @@ export async function smokeStandaloneChamberLifecycle(browser, baseUrl, { instal
         return { url: location.href, selection: getSelection().toString(), top: scroller.scrollTop, time: performance.timeOrigin };
       }, selector);
       let attempts = 0;
-      const pattern = failure === 'shell' ? '**/index.html' : '**/js/features/comparison.js';
+      const pattern = failure === 'shell' ? '**/index.html' : '**/js/features/search.js';
       const fail = route => { attempts++; return failure === 'shell' ? route.fulfill({ status: 503, body: 'Injected shell failure' }) : route.abort('failed'); };
       await context.route(pattern, fail);
       await page.keyboard.press('Escape');

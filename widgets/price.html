@@ -52,6 +52,7 @@
   @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.6}}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 </style>
+<link rel="stylesheet" href="./runtime.css">
 </head>
 <body>
 <div class="widget">
@@ -61,44 +62,34 @@
     <div class="change" id="change">—%</div>
   </div>
   <div class="sub" id="sub">24h change · CoinGecko</div>
-  <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=price" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  <div class="widget-meta">
+    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
+    <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=price" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  </div>
 </div>
 <script type="module">
 import {
-  applyWidgetTheme,
-  fetchWidgetJson,
-  startWidgetRefresh,
-  WIDGET_ENDPOINTS
+  applyWidgetTheme, createWidgetView, fetchWidgetJson, setWidgetText,
+  startWidgetRefresh, WIDGET_ENDPOINTS, requireWidgetNumber, widgetNumber
 } from './runtime.js';
 
-(function(){
-  const settings=applyWidgetTheme();
-
-  const priceEl=document.getElementById('price');
-  const changeEl=document.getElementById('change');
-  const subEl=document.getElementById('sub');
-
-  async function fetchData(){
-    try{
-      const d=await fetchWidgetJson(WIDGET_ENDPOINTS.price());
-      const xtz=d.tezos;
-      if(xtz){
-        const usd=xtz.usd;
-        const chg=xtz.usd_24h_change;
-        priceEl.textContent='$'+usd.toFixed(4);
-        priceEl.classList.remove('loading');
-        if(chg!=null){
-          const sign=chg>=0?'+':'';
-          changeEl.textContent=sign+chg.toFixed(2)+'%';
-          changeEl.className='change '+(chg>=0?'up':'down');
-        }
-        subEl.textContent='24h change · CoinGecko · USD';
-      }
-    }catch(e){priceEl.textContent='—';changeEl.textContent='—%'}
-  }
-
-  startWidgetRefresh(fetchData,settings.refreshMs);
-})();
+const settings = applyWidgetTheme();
+const priceEl = document.getElementById('price');
+const changeEl = document.getElementById('change');
+const view = createWidgetView({ source: 'CoinGecko' });
+async function fetchData() {
+  const data = await fetchWidgetJson(WIDGET_ENDPOINTS.price());
+  const usd = requireWidgetNumber(data?.tezos?.usd, { minimum: Number.MIN_VALUE });
+  const change = widgetNumber(data?.tezos?.usd_24h_change);
+  return () => {
+    setWidgetText(priceEl, '$' + usd.toFixed(4));
+    priceEl.classList.remove('loading');
+    setWidgetText(changeEl, change === null ? '—' : (change >= 0 ? '+' : '') + change.toFixed(2) + '%');
+    changeEl.className = 'change' + (change === null ? '' : change >= 0 ? ' up' : ' down');
+  };
+}
+startWidgetRefresh(fetchData, settings.refreshMs, view);
 </script>
 </body>
 </html>

@@ -56,6 +56,7 @@
   @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.6}}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 </style>
+<link rel="stylesheet" href="./runtime.css">
 </head>
 <body>
 <div class="widget">
@@ -66,64 +67,51 @@
     <div class="progress-label"><span id="prog-start">0%</span><span id="prog-end">100%</span></div>
   </div>
   <div class="period-badge" id="cycle-info">Cycle —</div>
-  <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=governance" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  <div class="widget-meta">
+    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
+    <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=governance" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  </div>
 </div>
 <script type="module">
 import {
-  applyWidgetTheme,
-  fetchWidgetJson,
-  startWidgetRefresh,
-  WIDGET_ENDPOINTS
+  applyWidgetTheme, createWidgetView, fetchWidgetBatch, setWidgetText,
+  startWidgetRefresh, WIDGET_ENDPOINTS, requireWidgetNumber
 } from './runtime.js';
 
-(function(){
-  const settings=applyWidgetTheme();
-
-  const periodEl=document.getElementById('period');
-  const progressEl=document.getElementById('progress');
-  const progStartEl=document.getElementById('prog-start');
-  const progEndEl=document.getElementById('prog-end');
-  const cycleInfoEl=document.getElementById('cycle-info');
-
-  const PERIOD_NAMES={
-    proposal:'Proposal',
-    exploration:'Exploration Vote',
-    cooldown:'Cooldown',
-    promotion:'Promotion Vote',
-    adoption:'Adoption'
+const settings = applyWidgetTheme();
+const periodEl = document.getElementById('period');
+const progressEl = document.getElementById('progress');
+const progStartEl = document.getElementById('prog-start');
+const progEndEl = document.getElementById('prog-end');
+const cycleInfoEl = document.getElementById('cycle-info');
+const view = createWidgetView({ empty: () => setWidgetText(periodEl, '—') });
+const PERIOD_NAMES = {
+  proposal: 'Proposal', exploration: 'Exploration Vote', cooldown: 'Cooldown',
+  promotion: 'Promotion Vote', adoption: 'Adoption'
+};
+async function fetchData() {
+  const [period, head] = await fetchWidgetBatch([
+    WIDGET_ENDPOINTS.currentVotingPeriod(), WIDGET_ENDPOINTS.head()
+  ]);
+  if (!period || !Object.hasOwn(PERIOD_NAMES, period.kind)) throw new Error('Unavailable voting period');
+  const first = requireWidgetNumber(period.firstLevel, { integer: true, minimum: 1 });
+  const last = requireWidgetNumber(period.lastLevel, { integer: true, minimum: first });
+  const level = requireWidgetNumber(head?.level, { integer: true, minimum: first });
+  if (level > last) throw new Error('Voting period and head are out of sync');
+  const epoch = requireWidgetNumber(period.epoch, { integer: true });
+  const index = requireWidgetNumber(period.index, { integer: true });
+  const pct = ((level - first + 1) / (last - first + 1)) * 100;
+  return () => {
+    setWidgetText(periodEl, PERIOD_NAMES[period.kind]);
+    periodEl.classList.remove('loading');
+    progressEl.style.width = pct.toFixed(1) + '%';
+    setWidgetText(progStartEl, pct.toFixed(0) + '%');
+    setWidgetText(progEndEl, 'Ends Epoch ' + epoch);
+    setWidgetText(cycleInfoEl, 'Epoch ' + epoch + ' · Period ' + index);
   };
-
-  async function fetchData(){
-    try{
-      const d=await fetchWidgetJson(WIDGET_ENDPOINTS.currentVotingPeriod(),{memoryCache:false});
-      if(d&&d.kind){
-        const name=PERIOD_NAMES[d.kind]||d.kind.charAt(0).toUpperCase()+d.kind.slice(1);
-        periodEl.textContent=name;
-        periodEl.classList.remove('loading');
-        // Progress within period
-        if(d.firstLevel!=null&&d.lastLevel!=null){
-          const head=await fetchWidgetJson(WIDGET_ENDPOINTS.head());
-          const total=d.lastLevel-d.firstLevel;
-          const done=(head.level||d.firstLevel)-d.firstLevel;
-          const pct=total>0?Math.min(100,Math.max(0,(done/total)*100)):0;
-          progressEl.style.width=pct.toFixed(1)+'%';
-          progStartEl.textContent=pct.toFixed(0)+'%';
-          progEndEl.textContent='Ends Epoch '+d.epoch;
-        }
-        cycleInfoEl.textContent='Epoch '+(d.epoch||'—')+' · Period '+(d.index||'—');
-      }
-    }catch(e){
-      try{
-        const hd=await fetchWidgetJson(WIDGET_ENDPOINTS.head());
-        periodEl.textContent='No Active Vote';
-        periodEl.classList.remove('loading');
-        cycleInfoEl.textContent='Cycle '+(hd.cycle||'—');
-      }catch(e2){periodEl.textContent='—';periodEl.classList.remove('loading')}
-    }
-  }
-
-  startWidgetRefresh(fetchData,settings.refreshMs);
-})();
+}
+startWidgetRefresh(fetchData, settings.refreshMs, view);
 </script>
 </body>
 </html>

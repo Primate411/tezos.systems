@@ -5,9 +5,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CHAMBER_ROUTES } from './lib/chamber-routes.mjs';
+import { CSS_TARGETS, CSS_SOURCE_PATTERNS } from './lib/css-bundles.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const THEME_NAMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
 const COMPARE_PAGES = [
   'compare/index.html',
   'compare/tezos-vs-ethereum.html',
@@ -20,39 +20,6 @@ const GOVERNANCE_TARGETS = [
   'data/governance-votes.json',
   'data/governance-refresh-report.json',
   'feed.xml'
-];
-const LAZY_SURFACE_STYLES = [
-  'capital.css',
-  'ecosystem.css',
-  'history-chamber.css',
-  'leaderboard.css',
-  'ledger-flow.css',
-  'maxis.css',
-  'market-room.css',
-  'metals-chamber.css',
-  'minerals-chamber.css',
-  'network-health.css',
-  'network-pulse.css',
-  'staking-chamber.css',
-  'tezos-domains.css',
-  'tezoscrp.css',
-  'uranium-chamber.css',
-  'whale-chamber.css'
-];
-const CSS_TARGETS = [
-  'css/styles.min.css',
-  'css/my-tezos.min.css',
-  'css/shell-extras.min.css',
-  ...LAZY_SURFACE_STYLES.map((file) => `css/${file.replace(/\.css$/, '.min.css')}`),
-  ...THEME_NAMES.flatMap((theme) => [`css/themes/${theme}.css`, `css/themes/${theme}.min.css`])
-];
-const CSS_SOURCE_PATTERNS = [
-  /^css\/styles\.css$/,
-  /^css\/my-tezos\.css$/,
-  /^css\/shell-extras\.css$/,
-  ...LAZY_SURFACE_STYLES.map((file) => new RegExp(`^css/${file.replace('.', '\\.')}$`)),
-  /^scripts\/build-css\.mjs$/,
-  /^package(?:-lock)?\.json$/
 ];
 const ROUTE_TARGETS = CHAMBER_ROUTES.map((route) => `${route.slug}/index.html`);
 const ANTHOLOGY_ROUTE_TARGETS = ['anthology'];
@@ -341,6 +308,19 @@ async function main() {
     nodeScript('scripts/refresh-whale-watch-data.mjs');
     ran.push('whale-watch');
     if (shouldStage) stageTargets(WHALE_WATCH_TARGETS);
+  }
+
+  // Transports are derived independently from source schemas and frozen Maxis
+  // rules. Always rebuild/check them after their source-family work is settled.
+  if (modeName === 'all' || (modeName === 'precommit' && initialStaged.some(file =>
+    /^data\/(?:capital-snapshot\.json|minerals-snapshot\.json|ecosystem-stats\.json|maxis\/seasons\/.*\/passports\/|transports\/)/.test(file)
+      || /^(?:scripts\/generate-chamber-transports\.mjs|js\/core\/generated-transport\.mjs)$/.test(file)))) {
+    nodeScript('scripts/generate-chamber-transports.mjs');
+    ran.push('chamber-transports');
+    if (shouldStage) stageTargets(['data/transports/v1']);
+  } else {
+    nodeScript('scripts/generate-chamber-transports.mjs', ['--check']);
+    ran.push('chamber-transports-check');
   }
 
   const milestoneArgs = [];

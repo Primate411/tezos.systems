@@ -17,6 +17,8 @@ import {
   unstableSuiteResults
 } from './lib/smoke-harness.mjs';
 import { selectAffectedSmokeSuites, smokeGlobMatches } from './lib/smoke-affected.mjs';
+import { SmokeCancelledError } from './lib/smoke-lifecycle.mjs';
+import { checkSmokeProcessCancellation } from './lib/smoke-cancellation-check.mjs';
 
 function expectThrow(run, pattern) {
   assert.throws(run, pattern);
@@ -168,6 +170,35 @@ async function main() {
   assert.equal(infrastructureExhausted[0].status, 'failed');
   assert.equal(infrastructureExhausted[0].iterations[0].attempts[0].infrastructureFailure, true);
   assert.equal(infrastructureExhausted[0].iterations[0].attempts[0].infrastructureRetries, 1);
+
+  for (const thrownAfterAbort of [new Error('browser closed'), new SmokeInfrastructureError('launch closed'), null]) {
+    const controller = new AbortController();
+    const cancelledRuns = [];
+    const cancellationEvents = [];
+    const reason = new SmokeCancelledError('SIGTERM');
+    await assert.rejects(executeSuiteCatalog([{ name: 'interrupted' }, { name: 'must-not-run' }], {
+      continueOnFailure: true,
+      repeatEach: 3,
+      retryFailures: 2,
+      retryInfrastructure: 2,
+      signal: controller.signal,
+      onEvent: event => cancellationEvents.push(event.type),
+      runAttempt: async suite => {
+        cancelledRuns.push(suite.name);
+        controller.abort(reason);
+        if (thrownAfterAbort) throw thrownAfterAbort;
+      }
+    }), error => error === reason);
+    assert.deepEqual(cancelledRuns, ['interrupted'], 'cancellation must stop retries, repetitions, and the aggregate queue');
+    assert.deepEqual(cancellationEvents, ['attempt-start'], 'cancellation is neither a passing test nor a flaky assertion');
+  }
+  const alreadyCancelled = new AbortController();
+  alreadyCancelled.abort(new SmokeCancelledError('SIGINT'));
+  await assert.rejects(executeSuiteCatalog([{ name: 'must-not-start' }], {
+    signal: alreadyCancelled.signal,
+    runAttempt: async () => assert.fail('an already cancelled run must not launch anything')
+  }), error => error.exitCode === 130);
+  await checkSmokeProcessCancellation();
 
   assert.ok(smokeGlobMatches('js/features/my-tezos*', 'js/features/my-tezos-memory.mjs'));
   assert.ok(smokeGlobMatches('data/maxis/**', 'data/maxis/seasons/season-1/summary.json'));

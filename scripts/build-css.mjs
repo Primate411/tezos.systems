@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { CSS_THEMES as THEMES, DIRECT_CSS_BUNDLES, LAZY_SURFACE_STYLES } from './lib/css-bundles.mjs';
 
 const require = createRequire(import.meta.url);
 const CleanCSS = require('clean-css');
@@ -12,28 +13,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(ROOT, 'css', 'styles.css');
 const BASE_MIN = path.join(ROOT, 'css', 'styles.min.css');
 const MY_TEZOS_MIN = path.join(ROOT, 'css', 'my-tezos.min.css');
-const SHELL_EXTRAS_SOURCE = path.join(ROOT, 'css', 'shell-extras.css');
 const SHELL_EXTRAS_MIN = path.join(ROOT, 'css', 'shell-extras.min.css');
 const THEME_DIR = path.join(ROOT, 'css', 'themes');
-const THEMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
-const LAZY_SURFACE_STYLES = [
-  'capital.css',
-  'ecosystem.css',
-  'history-chamber.css',
-  'leaderboard.css',
-  'ledger-flow.css',
-  'maxis.css',
-  'market-room.css',
-  'metals-chamber.css',
-  'minerals-chamber.css',
-  'network-health.css',
-  'network-pulse.css',
-  'staking-chamber.css',
-  'tezos-domains.css',
-  'tezoscrp.css',
-  'uranium-chamber.css',
-  'whale-chamber.css'
-];
+const CHECK_ONLY = process.argv.includes('--check');
+
+async function writeOutput(file, css) {
+  if (!CHECK_ONLY) return fs.writeFile(file, css);
+  const current = await fs.readFile(file, 'utf8').catch(() => null);
+  if (current !== css) throw new Error(`Stale CSS output: ${path.relative(ROOT, file)}; run npm run build:css`);
+}
 
 function emptyBuckets() {
   return Object.fromEntries(THEMES.map((theme) => [theme, '']));
@@ -281,28 +269,27 @@ async function main() {
   const source = await fs.readFile(SOURCE, 'utf8');
   const myTezos = extractMyTezosLazyCss(source);
   const { base, themes } = splitCss(myTezos.base);
-  await fs.mkdir(THEME_DIR, { recursive: true });
-  await fs.writeFile(BASE_MIN, minify(base, 'css/styles.min.css'));
-  await fs.writeFile(MY_TEZOS_MIN, minify(myTezos.css, 'css/my-tezos.min.css'));
-  await fs.writeFile(SHELL_EXTRAS_MIN, minify(await fs.readFile(SHELL_EXTRAS_SOURCE, 'utf8'), 'css/shell-extras.min.css'));
+  if (!CHECK_ONLY) await fs.mkdir(THEME_DIR, { recursive: true });
+  await writeOutput(BASE_MIN, minify(base, 'css/styles.min.css'));
+  await writeOutput(MY_TEZOS_MIN, minify(myTezos.css, 'css/my-tezos.min.css'));
 
   let moved = 0;
   for (const theme of THEMES) {
     const css = `/* Generated from css/styles.css by scripts/build-css.mjs. Do not edit directly. */\n${themes[theme]}`;
     const cssFile = path.join(THEME_DIR, `${theme}.css`);
     const minFile = path.join(THEME_DIR, `${theme}.min.css`);
-    await fs.writeFile(cssFile, cleanGeneratedText(css));
-    await fs.writeFile(minFile, minify(css, `css/themes/${theme}.min.css`));
+    await writeOutput(cssFile, cleanGeneratedText(css));
+    await writeOutput(minFile, minify(css, `css/themes/${theme}.min.css`));
     moved += themes[theme].length;
   }
 
   const lazySurfaceKb = {};
-  for (const filename of LAZY_SURFACE_STYLES) {
-    const sourcePath = path.join(ROOT, 'css', filename);
-    const outputPath = path.join(ROOT, 'css', filename.replace(/\.css$/, '.min.css'));
+  for (const { source, output } of DIRECT_CSS_BUNDLES) {
+    const sourcePath = path.join(ROOT, source);
+    const outputPath = path.join(ROOT, output);
     const css = await fs.readFile(sourcePath, 'utf8');
-    await fs.writeFile(outputPath, minify(css, `css/${filename}`));
-    lazySurfaceKb[filename] = Math.round((await fs.stat(outputPath)).size / 1024);
+    await writeOutput(outputPath, minify(css, source));
+    lazySurfaceKb[source] = Math.round((await fs.stat(outputPath)).size / 1024);
   }
 
   const baseKb = Buffer.byteLength(await fs.readFile(BASE_MIN)) / 1024;
@@ -312,7 +299,7 @@ async function main() {
     theme,
     Math.round((await fs.stat(path.join(THEME_DIR, `${theme}.min.css`))).size / 1024)
   ])));
-  console.log(`Built css/styles.min.css (${baseKb.toFixed(1)} KB), css/my-tezos.min.css (${myTezosKb.toFixed(1)} KB), css/shell-extras.min.css (${shellExtrasKb.toFixed(1)} KB), ${THEMES.length} lazy theme bundles, and ${LAZY_SURFACE_STYLES.length} lazy surface bundles`);
+  console.log(`${CHECK_ONLY ? 'Verified' : 'Built'} css/styles.min.css (${baseKb.toFixed(1)} KB), css/my-tezos.min.css (${myTezosKb.toFixed(1)} KB), css/shell-extras.min.css (${shellExtrasKb.toFixed(1)} KB), ${THEMES.length} lazy theme bundles, and ${LAZY_SURFACE_STYLES.length} lazy surface bundles`);
   console.log(`Moved ${(moved / 1024).toFixed(1)} KB of source theme rules`, themeKb);
   console.log('Lazy surface bundles (KB)', lazySurfaceKb);
 }

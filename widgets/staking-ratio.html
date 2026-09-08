@@ -47,6 +47,7 @@
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
   @keyframes spin-load{0%,100%{stroke-dashoffset:220}50%{stroke-dashoffset:160}}
 </style>
+<link rel="stylesheet" href="./runtime.css">
 </head>
 <body>
 <div class="widget">
@@ -56,14 +57,18 @@
       <path class="gauge-bg" id="gauge-bg" d="" stroke-width="8"/>
       <path class="gauge-fill loading" id="gauge-fill" d="" stroke-width="8" stroke-dasharray="220" stroke-dashoffset="220"/>
     </svg>
-    <div class="gauge-text" id="gauge-val">—<span class="gauge-pct">%</span></div>
+    <div class="gauge-text" id="gauge-val"><span id="gauge-number">—</span><span class="gauge-pct">%</span></div>
   </div>
-  <div class="target-label">Target: <span id="target-val">—</span> · Current: <span id="sub-val">loading…</span></div>
-  <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=staking-ratio" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  <div class="target-label">Target: <span id="target-val">—</span> · Current: <span id="sub-val">—</span></div>
+  <div class="widget-meta">
+    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
+    <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=staking-ratio" target="_blank" rel="noopener">powered by tezos.systems -></a>
+  </div>
 </div>
 <script type="module">
 import {
-  applyWidgetTheme,
+  applyWidgetTheme, createWidgetView, setWidgetText,
   fetchWidgetJson,
   stakingRatioFromStats,
   startWidgetRefresh,
@@ -93,29 +98,22 @@ import {
   fill.setAttribute('stroke-dasharray',totalLen);
   fill.setAttribute('stroke-dashoffset',totalLen);
 
-  const valEl=document.getElementById('gauge-val');
+  const valEl=document.getElementById('gauge-number');
   const subEl=document.getElementById('sub-val');
 
-  function setGauge(pct){
-    const clamped=Math.max(0,Math.min(100,pct));
-    const offset=totalLen*(1-clamped/100);
-    fill.style.strokeDashoffset=offset;
-    fill.classList.remove('loading');
-    valEl.innerHTML=clamped.toFixed(1)+'<span class="gauge-pct">%</span>';
-    subEl.textContent=clamped.toFixed(1)+'% staked';
-  }
-
+  const view=createWidgetView();
   async function fetchData(){
-    try{
-      const stats=await fetchWidgetJson(WIDGET_ENDPOINTS.statistics());
-      const pct=stakingRatioFromStats(stats);
-      if(pct!=null){
-        setGauge(pct);
-      }
-    }catch(e){valEl.innerHTML='—<span class="gauge-pct">%</span>'}
+    const stats=await fetchWidgetJson(WIDGET_ENDPOINTS.statistics());
+    const pct=stakingRatioFromStats(stats);
+    if(pct===null) throw new Error('Unavailable staking ratio');
+    return () => {
+      fill.style.strokeDashoffset=totalLen*(1-pct/100);
+      fill.classList.remove('loading');
+      setWidgetText(valEl,pct.toFixed(1));
+      setWidgetText(subEl,pct.toFixed(1)+'% staked');
+    };
   }
-
-  startWidgetRefresh(fetchData,settings.refreshMs);
+  startWidgetRefresh(fetchData,settings.refreshMs,view);
 })();
 </script>
 </body>

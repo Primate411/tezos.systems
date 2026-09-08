@@ -61,11 +61,14 @@ export async function smokeStandaloneChamberExpansion(browser, baseUrl, { instal
       assert.equal(cold.overflow, false, `${id} ${width}: horizontal page overflow`);
       // Stage 4 adds exactly one shared reading-cue module, not a dashboard dependency.
       assert.equal(cold.scripts.filter(url => url === '/js/ui/chamber-reading.js').length, 1, 'One shared reading module');
-      assert(cold.scripts.filter(url => url !== '/js/ui/chamber-reading.js').length < 25, `${id} ${width}: unexpectedly large startup graph ${cold.scripts}`);
+      // The two bounded transport modules replace repeated snapshot readers.
+      const transportModules = ['/js/core/generated-snapshot.js', '/js/core/generated-transport.mjs'];
+      assert(cold.scripts.filter(url => transportModules.includes(url)).length <= 2, 'At most one instance of each transport module');
+      assert(cold.scripts.filter(url => url !== '/js/ui/chamber-reading.js' && !transportModules.includes(url)).length < 25, `${id} ${width}: unexpectedly large startup graph ${cold.scripts}`);
       const forbidden = requests.filter(url => /\/js\/(?:core\/(?:app|api)\.js|features\/(?:network-health|history|my-tezos)\.js)|chart\.umd|api\.tzkt\.io|supabase\.co/.test(url));
       assert.deepEqual(forbidden, [], `${id} ${width}: unrelated dashboard requests`);
       for (const [, , , other] of ROOMS) if (other !== fullName) {
-        assert(!requests.some(url => new URL(url).pathname === `/data/${other}.json`), `${id}: loaded unrelated ${other}`);
+        assert(!requests.some(url => new URL(url).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, '') === `/data/${other}.json`), `${id}: loaded unrelated ${other}`);
       }
       receipts.push({ id, width, ...cold });
       if (artifactsDir) {

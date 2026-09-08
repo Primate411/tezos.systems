@@ -4,6 +4,10 @@
  * Caches data per user session, refreshes every 30 minutes
  */
 
+import { withRequestDeadline } from '../core/request-policy.mjs';
+import { validatePriceData, validatePriceSpot, validatePriceHorizons } from '../core/source-payloads.mjs';
+import { quietlyMutate } from '../core/quiet-refresh.js';
+
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true';
 const COINGECKO_HORIZONS_URL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=tezos&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h,7d,30d';
 const CACHE_KEY = 'tezos_price_cache';
@@ -12,7 +16,7 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const FETCH_TIMEOUT_MS = 15_000;
 
 let priceTimer = null;
-let lastPrice = null;
+let priceVisibilityBound = false;
 
 /**
  * Get cached price data if still fresh
@@ -22,12 +26,13 @@ function getCachedPrice() {
         const raw = sessionStorage.getItem(CACHE_KEY);
         if (!raw) return null;
         const cached = JSON.parse(raw);
-        if (cached.schema === CACHE_SCHEMA && Date.now() - cached.timestamp < CACHE_TTL) {
-            return cached.data;
+        if (cached.schema === CACHE_SCHEMA && Number.isFinite(cached.timestamp) && cached.timestamp > 0
+            && cached.timestamp <= Date.now() && Date.now() - cached.timestamp < CACHE_TTL) {
+            return validatePriceData(cached.data);
         }
         sessionStorage.removeItem(CACHE_KEY);
     } catch (e) {
-        // Ignore storage errors
+        try { sessionStorage.removeItem(CACHE_KEY); } catch { /* Storage may be disabled. */ }
     }
     return null;
 }
@@ -56,20 +61,14 @@ async function fetchPrice() {
     if (cached) return cached;
 
     try {
-        const fetchJson = async (url) => {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-            try {
-                const res = await fetch(url, { signal: controller.signal });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return await res.json();
-            } finally {
-                clearTimeout(timer);
-            }
-        };
+        const fetchJson = (url, validate) => withRequestDeadline(async signal => {
+            const res = await fetch(url, { signal });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return validate(await res.json());
+        }, { timeoutMs: FETCH_TIMEOUT_MS });
         const [spotResult, horizonsResult] = await Promise.allSettled([
-            fetchJson(COINGECKO_URL),
-            fetchJson(COINGECKO_HORIZONS_URL)
+            fetchJson(COINGECKO_URL, validatePriceSpot),
+            fetchJson(COINGECKO_HORIZONS_URL, validatePriceHorizons)
         ]);
         const spot = spotResult.status === 'fulfilled' ? spotResult.value?.tezos : null;
         const horizons = horizonsResult.status === 'fulfilled' && Array.isArray(horizonsResult.value)
@@ -91,9 +90,9 @@ async function fetchPrice() {
             usd_market_cap: spot?.usd_market_cap ?? horizons?.market_cap ?? null,
             usd_24h_vol: spot?.usd_24h_vol ?? horizons?.total_volume ?? null
         };
+        validatePriceData(priceData);
         if (priceData) {
             setCachedPrice(priceData);
-            lastPrice = priceData.usd ?? lastPrice;
         }
         return priceData;
     } catch (e) {
@@ -172,14 +171,6 @@ function updatePriceBar(data) {
     // Update USD price
     priceEl.textContent = formatPrice(price);
 
-    // Pulse animation on price change
-    if (lastPrice !== null && lastPrice !== price) {
-        priceEl.classList.remove('price-pulse');
-        void priceEl.offsetWidth; // reflow
-        priceEl.classList.add('price-pulse');
-    }
-    lastPrice = price;
-
     // Update compact rolling USD changes without rebuilding the price strip.
     const changes = [
         ['24h', '24 hour', data.usd_24h_change],
@@ -189,9 +180,14 @@ function updatePriceBar(data) {
     changes.forEach(([period, spokenPeriod, rawChange]) => {
         const changeEl = bar.querySelector(`[data-price-change="${period}"]`);
         const valueEl = changeEl?.querySelector('.price-change-value');
-        if (rawChange === null || rawChange === undefined || rawChange === '') return;
-        const change = Number(rawChange);
-        if (!changeEl || !valueEl || !Number.isFinite(change)) return;
+        if (!changeEl || !valueEl) return;
+        if (rawChange == null) {
+            valueEl.textContent = '—';
+            changeEl.classList.remove('positive', 'negative');
+            changeEl.setAttribute('aria-label', `XTZ ${spokenPeriod} price change unavailable`);
+            return;
+        }
+        const change = rawChange;
         const formatted = formatChange(change);
         valueEl.textContent = formatted;
         changeEl.classList.toggle('positive', change >= 0);
@@ -200,19 +196,13 @@ function updatePriceBar(data) {
     });
 
     // Update EUR (removed from bar)
-    if (eurEl && data.eur) {
-        eurEl.textContent = formatEur(data.eur);
-    }
+    if (eurEl) eurEl.textContent = data.eur == null ? '—' : formatEur(data.eur);
 
     // Update BTC
-    if (btcEl && data.btc) {
-        btcEl.textContent = formatBtc(data.btc);
-    }
+    if (btcEl) btcEl.textContent = data.btc == null ? '—' : formatBtc(data.btc);
 
     // Update market cap
-    if (mcap) {
-        mcapEl.textContent = `MCap ${formatMarketCap(mcap)}`;
-    }
+    if (mcapEl) mcapEl.textContent = mcap == null ? 'MCap —' : `MCap ${formatMarketCap(mcap)}`;
 
     bar.classList.add('visible');
 }
@@ -223,8 +213,10 @@ function updatePriceBar(data) {
 async function refreshPrice() {
     if (document.visibilityState !== 'visible') return;
     const data = await fetchXTZPrice();
-    if (data) {
-        updatePriceBar(data);
+    if (data && document.visibilityState === 'visible') {
+        const bar = document.getElementById('price-bar');
+        if (bar?.classList.contains('visible')) quietlyMutate(bar, () => updatePriceBar(data));
+        else updatePriceBar(data);
     }
 }
 
@@ -241,4 +233,8 @@ export function initPriceBar() {
     // Auto-refresh every 30 minutes (matches cache TTL)
     if (priceTimer !== null) clearInterval(priceTimer);
     priceTimer = setInterval(refreshPrice, CACHE_TTL);
+    if (!priceVisibilityBound) {
+        priceVisibilityBound = true;
+        document.addEventListener('visibilitychange', refreshPrice);
+    }
 }

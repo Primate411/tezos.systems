@@ -36,7 +36,7 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
     try {
       await installFeatureMocks(context);
       await context.route(/\/data\/(?:capital-snapshot|capital-entry-summary|ecosystem-stats|ecosystem-entry-summary|minerals-snapshot|minerals-entry-summary|metals-snapshot|metals-entry-summary|uranium-snapshot|uranium-entry-summary|whale-watch)\.json/, async route => {
-        const pathname = new URL(route.request().url()).pathname;
+        const pathname = new URL(route.request().url()).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, '');
         if (![fullName, summaryName].filter(Boolean).some(name => pathname === `/data/${name}.json`)) return route.fallback();
         requests += 1;
         if (mode === 'hold' || (mode === 'cold' && pathname === `/data/${fullName}.json`)) await gate;
@@ -82,6 +82,7 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
         const fetch = window.fetch.bind(window);
         window.fetch = async (input, ...args) => {
           const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+          url.pathname = url.pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, '');
           const tracked = [fullName, summaryName].filter(Boolean).some(name => url.pathname === `/data/${name}.json`);
           if (tracked) window.__stageDataPending += 1;
           if (url.pathname === `/data/${fullName}.json`) window.__stageFullStarted += 1;

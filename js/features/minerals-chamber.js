@@ -15,6 +15,7 @@ import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
+import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { getChamberScrollContainer,
     activateChamberDialog,
@@ -344,16 +345,8 @@ async function validateEntrySummary(summary) {
 function fetchMineralsSnapshot(summary = lastEntrySummary) {
     if (activeFetch) return activeFetch;
     const sourceReceipt = summary?.fullSnapshot || null;
-    activeFetch = fetch(MINERALS_SNAPSHOT_URL, { cache: 'no-cache', headers: { Accept: 'application/json' } })
-        .then(async (response) => {
-            if (!response.ok) throw new Error(`Minerals snapshot HTTP ${response.status}`);
-            const text = await response.text();
-            let snapshot;
-            try {
-                snapshot = JSON.parse(text);
-            } catch {
-                throw new Error('Minerals snapshot is not valid JSON.');
-            }
+    activeFetch = fetchGeneratedSnapshot(MINERALS_SNAPSHOT_URL)
+        .then(async ({ value: snapshot, text }) => {
             await validateSnapshot(snapshot);
             await assertSnapshotMatchesProjection(snapshot, text, sourceReceipt, { label: 'Minerals snapshot' });
             void snapshotCache.save(text, summary);

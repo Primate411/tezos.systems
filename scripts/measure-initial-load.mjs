@@ -354,8 +354,8 @@ async function measureRun(browser, options, runNumber) {
       )),
       moduleResources: extensionMatches(['.js', '.mjs']),
       forbiddenHeavyResources: resources.filter((entry) => (
-        forbiddenInitialPaths.has(resourcePath(entry))
-        || /^\/data\/maxis\/seasons\/[^/]+\/summary\.json$/.test(resourcePath(entry))
+        forbiddenInitialPaths.has(resourcePath(entry).replace(/^\/data\/transports\/v1(?=\/data\/)/, ''))
+        || /^\/data\/maxis\/seasons\/[^/]+\/(?:summary\.json|passports\/[0-9a-f]{2}\.json)$/.test(resourcePath(entry).replace(/^\/data\/transports\/v1(?=\/data\/)/, ''))
       )),
       largestResources: resources
         .sort((a, b) => b.decodedBodySize - a.decodedBodySize)

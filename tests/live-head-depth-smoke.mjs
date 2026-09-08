@@ -2,6 +2,19 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+export async function prepareLiveHeadThemeControl(page) {
+  // Chromium can collect the transient promise returned by an async CDP
+  // evaluation during Valley's canvas allocation. Playwright misleadingly
+  // reports that as a destroyed execution context. Root the module load on
+  // this test page, then invoke its real setter synchronously for each theme.
+  await page.evaluate(() => {
+    window.__liveDepthThemeReady = import('/js/ui/theme.js').then(({ setTheme }) => {
+      window.__liveDepthSetTheme = setTheme;
+    });
+  });
+  await page.waitForFunction(() => typeof window.__liveDepthSetTheme === 'function');
+}
+
 export async function chooseLiveHeadDepth(page, mode, source = 'corner') {
   const control = page.locator(`[data-live-head-depth-control="${source}"]`);
   const opener = control.locator('button[aria-controls]');
@@ -210,6 +223,7 @@ export async function smokeLiveHeadDepth(browser, baseUrl, { installFeatureMocks
   menu = page.locator('#live-head-depth-menu');
   input = page.locator('#live-head-depth-rows');
   await waitRows(4);
+  await prepareLiveHeadThemeControl(page);
   const themes = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1900 : 844 });
@@ -217,10 +231,7 @@ export async function smokeLiveHeadDepth(browser, baseUrl, { installFeatureMocks
     await waitRows(20);
     await corner.click();
     for (const theme of themes) {
-      await page.evaluate(async name => {
-        const { setTheme } = await import('/js/ui/theme.js');
-        setTheme(name);
-      }, theme);
+      await page.evaluate(name => window.__liveDepthSetTheme(name), theme);
       await page.waitForFunction(name => Boolean(document.getElementById(`theme-css-${name}`)?.sheet), theme);
       const geometry = await page.evaluate(() => {
         const popover = document.getElementById('live-head-depth-menu');

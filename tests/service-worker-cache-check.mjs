@@ -67,6 +67,22 @@ self.navigator.onLine = false;
 assert.equal((await dispatchFetch(summaryUrl)).status, 503);
 assert.equal(fetchCalls.length, callsBeforeOffline, 'explicitly offline generated receipts must not consult warmed HTTP bytes');
 
+for (const name of ['capital-snapshot', 'minerals-snapshot', 'ecosystem-stats']) {
+  const url = `https://tezos.systems/data/transports/v1/data/${name}.json`;
+  const before = fetchCalls.length;
+  assert.equal((await dispatchFetch(url)).status, 503, 'offline mutable transports must not replay Cache Storage');
+  assert.equal(fetchCalls.length, before);
+  self.navigator.onLine = true;
+  fetchBehavior = async () => new Response('{}', { status: 200 });
+  assert.equal((await dispatchFetch(url)).status, 200);
+  assert.equal(fetchCalls.at(-1).cache, 'no-cache', 'mutable transport keeps its expanded source revalidation policy');
+  fetchBehavior = async () => { throw new Error('transport source unavailable'); };
+  assert.equal((await dispatchFetch(url)).status, 503, 'transport failures must not consult Cache Storage');
+  self.navigator.onLine = false;
+}
+assert.equal(vm.runInContext("isNetworkOnlyDataPath('/data/transports/v1/data/maxis/seasons/example/passports/2a.json')", context), false,
+  'immutable Passport transports keep normal HTTP caching and frozen receipt validation');
+
 self.navigator.onLine = true;
 fetchBehavior = async () => new Response('{}', { status: 200 });
 assert.equal((await dispatchFetch('https://api.tzkt.io/v1/head')).status, 200);

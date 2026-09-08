@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { STATIC_CHECKS } from './lib/static-test-catalog.mjs';
+import { CSS_THEMES, CSS_TARGETS, LAZY_SURFACE_STYLES } from '../scripts/lib/css-bundles.mjs';
 
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -2051,7 +2053,7 @@ async function checkCacheBustAlignment() {
   const themeUi = await readText('js/ui/theme.js');
   const cssMatch = index.match(/css\/styles\.min\.css\?v=(\d+)/);
   const loadingCssLinkMatch = index.match(/css\/loading\.css\?v=(\d+)/);
-  const heroCssLinkMatch = index.match(/css\/hero-search\.css\?v=(\d+)/);
+  const heroCssLinkMatch = index.match(/css\/hero-search\.min\.css\?v=(\d+)/);
   const siteMapCssLinkMatch = index.match(/css\/site-map\.css\?v=(\d+)/);
   const appPreloadMatch = index.match(/js\/core\/app\.js\?v=(\d+)/);
   const appScriptMatch = index.match(/<script[^>]+src=["']js\/core\/app\.js\?v=(\d+)["']/);
@@ -2063,7 +2065,7 @@ async function checkCacheBustAlignment() {
   const themePreloadMatch = themePreload.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
   const themeUiMatch = themeUi.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
   const runtimeCssContracts = [
-    ['search.js hero-search.css', heroSearch, "versionedAsset('/css/hero-search.css')"],
+    ['search.js hero-search.css', heroSearch, "versionedAsset('/css/hero-search.min.css')"],
     ['app.js generated My Tezos CSS', app, "versionedAsset('/css/my-tezos.min.css')"],
     ['leaderboard.js leaderboard CSS', leaderboard, "versionedAsset('/css/leaderboard.min.css')"],
     ['ledger-flow.js Ledger Flow CSS', ledgerFlow, "versionedAsset('/css/ledger-flow.min.css')"],
@@ -2114,7 +2116,7 @@ async function checkCacheBustAlignment() {
   const generatedRouteCacheRefs = [
     ['styles', /<link rel="stylesheet" href="\/css\/styles\.min\.css\?v=(\d+)">/],
     ['loading', /<link rel="stylesheet" href="\/css\/loading\.css\?v=(\d+)">/],
-    ['hero search', /<link id="hero-search-css" rel="stylesheet" href="\/css\/hero-search\.css\?v=(\d+)">/],
+    ['hero search', /<link id="hero-search-css" rel="stylesheet" href="\/css\/hero-search\.min\.css\?v=(\d+)">/],
     ['site map', /<link rel="stylesheet" href="\/css\/site-map\.css\?v=(\d+)">/],
     ['app module preload', /<link rel="modulepreload" href="\/js\/core\/app\.js\?v=(\d+)">/],
     ['theme preload', /<script src="\/js\/core\/theme-preload\.js\?v=(\d+)"><\/script>/],
@@ -2382,7 +2384,7 @@ async function checkSelectorContracts() {
   const { siteMapStarters } = await import(siteMapModuleUrl);
   const governanceLanding = await readText('governance/index.html');
   const landingLiveData = await readText('js/landing/live-data.js');
-  const shareSnippetSource = await readText('js/ui/share.js');
+  const shareSnippetSource = (await Promise.all(['js/ui/share.js', 'js/ui/share-renderer.js', 'js/ui/share-state.js'].map(readText))).join('\n');
   const requiredIds = [
     'price-bar',
     'ctez-launcher',
@@ -2627,7 +2629,7 @@ async function checkSelectorContracts() {
   const networkPulse = await readText('js/features/network-pulse.js');
   const history = await readText('js/features/history.js');
   const nativeExplorer = await readText('js/features/native-explorer.js');
-  const share = await readText('js/ui/share.js');
+  const share = (await Promise.all(['js/ui/share.js', 'js/ui/share-renderer.js', 'js/ui/share-state.js'].map(readText))).join('\n');
   const moments = await readText('js/features/moments.js');
   const streak = await readText('js/features/streak.js');
   const toastQueue = await readText('js/ui/toast-queue.js');
@@ -2688,8 +2690,8 @@ async function checkSelectorContracts() {
     ['Protocol Anthology protocol page links', 'protocolStoryPath(protocol)', app],
     ['Protocol Anthology searchable index', 'protocol-anthology-search', app],
     ['Protocol Anthology filter controls', 'data-anthology-filter', app],
-    ['Protocol Anthology chapter list styles', '.protocol-anthology-chapter', heroSearchCss],
-    ['Protocol Anthology reader styles', '.protocol-story-article', heroSearchCss],
+    ['Protocol Anthology chapter list styles', '.protocol-anthology-chapter', await readText('css/protocol-anthology.css')],
+    ['Protocol Anthology reader styles', '.protocol-story-article', await readText('css/protocol-anthology.css')],
     ['Protocol Anthology timeline crowd styles', '.contention-crowd', heroSearchCss],
     ['Protocol History Chamber modal', "overlay.id = 'protocol-history-chamber-modal'", app],
     ['Protocol History Chamber technical disclosure', 'protocol-anthology-tools', app],
@@ -2896,7 +2898,7 @@ async function checkSelectorContracts() {
     ['Network Pulse hero stats fallback event', "source: 'hero'", app],
     ['Network Pulse delegated hero stat', 'delegatedRatio: staking.delegatedRatio', api],
     ['API request deadline', 'DEFAULT_FETCH_TIMEOUT_MS', api],
-    ['API caller abort forwarding', "callerSignal.addEventListener('abort', forwardAbort", api],
+    ['API caller abort forwarding', "signal: requestSignal(resource, options)", api],
     ['API Retry-After cap', 'MAX_RETRY_AFTER_MS', api],
     ['API aggregate quality receipt', 'qualityFromSettled', api],
     ['API failed category receipt', 'failedCategories', api],
@@ -4913,6 +4915,10 @@ async function checkPublicDataDiscoveryContracts() {
   }
 
   const internalArtifactPatterns = [
+    // Versioned browser encodings derive exact bytes from the public sources;
+    // the expanded source schemas remain the supported public data interface.
+    /^data\/transports\/v1\/data\/(?:capital-snapshot|minerals-snapshot|ecosystem-stats)\.json$/,
+    /^data\/transports\/v1\/data\/maxis\/seasons\/[^/]+\/passports\/[0-9a-f]{2}\.json$/,
     /^data\/maxis-contracts\.json$/,
     /^data\/maxis\/seasons\/[^/]+\/transaction-state(?:\.building)?\.json$/,
     /^data\/tezoscrp-identity-aliases\.json$/,
@@ -5338,7 +5344,7 @@ async function checkChamberEfficiencyContracts() {
   if (!dailyBriefing.includes("fetch(MILESTONE_CATALOG_URL, { cache: 'no-cache'")) {
     fail('the mutable milestone catalog must conditionally revalidate instead of opting out of HTTP caching');
   }
-  if (!maxis.includes("const response = await fetch(url, { cache: 'default', headers: { Accept: 'application/json' } });")) {
+  if (!maxis.includes("fetchGeneratedSnapshot(sourceUrl.pathname, { cache: 'default' })")) {
     fail('immutable, hash-verified Maxis Passport shards must use normal HTTP caching');
   }
   if (sw.includes('/passports\\/[0-9a-f]{2}\\.json$/.test(pathname)')) {
@@ -5356,7 +5362,7 @@ async function checkChamberEfficiencyContracts() {
     fail('changelog archive must remain lazy, shared, and retryable after a failed module fetch');
   }
   if (index.includes('href="css/protocol-anthology.css')
-    || !app.includes("ensureChamberStylesheet('protocol-anthology-css', versionedAsset('/css/protocol-anthology.css'))")
+    || !app.includes("ensureChamberStylesheet('protocol-anthology-css', versionedAsset('/css/protocol-anthology.min.css'))")
     || !app.includes('loadProtocolData(), ensureProtocolAnthologyCss()')
     || !app.includes('if (!await ensureProtocolAnthologyCss()')) {
     fail('Anthology library and story openers must both await their lazy stylesheet');
@@ -5571,7 +5577,7 @@ async function checkLauncherProjectionContracts() {
   if (packageJson.scripts?.['refresh:launcher-projections'] !== 'node scripts/generate-launcher-projections.mjs'
     || packageJson.scripts?.['check:launcher-projections'] !== 'node scripts/generate-launcher-projections.mjs --check'
     || packageJson.scripts?.['test:baker-governance-signals'] !== 'node tests/baker-governance-signals-check.mjs'
-    || !packageJson.scripts?.['test:static']?.includes('node tests/baker-governance-signals-check.mjs')
+    || !STATIC_CHECKS.some(entry => entry.script === 'tests/baker-governance-signals-check.mjs')
     || !aggregateGenerator.includes('generate-capital-entry-summary.mjs')
     || !aggregateGenerator.includes('generate-ecosystem-entry-summary.mjs')
     || !aggregateGenerator.includes('generate-maxis-entry-summary.mjs')
@@ -5928,7 +5934,7 @@ async function checkHistoricalPagination() {
   if (!packageJson.includes('"test:smoke:ci": "node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic"')
     || !packageJson.includes('"test:affected": "npm run test:static && node tests/smoke.mjs --affected-since origin/main --affected-high-risk-repeat 3')
     || !packageJson.includes('"test:smoke:harness": "node tests/smoke-harness-check.mjs"')
-    || !packageJson.includes('node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs')) {
+    || !['tests/smoke-harness-check.mjs', 'tests/scheduled-refresh-check.mjs'].every(script => STATIC_CHECKS.some(entry => entry.script === script))) {
     fail('package scripts must keep CI smoke semantics and the smoke harness contract check in the standard static gate');
   }
   for (const snippet of ['parseShard', 'selectSuiteCatalog', 'executeSuiteCatalog', "suiteStatus = 'flaky'", 'continueOnFailure', 'SmokeInfrastructureError', 'infrastructure-retry']) {
@@ -6333,12 +6339,7 @@ async function checkStylesheetFreshness() {
     pass(`lazy theme CSS bundles checked: ${themeFiles.length}`);
   }
 
-  const lazySurfaceSources = [
-    'capital.css', 'ecosystem.css', 'history-chamber.css', 'leaderboard.css', 'ledger-flow.css',
-    'maxis.css', 'market-room.css', 'metals-chamber.css', 'minerals-chamber.css', 'network-health.css',
-    'network-pulse.css', 'staking-chamber.css', 'tezos-domains.css', 'tezoscrp.css',
-    'uranium-chamber.css', 'whale-chamber.css'
-  ];
+  const lazySurfaceSources = LAZY_SURFACE_STYLES;
   const myTezosMinStat = await statOrNull('css/my-tezos.min.css');
   if (!myTezosMinStat) {
     fail('missing generated stylesheet: css/my-tezos.min.css');
@@ -6357,16 +6358,10 @@ async function checkStylesheetFreshness() {
     }
   }
   const generatedSurfaces = await readText('scripts/refresh-generated-surfaces.mjs');
-  const generatedLazyStyles = generatedSurfaces.match(/const LAZY_SURFACE_STYLES = \[([\s\S]*?)\];/)?.[1] || '';
-  for (const sourceName of lazySurfaceSources) {
-    if (!generatedLazyStyles.includes(`'${sourceName}'`)) fail(`pre-commit CSS catalog omits ${sourceName}`);
-  }
-  if (!generatedSurfaces.includes('const CSS_SOURCE_PATTERNS = [')
-    || !generatedSurfaces.includes("'css/my-tezos.min.css'")
-    || !generatedSurfaces.includes("'css/shell-extras.min.css'")
-    || !generatedSurfaces.includes('...LAZY_SURFACE_STYLES.map')
-    || !generatedSurfaces.includes('stageTargets(CSS_TARGETS)')) {
-    fail('pre-commit generated-surface orchestration must rebuild and stage every served minified stylesheet');
+  if (!generatedSurfaces.includes("import { CSS_TARGETS, CSS_SOURCE_PATTERNS } from './lib/css-bundles.mjs'")
+    || !generatedSurfaces.includes('stageTargets(CSS_TARGETS)')
+    || !['css/my-tezos.min.css', 'css/shell-extras.min.css', 'css/hero-search.min.css'].every(file => CSS_TARGETS.includes(file))) {
+    fail('pre-commit generation must stage the shared complete CSS catalog');
   }
   pass(`lazy surface CSS bundles and pre-commit coverage checked: ${lazySurfaceSources.length}`);
 
@@ -6512,8 +6507,8 @@ async function checkValleyThemeContracts() {
   const mirroredRegistries = [
     ['runtime theme registry', parseStringArray(themeSource, /export const THEMES\s*=\s*\[([\s\S]*?)\];/)],
     ['render-blocking preload registry', parseStringArray(preloadSource, /var VALID\s*=\s*\[([\s\S]*?)\];/)],
-    ['CSS build registry', parseStringArray(buildCssSource, /const THEMES\s*=\s*\[([\s\S]*?)\];/)],
-    ['generated-surface registry', parseStringArray(generatedSource, /const THEME_NAMES\s*=\s*\[([\s\S]*?)\];/)],
+    ['CSS build registry', buildCssSource.includes('CSS_THEMES as THEMES') ? CSS_THEMES : []],
+    ['generated-surface registry', generatedSource.includes("from './lib/css-bundles.mjs'") ? CSS_THEMES : []],
     ['landing-page registry', Array.from(
       (landingSource.match(/var THEMES\s*=\s*\{([\s\S]*?)\n\s*\};/)?.[1] || '').matchAll(/^\s*([a-z][a-z0-9-]*)\s*:/gim),
       (match) => match[1]
@@ -6756,7 +6751,7 @@ async function checkPortableTooling() {
     'refresh:milestones': 'node scripts/generate-milestone-catalog.mjs --force',
     'refresh:nakamoto': 'node scripts/refresh-nakamoto-sources.mjs',
     test: 'npm run test:static && npm run test:smoke:ci',
-    'test:static': 'node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/request-lifecycle-check.mjs && node tests/chamber-og-check.mjs && node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
+    'test:static': 'node tests/run-static.mjs',
     'test:scheduled-refresh': 'node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs',
     'test:smoke': 'node tests/smoke.mjs',
     'test:smoke:ci': 'node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic',
@@ -6871,7 +6866,7 @@ async function checkRepositoryLicense() {
   const changelog = await readText('js/features/changelog.js');
   const landing = await readText('landing.html');
   const landingNav = await readText('js/landing/site-nav.js');
-  const share = await readText('js/ui/share.js');
+  const share = (await Promise.all(['js/ui/share.js', 'js/ui/share-renderer.js', 'js/ui/share-state.js'].map(readText))).join('\n');
   const stateOfTezos = await readText('js/features/state-of-tezos.js');
   const aiPlugin = JSON.parse(await readText('.well-known/ai-plugin.json'));
   const packageJson = JSON.parse(await readText('package.json'));

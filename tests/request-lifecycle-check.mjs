@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import vm from 'node:vm';
+import { loadModule } from './lib/browser-source-vm.mjs';
 import { classifyLauncherResources, duplicateModuleRequests } from '../scripts/lib/initial-load-policy.mjs';
 
-const ROOT = new URL('../', import.meta.url);
 const drain = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 const deferred = () => {
   let resolve, reject;
@@ -12,19 +10,6 @@ const deferred = () => {
 };
 const response = value => ({ ok: true, status: 200, json: async () => value, text: async () => String(value) });
 
-// Execute the actual browser module with isolated imports and controlled I/O.
-async function loadModule(file, exposure, globals = {}) {
-  let source = await fs.readFile(new URL(file, ROOT), 'utf8');
-  source = source.replace(/^import\s+[^;]+;\s*$/gm, '')
-    .replace(/^export\s+\{[^;]+\};\s*$/gm, '')
-    .replace(/\bexport\s+(?=(?:async\s+)?function\b|(?:const|let|class)\b)/g, '')
-    .replace(/import\.meta\.url/g, JSON.stringify(new URL(file, ROOT).href));
-  const context = vm.createContext({ console: { warn() {} }, URL, URLSearchParams, DOMException, AbortController,
-    setTimeout, clearTimeout, API_URLS: { tzkt: 'https://tzkt.test', octez: 'https://rpc.test' },
-    CACHE_TTLS: { memory: 60_000 }, ...globals });
-  new vm.Script(`${source}\nglobalThis.result = { ${exposure} };`, { filename: file }).runInContext(context);
-  return context.result;
-}
 
 for (const name of ['fetchSharedStats', 'fetchSharedConstants', 'fetchSharedYearlyRate']) {
   let now = 1_000_000;
@@ -37,14 +22,17 @@ for (const name of ['fetchSharedStats', 'fetchSharedConstants', 'fetchSharedYear
   now += 6001;
   const second = api[name]();
   assert.equal(requests.length, 1, `${name}: slow requests remain shared after five seconds`);
-  requests[0].resolve(response(42));
-  assert.deepEqual(await Promise.all([first, second]), name === 'fetchSharedYearlyRate' ? ['42', '42'] : [42, 42]);
-  assert.equal(await api[name](), name === 'fetchSharedYearlyRate' ? '42' : 42);
+  const payload = name === 'fetchSharedStats'
+    ? { totalSupply: 100, totalOwnStaked: 10, totalExternalStaked: 20, totalOwnDelegated: 20, totalExternalDelegated: 10 }
+    : name === 'fetchSharedConstants' ? { blocks_per_cycle: 14400, minimal_block_delay: '6' } : '42';
+  requests[0].resolve(response(payload));
+  assert.deepEqual(await Promise.all([first, second]), [payload, payload]);
+  assert.equal(await api[name](), payload);
   assert.equal(requests.length, 1, `${name}: successful data still uses the existing cache`);
   now += 60_001;
   const next = api[name]();
   assert.equal(requests.length, 2, `${name}: a settled request does not prevent later refresh`);
-  requests[1].resolve(response(43));
+  requests[1].resolve(response(payload));
   await next;
 }
 
@@ -55,14 +43,15 @@ for (const newestFirst of [false, true]) {
   });
   const older = api.fetchCurrentVotingPeriod({ force: true });
   const newer = api.fetchCurrentVotingPeriod({ force: true });
-  if (newestFirst) { requests[1].resolve(response('new')); await newer; }
-  requests[0].resolve(response('old'));
-  assert.equal(await older, 'old', 'an older caller still receives its own response');
+  const oldPeriod = { index: 1, kind: 'proposal' }, newPeriod = { index: 2, kind: 'exploration' };
+  if (newestFirst) { requests[1].resolve(response(newPeriod)); await newer; }
+  requests[0].resolve(response(oldPeriod));
+  assert.equal(await older, oldPeriod, 'an older caller still receives its own response');
   const third = api.fetchCurrentVotingPeriod();
   assert.equal(requests.length, 2, 'older completion does not evict the newer in-flight request');
-  if (!newestFirst) requests[1].resolve(response('new'));
-  assert.equal(await newer, 'new');
-  assert.equal(await third, 'new', 'older completion does not replace the current cached period');
+  if (!newestFirst) requests[1].resolve(response(newPeriod));
+  assert.equal(await newer, newPeriod);
+  assert.equal(await third, newPeriod, 'older completion does not replace the current cached period');
 }
 
 {
@@ -143,7 +132,7 @@ for (const newestFirst of [false, true]) {
   const delays = [];
   const { MyTezosRequestBroker, retryDelay } = await loadModule('js/core/my-tezos-request-broker.mjs', 'MyTezosRequestBroker, retryDelay', {
     Math: Object.assign(Object.create(Math), { random: () => 0.5 }),
-    setTimeout: (callback, ms) => { delays.push(ms); queueMicrotask(callback); }
+    setTimeout: (callback, ms) => { if (ms < 15_000) { delays.push(ms); queueMicrotask(callback); } return 1; }, clearTimeout() {}
   });
   for (const value of [null, '', ' ', 'invalid']) {
     assert.equal(retryDelay({ headers: { get: () => value } }, 1), 1000, 'missing or invalid Retry-After uses backoff');
@@ -151,7 +140,7 @@ for (const newestFirst of [false, true]) {
   assert.equal(retryDelay({ headers: { get: () => '0' } }, 0), 0, 'explicit Retry-After zero is honored');
   assert.equal(retryDelay({ headers: { get: () => '2.5' } }, 0), 2500);
   const future = new Date(Date.now() + 60_000).toUTCString();
-  assert(retryDelay({ headers: { get: () => future } }, 0) > 58_000, 'HTTP-date Retry-After is honored');
+  assert.equal(retryDelay({ headers: { get: () => future } }, 0), 15_000, 'HTTP-date Retry-After is bounded by the provider budget');
   let calls = 0;
   const pending = deferred();
   const broker = new MyTezosRequestBroker({ fetchImpl: () => { calls++; return pending.promise; } });

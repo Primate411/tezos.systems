@@ -1,5 +1,29 @@
 const RULES = [
   {
+    suites: /^(capital-chamber|minerals-chamber|ecosystem-activity|maxis|maxis-domain-passport|launcher-projections|chamber-first-paint|standalone-chamber-expansion|standalone-chamber-completion)$/,
+    files: ['js/core/generated-snapshot.js', 'js/core/generated-transport.mjs', 'scripts/generate-chamber-transports.mjs', 'data/transports/**', 'tests/generated-transport-check.mjs', 'tests/generated-transport-browser.mjs'],
+    tags: ['chamber', 'data-integrity'],
+    risk: 'high'
+  },
+  {
+    suites: /^source-payloads$/,
+    files: ['js/core/api.js', 'js/core/request-policy.mjs', 'js/core/source-payloads.mjs', 'js/core/storage.js', 'js/features/price.js', 'tests/lib/source-payload-smoke.mjs', 'tests/source-payload-check.mjs'],
+    tags: ['live-data', 'quiet-refresh'],
+    risk: 'high'
+  },
+  {
+    suites: /^optional-tools-lazy$/,
+    files: ['js/core/app.js', 'js/ui/share*.js', 'js/features/calculator.js', 'js/features/comparison.js', 'js/features/native-explorer.js', 'js/features/state-of-tezos.js', 'tests/lib/optional-tools-lazy-smoke.mjs', 'tests/optional-tools-lazy-check.mjs'],
+    tags: ['startup', 'navigation', 'share'],
+    risk: 'high'
+  },
+  {
+    suites: /^widget-refresh$/,
+    files: ['widgets/**', 'tests/lib/widget-refresh-smoke.mjs', 'tests/widget-refresh-check.mjs'],
+    tags: ['widgets', 'quiet-refresh', 'live-data'],
+    risk: 'high'
+  },
+  {
     suites: /^tall-screen$/,
     files: ['css/hero-search.css', 'css/shell-extras*', 'js/ui/chamber-accessibility.js', 'tests/tall-screen-smoke.mjs'],
     tags: ['chamber', 'responsive', 'live-data'],
