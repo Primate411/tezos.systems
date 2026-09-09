@@ -13,7 +13,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Release Radar now confirms Octez 25.2 and EVM node 0.65, corrects earlier Etherlink governance claims, and keeps the wider Tezos X rollout separate from deployed kernel infrastructure' },
             { type: '⚡', text: 'My Tezos styling and chart libraries load when needed, with styled drawer openings and retryable charts; shared HEN, map, landing, and loading styles now use checked minified outputs' },
             { type: '🎨', text: 'Block power pills and bars now share five severity colors, from Perfect green at 7,000 through lime, yellow, and orange to DIRE red at 4,700; vertical strips use five distinct heights and horizontal rails preserve exact quorum margins' },
-            { type: '🔧', text: 'NFT Pulse now counts all indexed listing sales in its 24-hour window beyond the first 500, without delaying other signals; loading placeholders no longer highlight on hover' }
+            { type: '🔧', text: 'NFT Pulse now counts all indexed listing sales in its 24-hour window beyond the first 500, without delaying other signals; loading placeholders no longer highlight on hover' },
+            { type: '🎨', text: 'The header now leads with total mainnet days above Zero outages, with larger theme-aware numbers and the same milestone and history actions on desktop and mobile' }
         ]
     },
     {

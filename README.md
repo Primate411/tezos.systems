@@ -627,10 +627,12 @@ inline modal styles in `js/core/app.js`.
   navigation-button styling and the corner gift launcher are unchanged. HEN stays
   tucked inside the corner gift tray instead of appearing as a separate header
   action. My Tezos stays expanded with its emoji and label at narrow widths.
-  The header also turns mainnet age into a first-screen statement with years,
-  days, hours, and minutes plus a
-  `mainnet age · since 2018` label. The counter measures elapsed time
-  since launch, not an availability percentage or incident ledger. Active baker
+  The header presents completed mainnet days as a two-line statement:
+  `2,992 days` above `Zero outages`, with the launch origin in its hover and
+  accessible description. The day count uses the exact Block 1 timestamp and
+  quietly updates at each completed day; the caption is editorial copy, not a
+  value calculated from an availability percentage or incident ledger. The
+  anniversary caption and milestone/history interactions remain available. Active baker
   count, finality, staked share, and issuance rate remain in theme-matched stat
   pills. Each pill's explanation keeps the all-time chart action beside a
   contextual Chamber handoff: Baker Directory for baker count, Network Health

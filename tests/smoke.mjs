@@ -9818,7 +9818,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
   assert(/1,300 cycles crossed/.test(before.text), `cycle milestone: exact crossed copy missing ${JSON.stringify(before)}`);
   assert(/1,300 cycles/.test(before.clockAria)
     && before.clockRoute === '#health'
-    && /mainnet age.*since 2018/i.test(before.clockSubline)
+    && /Zero outages/i.test(before.clockSubline)
     && before.outlineVisible
     && before.outlineInsideClock
     && before.outlineWrapsRuntime
@@ -10120,7 +10120,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
       && beforeTap.markerOutsideOutline
       && beforeTap.markerTopPainted
       && beforeTap.markerAttachedTopRight
-      && /mainnet age.*since 2018/i.test(beforeTap.subline)
+      && /Zero outages/i.test(beforeTap.subline)
       && beforeTap.route === '#health',
     `mobile cycle milestone: a previously seen near status must not suppress the newly crossed outlined NEW action ${JSON.stringify(beforeTap)}`
   );
@@ -10195,7 +10195,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
     && firstTap.storedSeen.includes('milestone-cycle-1300|near')
     && !firstTap.storedSeen.includes('milestone-cycle-1300|crossed')
     && Math.abs(firstTap.activityTop - activityTopBeforeTap) <= 1
-    && /mainnet age.*since 2018/i.test(firstTap.subline)
+    && /Zero outages/i.test(firstTap.subline)
     && firstTap.linkText === 'Open Network Health ↗'
     && firstTap.linkHref === '#health'
     && firstTap.linkVisible
@@ -10292,7 +10292,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
     afterReload.outlineHidden
       && afterReload.outlineDisplay === 'none'
       && !afterReload.signalClass
-      && /mainnet age.*since 2018/i.test(afterReload.subline),
+      && /Zero outages/i.test(afterReload.subline),
     `mobile cycle milestone: seen state must remain retired after reload ${JSON.stringify(afterReload)}`
   );
   await mobilePage.locator('#network-health-modal.active .chamber-close').tap();
@@ -17230,7 +17230,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const topProofUptimeCluster = document.querySelector('.top-uptime-cluster');
     const topProofHistory = document.querySelector('#top-continuity-history');
     const topProofMilestonePopover = document.querySelector('#top-continuity-milestone-popover');
-    const topProofMilestoneOrigin = topProofHistory?.querySelector('.top-continuity-origin');
+    const topProofMilestoneClaim = topProofHistory?.querySelector('.top-continuity-claim');
     const topProofMilestoneOutline = topProofHistory?.querySelector('.top-continuity-milestone-outline');
     const topProofMilestoneNew = topProofHistory?.querySelector('.top-continuity-milestone-new');
     const topProofMilestoneLink = document.querySelector('#top-continuity-milestone-link');
@@ -17375,7 +17375,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       topProofHistoryAriaControls: topProofHistory?.getAttribute('aria-controls') || '',
       topProofHistoryMilestoneRoute: topProofHistory?.dataset.milestoneRoute || '',
       topProofMilestoneOrbitCount: document.querySelectorAll('.top-continuity-milestone-orbit').length,
-      topProofMilestoneOrigin: topProofMilestoneOrigin?.textContent?.trim() || '',
+      topProofMilestoneClaim: topProofMilestoneClaim?.textContent?.trim() || '',
       topProofMilestoneOutlineInsideClock: Boolean(topProofHistory?.contains(topProofMilestoneOutline)),
       topProofMilestoneOutlineHidden: Boolean(topProofMilestoneOutline?.hidden),
       topProofMilestoneOutlineDisplay: topProofMilestoneOutline ? getComputedStyle(topProofMilestoneOutline).display : '',
@@ -18012,7 +18012,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
             && healthState.topProofMilestoneOutlineHidden
             && healthState.topProofMilestoneOutlineDisplay === 'none'
           : healthState.topProofMilestonePopoverDisplay !== 'none'
-            && healthState.topProofMilestoneOrigin.toLowerCase() === 'since 2018'
+            && healthState.topProofMilestoneClaim === 'Zero outages'
             && !healthState.topProofMilestoneOutlineHidden
             && healthState.topProofMilestoneOutlineDisplay !== 'none'
             && (
@@ -18031,7 +18031,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       ),
     `network health chamber: milestone clean outline must stay on the uptime clock and its dormant disclosure must reserve no reading-state space ${JSON.stringify({
       orbitCount: healthState.topProofMilestoneOrbitCount,
-      origin: healthState.topProofMilestoneOrigin,
+      claim: healthState.topProofMilestoneClaim,
       outlineInsideClock: healthState.topProofMilestoneOutlineInsideClock,
       outlineHidden: healthState.topProofMilestoneOutlineHidden,
       outlineDisplay: healthState.topProofMilestoneOutlineDisplay,
@@ -18051,13 +18051,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     })}`
   );
   assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
-  assert(/mainnet age/i.test(healthState.topProofHistoryText) && /since 2018/i.test(healthState.topProofHistoryText) && !/100% uptime|zero forks|zero outages/i.test(healthState.topProofHistoryText), `network health chamber: mainnet-age counter should identify its elapsed-time meaning: ${healthState.topProofHistoryText}`);
+  assert(/[\d,]+ days/.test(healthState.topProofHistoryText) && /Zero outages/.test(healthState.topProofHistoryText), `network health chamber: header should show completed mainnet days and its outage caption: ${healthState.topProofHistoryText}`);
   assert(healthState.topProofPairUnderTitle && healthState.topProofPairLeftAligned, `network health chamber: milestone/year pair should sit directly under Tezos Systems title: ${JSON.stringify({ under: healthState.topProofPairUnderTitle, aligned: healthState.topProofPairLeftAligned })}`);
   assert(healthState.topProofRuntimeVisualFontSize >= 18, `network health chamber: uptime numerals should remain legible without a detached event control: ${healthState.topProofRuntimeVisualFontSize}`);
-  assert(healthState.topProofBadgeHeight > 0 && healthState.topProofPillHeight > 0 && healthState.topProofBadgeHeight <= healthState.topProofPillHeight * 1.08, `network health chamber: larger uptime proof should stay compact beside the right metric pills: ${healthState.topProofBadgeHeight}/${healthState.topProofPillHeight}`);
+  assert(healthState.topProofBadgeHeight > 0 && healthState.topProofPillHeight > 0 && healthState.topProofBadgeHeight <= healthState.topProofPillHeight * 1.5, `network health chamber: larger uptime proof should stay compact beside the right metric pills: ${healthState.topProofBadgeHeight}/${healthState.topProofPillHeight}`);
   assert(healthState.topProofBadgeRadius > 0 && healthState.topProofBadgeRadius < healthState.topProofPillRadius, `network health chamber: uptime badge should be squarer than right pills: ${healthState.topProofBadgeRadius}/${healthState.topProofPillRadius}`);
   assert(!/\|/.test(healthState.topProofHistoryText), `network health chamber: top uptime badge should not add a pipe: ${healthState.topProofHistoryText}`);
-  assert(/\d+y\s+\d+d\s+\d+h\s+\d+m/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing compact minutes: ${healthState.topProofCounter}`);
+  assert(/^[\d,]+ days$/.test(healthState.topProofCounter), `network health chamber: top proof runtime should show total completed days: ${healthState.topProofCounter}`);
   assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
   assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
   assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofStaked), `network health chamber: top proof staked ratio mismatch: ${healthState.topProofStaked}`);
@@ -32253,7 +32253,7 @@ async function smokeThemeSelection(browser, baseUrl) {
     });
     assert(
       milestoneState.centerDelta <= 2
-        && /mainnet age.*since 2018/i.test(milestoneState.subline)
+        && /Zero outages/i.test(milestoneState.subline)
         && milestoneState.outlineVisible
         && milestoneState.outlineWrapsRuntime
         && milestoneState.outlineTightToRuntime

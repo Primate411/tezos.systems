@@ -2510,7 +2510,7 @@ async function checkSelectorContracts() {
   const milestoneLinkIndex = index.indexOf('<a class="top-continuity-milestone-link"', uptimeClusterStart);
   const uptimeYearIndex = index.indexOf('<button class="top-continuity-history"', uptimeClusterStart);
   const uptimeCounterIndex = index.indexOf('id="hero-chain-uptime-counter"', uptimeYearIndex);
-  const uptimeOriginIndex = index.indexOf('class="top-continuity-origin"', uptimeCounterIndex);
+  const uptimeClaimIndex = index.indexOf('class="top-continuity-claim"', uptimeCounterIndex);
   if (
     uptimeClusterStart < 0
     || uptimeYearIndex < uptimeClusterStart
@@ -2518,8 +2518,8 @@ async function checkSelectorContracts() {
     || milestoneOutlineIndex < uptimeCounterIndex
     || milestoneNewIndex < milestoneOutlineIndex
     || !index.includes('<span class="top-continuity-milestone-outline" aria-hidden="true" hidden></span>\n                                        <span class="top-continuity-milestone-new" aria-hidden="true">New</span>')
-    || uptimeOriginIndex < milestoneNewIndex
-    || milestonePopoverIndex < uptimeOriginIndex
+    || uptimeClaimIndex < milestoneNewIndex
+    || milestonePopoverIndex < uptimeClaimIndex
     || milestoneCloseIndex < milestonePopoverIndex
     || milestoneLinkIndex < milestonePopoverIndex
   ) {
@@ -3354,9 +3354,9 @@ async function checkSelectorContracts() {
     ['top continuity proof opens Protocol Anthology', 'aria-controls="protocol-history-chamber-modal"', index],
     ['expanded My Tezos nav label at narrow widths', '#my-tezos-btn .nav-label', heroSearchCss],
     ['top continuity statement wrapper', 'class="top-continuity-statement"', index],
-    ['top continuity mainnet-age statement claim', 'top-continuity-claim">mainnet age', index],
+    ['top continuity outage statement claim', 'top-continuity-claim">Zero outages', index],
     ['top continuity statement subline', 'class="top-continuity-subline"', index],
-    ['top continuity since-2018 marker', 'top-continuity-origin">since 2018', index],
+    ['top continuity accessible launch origin', 'Tezos mainnet days since 2018.', index],
     ['top continuity milestone runtime outline', 'class="top-continuity-milestone-outline"', index],
     ['top continuity milestone NEW marker', 'class="top-continuity-milestone-new"', index],
     ['top continuity milestone anchored disclosure', 'id="top-continuity-milestone-popover" role="group"', index],
@@ -3481,7 +3481,7 @@ async function checkSelectorContracts() {
     ['network health continuity panel styles', '.health-continuity-panel', styles],
     ['network health continuity runtime styles', '.health-continuity-runtime', styles],
     ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],
-    ['top continuity counter updater', 'setTopContinuityRuntime(years, days, hours, mins);', app],
+    ['top continuity counter updater', 'setTopContinuityRuntime(totalDays);', app],
     ['top continuity decrypt duration', 'TOP_CONTINUITY_SHUFFLE_MS = 1500', app],
     ['top continuity Protocol Anthology launcher wiring', 'openProtocolHistoryChamber();', app],
     ['top continuity Protocol Anthology hash wiring', "window.history.pushState(null, '', '#protocol-history');", app],
@@ -3499,7 +3499,7 @@ async function checkSelectorContracts() {
     ['top continuity stat rail right aligned', 'justify-content: flex-end', styles],
     ['top continuity rail is borderless tape', 'border: 0;', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', heroSearchCss],
-    ['top continuity statement runtime scale', 'font-size: clamp(1.5rem, 2.15vw, 2rem);', heroSearchCss],
+    ['top continuity statement runtime scale', 'font-size: clamp(1.85rem, 2.6vw, 2.4rem);', heroSearchCss],
     ['top continuity dedicated runtime font role', 'font-family: var(--font-runtime);', heroSearchCss],
     ['Handoff display font role', 'font-family: var(--font-display, Orbitron', siteMapCss],
     ['Live Pulse display font role', "var(--font-display, 'Space Grotesk'", shellExtrasCss],
@@ -3510,16 +3510,16 @@ async function checkSelectorContracts() {
     ['top continuity runtime real font weight', 'font-weight: 700;', heroSearchCss],
     ['top continuity statement caption scale', 'font-size: clamp(0.72rem, 0.92vw, 0.875rem);', heroSearchCss],
     ['top continuity statement separator scale', 'font-size: clamp(0.7rem, 0.85vw, 0.82rem);', heroSearchCss],
-    ['top continuity mobile direct runtime scale', 'font-size: clamp(1.05rem, 4.1vw, 1.2rem);', heroSearchCss],
+    ['top continuity mobile direct runtime scale', 'font-size: clamp(1.65rem, 7vw, 1.9rem);', heroSearchCss],
     ['top continuity mobile removes zoom offset', 'zoom: 1;', styles],
     ['mobile title and protocol stack independently', 'grid-template-columns: minmax(0, 1fr);', heroSearchCss],
     ['top continuity runtime natural segment gap', 'gap: 0.5ch;', heroSearchCss],
     ['top continuity hover affordance', '.top-continuity-history:is(:hover, :focus-visible) .top-continuity-arrow', heroSearchCss],
-    ['top continuity segmented runtime renderer', 'renderTopContinuityRuntime(years, days, hours, mins)', app],
+    ['top continuity completed-day renderer', 'renderTopContinuityRuntime(totalDays)', app],
     ['top continuity hero settled promise', 'window.tezosSystemsHeroSettled = heroSettled', app],
     ['top continuity toast gate waits for hero', 'setToastGate(heroSettled)', app],
     ['toast queue waits for hero gate', 'await waitForGate();', toastQueue],
-    ['top continuity counter tween', 'tweenNumber(el, 0, totalMinutes', app],
+    ['top continuity counter tween', 'tweenNumber(el, 0, totalDays', app],
     ['top continuity pill stagger', '}, index * 80);', app],
     ['top continuity arrival pending class', 'hero-arrival-pending', app],
     ['top continuity arrival completion class', 'hero-arrived', app],

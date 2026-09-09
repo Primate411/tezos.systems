@@ -3417,7 +3417,6 @@ function initUptimeClock() {
     const topContinuityHistory = document.getElementById('top-continuity-history');
     const topContinuityProof = topContinuityHistory?.closest('.top-uptime-cluster');
     const topContinuityClaim = topContinuityHistory?.querySelector('.top-continuity-claim');
-    const topContinuityOrigin = topContinuityHistory?.querySelector('.top-continuity-origin');
     const topContinuityArrow = topContinuityHistory?.querySelector('.top-continuity-arrow');
     const topContinuityMilestoneOutline = topContinuityHistory?.querySelector('.top-continuity-milestone-outline');
     const topContinuityMilestoneNew = topContinuityHistory?.querySelector('.top-continuity-milestone-new');
@@ -3435,7 +3434,6 @@ function initUptimeClock() {
         return;
     }
 
-    const LAUNCH = new Date(MAINNET_LAUNCH).getTime();
     const TOP_CONTINUITY_SHUFFLE_MS = 1500;
     const FINALITY_CACHE_KEY = 'tezos-systems-finality-seconds';
     const UPTIME_MILESTONE_SEEN_KEY = 'tezos-systems-uptime-milestone-seen-v1';
@@ -3831,41 +3829,31 @@ function initUptimeClock() {
         setTopContinuityText(valueId, pending);
     }
 
-    function renderTopContinuityRuntime(years, days, hours, mins) {
-        return [
-            [years, 'y'],
-            [days, 'd'],
-            [hours, 'h'],
-            [mins, 'm']
-        ].map(([value, unit]) => (
-            `<span class="top-continuity-time-segment"><span class="top-continuity-time-number">${value}</span>${unit}</span>`
-        )).join(' ');
+    function renderTopContinuityRuntime(totalDays) {
+        return `<span class="top-continuity-time-segment"><span class="top-continuity-time-number">${totalDays.toLocaleString('en-US')}</span><span class="top-continuity-time-unit"> days</span></span>`;
     }
 
-    function setTopContinuityRuntime(years, days, hours, mins) {
+    function setTopContinuityRuntime(totalDays) {
         const el = document.getElementById('hero-chain-uptime-counter');
         if (!el) {
             settleHeroArrival();
             return;
         }
 
-        const nextText = `${years}y ${days}d ${hours}h ${mins}m`;
+        const nextText = `${totalDays.toLocaleString('en-US')} days`;
         if (el.dataset.finalText === nextText) return;
 
         el.dataset.finalText = nextText;
-        const finalHtml = renderTopContinuityRuntime(years, days, hours, mins);
+        const finalHtml = renderTopContinuityRuntime(totalDays);
 
         if (!topContinuityArrivalStarted) {
             topContinuityArrivalStarted = true;
             topContinuityPanel?.classList.add('hero-arrival-pending');
             if (!prefersReducedMotion()) {
-                const totalMinutes = Math.max(1, Math.round((Date.now() - LAUNCH) / 60000));
-                tweenNumber(el, 0, totalMinutes, {
+                tweenNumber(el, 0, totalDays, {
                     duration: 1200,
                     formatter: (value) => {
-                        const minutes = Math.max(0, Math.floor(value));
-                        const elapsed = getCalendarElapsedTime(LAUNCH + (minutes * 60 * 1000));
-                        return `${elapsed.years}y ${elapsed.days}d ${elapsed.hours}h ${elapsed.minutes}m`;
+                        return `${Math.max(0, Math.floor(value)).toLocaleString('en-US')} days`;
                     },
                     onDone: () => {
                         el.innerHTML = finalHtml;
@@ -3876,7 +3864,7 @@ function initUptimeClock() {
             }
         }
 
-        el.innerHTML = finalHtml;
+        quietlySyncHtml(el, finalHtml);
         if (!topContinuityArrived) revealTopContinuityPills();
         el.classList.remove('is-shuffling');
     }
@@ -4769,10 +4757,8 @@ function initUptimeClock() {
         counterEl?.classList.toggle('is-anniversary', active);
 
         if (topContinuityClaim) {
-            topContinuityClaim.textContent = active ? anniversary.claimText : 'mainnet age';
-        }
-        if (topContinuityOrigin) {
-            topContinuityOrigin.textContent = active ? anniversary.originText : 'since 2018';
+            const claim = active ? anniversary.claimText : 'Zero outages';
+            if (topContinuityClaim.textContent !== claim) topContinuityClaim.textContent = claim;
         }
         if (topContinuityArrow) {
             topContinuityArrow.textContent = '↗';
@@ -4781,7 +4767,7 @@ function initUptimeClock() {
 
         const myth = active
             ? `${anniversary.message} ${upgradeCount} protocol upgrades adopted on-chain.`
-            : `${totalDays.toLocaleString('en-US')} days of Tezos mainnet history. ${upgradeCount} protocol upgrades adopted on-chain.`;
+            : `${totalDays.toLocaleString('en-US')} days of Tezos mainnet history since 2018. Zero outages. ${upgradeCount} protocol upgrades adopted on-chain.`;
         const milestoneLead = activeMilestone
             ? `${uptimeMilestoneStatus(activeMilestone) === 'crossed' ? 'Network milestone confirmed' : 'Network milestone approaching'}: ${describeUptimeMilestone(activeMilestone)}. `
             : '';
@@ -4807,7 +4793,7 @@ function initUptimeClock() {
         if (counterEl) counterEl.innerHTML = html;
         const chainCounterEl = document.getElementById('chain-uptime-counter');
         if (chainCounterEl) chainCounterEl.innerHTML = html;
-        setTopContinuityRuntime(years, days, hours, mins);
+        setTopContinuityRuntime(totalDays);
         const upgradeCount = state.currentStats?.protocolCount || countProtocolUpgrades(state.protocols || []);
         applyUptimeAnniversaryState(getTezosUptimeAnniversary(now), totalDays, upgradeCount);
         syncChainProofMetrics();
