@@ -109,6 +109,7 @@ const RULES = [
     suites: /^(live-pulse-|release-radar-pulse|hero-command-bar-desktop|cycle-milestone)/,
     files: [
       'js/features/daily-briefing.js',
+      'js/core/objkt-sales.mjs',
       'js/ui/pulse-ticker.js',
       'js/core/pulse-history*',
       'js/core/release-radar.mjs',

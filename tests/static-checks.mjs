@@ -7360,7 +7360,7 @@ async function checkNetworkContextNavigationContracts() {
     'prepareDailyCurio',
     'appendDailyCurio',
     'delta: normalizeDelta',
-    'BRIEFING_SCHEMA_VERSION = 14',
+    'BRIEFING_SCHEMA_VERSION = 15',
     'renderHotTodayState',
     "data-pulse-state', 'stale'",
     'getLiveCandidateSignals',

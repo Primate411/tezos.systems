@@ -11464,6 +11464,18 @@ async function smokeLivePulseLoading(browser, baseUrl) {
         assert(await state() === 'loading', `${width}: early failure must keep loading`);
         await page.clock.runFor(50);
         assert(await page.locator('.pulse-ticker-item-placeholder b').first().evaluate(el => getComputedStyle(el).animationName !== 'none'), 'loading retains its animation');
+        const placeholder = page.locator('.pulse-ticker-item-placeholder').first();
+        await placeholder.scrollIntoViewIfNeeded();
+        const loadingPaint = () => placeholder.evaluate(el => {
+          const style = getComputedStyle(el);
+          return { background: style.backgroundColor, shadow: style.boxShadow, color: style.color };
+        });
+        const beforeHover = await loadingPaint();
+        await placeholder.hover();
+        assert(await placeholder.evaluate(el => el.matches(':hover')), 'real pointer reaches the loading placeholder');
+        assert(JSON.stringify(await loadingPaint()) === JSON.stringify(beforeHover), `${width}: loading hover must not highlight the skeleton`);
+        assert(await page.locator('#pulse-ticker-shelf').evaluate(el => el.hidden), 'loading hover does not open a shelf');
+        await page.mouse.move(0, 0);
         await page.clock.fastForward(7950);
         assert(await state() === 'loading', `${width}: original eight-second deadline must still load`);
         if (outcome === 'ready' || outcome === 'quiet') {

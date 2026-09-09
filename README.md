@@ -396,7 +396,10 @@ inline modal styles in `js/core/app.js`.
   weight instead of persistent card highlighting, and regular/priority items do
   not reserve a leading glyph. Motion pauses off-screen and in hidden tabs,
   becomes an unfaded manual horizontal scroller under reduced motion, and
-  retains its exact phase across quiet background refreshes.
+  retains its exact phase across quiet background refreshes. Loading placeholders
+  stay transparent on hover. NFT Pulse counts OBJKT-indexed listing sales across
+  every 500-row page in one fixed trailing 24-hour window; partial or failed
+  scans never replace the last complete count, and paging does not delay other signals.
   Contested-round news starts at **R2**; R0 and R1 remain ordinary block
   receipts and do not consume the contested-round alert cooldown. The new R2
   cooldown ignores timestamps from the previous R1-inclusive alert policy.

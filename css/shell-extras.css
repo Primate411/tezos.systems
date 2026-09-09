@@ -4848,7 +4848,7 @@ body.release-update-safe-area-raised .chamber-room-scroll {
     grid-template-columns: 1rem auto;
 }
 
-.pulse-ticker-item:is(:hover, :focus-visible){
+.pulse-ticker-item:not(.pulse-ticker-item-placeholder):is(:hover, :focus-visible){
     color: var(--text-primary);
     outline: none;
     background: color-mix(in srgb, var(--pulse-item-accent) 8%, transparent);

@@ -4,6 +4,7 @@
  */
 
 import { API_URLS, MAINNET_LAUNCH } from '../core/config.js';
+import { fetchNftPulse } from '../core/objkt-sales.mjs';
 import { loadDataAsset } from '../core/data-assets.js';
 import { getTezosUptimeAnniversary } from '../core/anniversary.js';
 import { CANONICAL_UPGRADE_COUNT } from '../core/protocol-count.js';
@@ -55,9 +56,8 @@ const LS_DAILY_SNAPSHOT = 'tezos-systems-daily-snapshot';
 const LS_DAILY_CURIO_DAY = 'tezos-systems-live-pulse-curio-day-v1';
 const LS_MILESTONE_MOMENTS = 'tezos-systems-milestone-moments';
 const LS_RELEASE_RADAR_LAST_GOOD = 'tezos-systems-release-radar-last-good-v1';
-const BRIEFING_SCHEMA_VERSION = 14;
+const BRIEFING_SCHEMA_VERSION = 15;
 const PRICE_FETCH_TIMEOUT_MS = 2500;
-const NFT_FETCH_TIMEOUT_MS = 2500;
 const MILESTONE_FETCH_TIMEOUT_MS = 2800;
 const MILESTONE_CATALOG_URL = '/data/milestone-catalog.json';
 const HOT_TODAY_LIVE_TICK_MS = 1000;
@@ -82,8 +82,8 @@ const MILESTONE_RATE_MIN_SAMPLE_MS = HOUR_MS;
 const MILESTONE_RATE_MAX_SAMPLE_MS = 14 * DAY_MS;
 const RELEASE_RADAR_REFRESH_MS = 15 * 60 * 1000;
 const RELEASE_RADAR_LAST_GOOD_MAX_AGE_MS = 7 * DAY_MS;
-const OBJKT_GRAPHQL_ENDPOINT = 'https://data.objkt.com/v3/graphql';
-const OBJKT_SALES_SAMPLE_LIMIT = 500;
+let nftPulseRefreshInFlight = null;
+let nftPulseRefreshPending = false;
 const PULSE_RETAIN_FIELD_CATEGORIES = Object.freeze({
   transactionVolume24h: 'transactionVolume24h',
   totalTransactions: 'totalTransactions',
@@ -1529,51 +1529,21 @@ async function fetchWhaleCount() {
   } catch { return { count: 0, top: 0 }; }
 }
 
-async function fetchNftPulse() {
-  const since = new Date(Date.now() - DAY_MS).toISOString();
-  const query = `
-    query LivePulseObjktSales($since: timestamptz!, $limit: Int!) {
-      recent: listing_sale(where: { timestamp: { _gte: $since } }, order_by: { timestamp: desc }, limit: $limit) {
-        id
-      }
-      top: listing_sale(where: { timestamp: { _gte: $since } }, order_by: { price_xtz: desc }, limit: 1) {
-        id
-        timestamp
-        price_xtz
-        amount
-        ophash
-        token {
-          name
-          fa_contract
-          token_id
-        }
-      }
-    }
-  `;
-  const response = await fetch(OBJKT_GRAPHQL_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables: { since, limit: OBJKT_SALES_SAMPLE_LIMIT } })
-  });
-  if (!response.ok) return null;
-  const payload = await response.json();
-  if (payload.errors?.length) return null;
-  const recent = Array.isArray(payload.data?.recent) ? payload.data.recent : [];
-  const top = Array.isArray(payload.data?.top) ? payload.data.top[0] : null;
-  return {
-    count: recent.length,
-    capped: recent.length >= OBJKT_SALES_SAMPLE_LIMIT,
-    top: top ? {
-      id: top.id,
-      timestamp: top.timestamp,
-      priceXtz: (finiteNumber(top.price_xtz) || 0) / 1e6,
-      amount: finiteNumber(top.amount) || 1,
-      name: top.token?.name || 'OBJKT piece',
-      contract: top.token?.fa_contract || '',
-      tokenId: top.token?.token_id || '',
-      ophash: top.ophash || ''
-    } : null
-  };
+function refreshNftPulse() {
+  if (document.visibilityState !== 'visible') {
+    nftPulseRefreshPending = true;
+    return;
+  }
+  if (nftPulseRefreshInFlight) return nftPulseRefreshInFlight;
+  // Paging may take longer than other sources. Publish its complete receipt
+  // through the existing visibility-gated quiet signal path when it arrives.
+  nftPulseRefreshInFlight = fetchNftPulse({
+    shouldContinue: () => document.visibilityState === 'visible'
+  }).then(pulse => {
+    nftPulseRefreshPending = document.visibilityState !== 'visible';
+    if (!nftPulseRefreshPending) dispatchNftHotSignals(pulse);
+  }).finally(() => { nftPulseRefreshInFlight = null; });
+  return nftPulseRefreshInFlight;
 }
 
 function dispatchHotSignal(detail) {
@@ -1584,7 +1554,7 @@ function dispatchHotSignal(detail) {
 function dispatchNftHotSignals(pulse) {
   if (!pulse || !pulse.count) return;
   const top = pulse.top;
-  const countLabel = `${formatCount(pulse.count)}${pulse.capped ? '+' : ''}`;
+  const countLabel = formatCount(pulse.count);
   if (pulse.count >= 50) {
     const topText = top?.priceXtz > 0 ? ` - top sale ${formatTez(top.priceXtz)} XTZ.` : '.';
     dispatchHotSignal({
@@ -1595,8 +1565,8 @@ function dispatchNftHotSignals(pulse) {
       spectacle: 'curious',
       score: 86,
       title: 'NFT pulse',
-      detail: 'OBJKT indexed sales',
-      text: `${countLabel} OBJKT indexed sales in 24h${topText}`,
+      detail: 'OBJKT indexed listing sales',
+      text: `${countLabel} OBJKT indexed listing sales in 24h${topText}`,
       route: '/hen/',
       ttlMs: 4 * HOUR_MS
     });
@@ -1930,13 +1900,12 @@ async function generate(stats, xtzPrice) {
 
   const baseline = (() => { try { return JSON.parse(localStorage.getItem(LS_BASELINE) || 'null'); } catch { return null; } })();
 
-  const [milestoneStats, whales, bakerStats, nftPulse] = await Promise.all([
+  void refreshNftPulse();
+  const [milestoneStats, whales, bakerStats] = await Promise.all([
     resolveMilestoneStats(nextStats),
     fetchWhaleCount(),
     fetchBakerStats(localStorage.getItem('tezos-systems-my-baker-address'), cycle),
-    withTimeout(fetchNftPulse(), NFT_FETCH_TIMEOUT_MS),
   ]);
-  dispatchNftHotSignals(nftPulse);
   lastMilestoneStats = compactMilestoneStats(milestoneStats);
 
   const sentences = buildSentences(milestoneStats, currentPrice, baseline, whales, bakerStats, profile);
@@ -3641,6 +3610,7 @@ function wireHotTodayRealtime() {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         scheduleHotTodayInitialTimeout();
+        if (nftPulseRefreshPending) void refreshNftPulse();
         if (hotTodaySurfaceVisible()) refreshHotTodayLiveMetrics();
         schedulePulseHistoryLoad();
         void loadReleaseRadarSignal();

@@ -42,6 +42,7 @@ export const STATIC_CHECKS = Object.freeze([
     "script": "tests/live-pulse-curio-check.mjs",
     "args": []
   },
+  { "script": "tests/objkt-sales-check.mjs", "args": [] },
   {
     "script": "tests/release-radar-check.mjs",
     "args": []
