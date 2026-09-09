@@ -1727,6 +1727,9 @@ screenshots, and DOM snapshots.
 Cross-room navigation and route-formatting tests pin the Whale Watch archive
 and Ledger Flow account receipts together, so scheduled changes to the largest
 sender cannot leak an unmocked account lookup into hermetic validation.
+The archive fixture takes one clock reading for all receipt timestamps, keeping
+its 24-hour window exact even when construction crosses a millisecond boundary;
+the static gate exercises this with an advancing clock and the runtime validator.
 Live Head inspector checks use a real pointer move to a hit-tested, keyed trigger
 and then verify the opened receipt. This avoids repeating a hover action after
 the inspector has opened over its own trigger, while retaining reading-lock,

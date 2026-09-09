@@ -11014,6 +11014,30 @@ async function checkPromotedChamberContracts() {
     if (!smoke.includes(snippet)) fail(`promoted-Chamber browser regression contract missing: ${snippet}`);
   }
 
+  // A millisecond boundary between fixture clock reads must not invalidate
+  // the exact 24-hour receipt and leave Ledger Flow without its seed account.
+  let fixtureClock = Date.UTC(2026, 8, 9);
+  class AdvancingFixtureDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [fixtureClock++])); }
+    static now() { return fixtureClock++; }
+  }
+  const whaleFixtureSource = smoke.slice(
+    smoke.indexOf('function sampleWhaleWatchArtifact('),
+    smoke.indexOf('const overdelegatedBaker =')
+  );
+  const whaleFixture = vm.runInNewContext(`${whaleFixtureSource}; sampleWhaleWatchArtifact();`, {
+    Date: AdvancingFixtureDate,
+    SAMPLE_ADDRESS: 'tz1SmokeSender',
+    SAMPLE_ADDRESS_2: 'tz1SmokeRecipient',
+    SAMPLE_ADDRESS_3: 'tz1SmokeThird'
+  });
+  const validateWhaleFixture = vm.runInNewContext(`${whale.slice(
+    whale.indexOf('function validateArtifact('),
+    whale.indexOf('async function fetchWhaleArtifact(')
+  )}; validateArtifact;`);
+  assert.doesNotThrow(() => validateWhaleFixture(whaleFixture),
+    'Whale Watch fixtures must retain an exact 24-hour window when the clock advances between reads');
+
   pass(`Whale Watch, Baker Directory, and Cycle History full-Chamber contracts checked (${artifact.transfers24h.operationCount} complete-window transfers)`);
 }
 

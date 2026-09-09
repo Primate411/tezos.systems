@@ -582,8 +582,9 @@ const sampleBakers = [
 ];
 
 function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
-  const generatedAt = new Date().toISOString();
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const now = Date.now();
+  const generatedAt = new Date(now).toISOString();
+  const since = new Date(now - 24 * 60 * 60 * 1000).toISOString();
   const sameHashDistinctOperationIds = [7001, 7002];
   const sharedHash = 'opSmokeWhaleGroupedFlow111111111111111111111111111';
   const groupedOperations = [
@@ -592,7 +593,7 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
       hash: sharedHash,
       type: 'transaction',
       status: 'applied',
-      timestamp: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+      timestamp: new Date(now - 20 * 60 * 1000).toISOString(),
       amountMutez: 125000000000,
       sender: SAMPLE_ADDRESS,
       senderAlias: 'QA Baker',
@@ -604,7 +605,7 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
       hash: sharedHash,
       type: 'transaction',
       status: 'applied',
-      timestamp: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+      timestamp: new Date(now - 20 * 60 * 1000).toISOString(),
       amountMutez: 75000000000,
       sender: SAMPLE_ADDRESS_2,
       senderAlias: 'Second Baker',
@@ -617,7 +618,7 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
     hash: 'opSmokeWhaleSingleFlow1111111111111111111111111111',
     type: 'transaction',
     status: 'applied',
-    timestamp: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+    timestamp: new Date(now - 35 * 60 * 1000).toISOString(),
     amountMutez: 10000000000,
     sender: SAMPLE_ADDRESS_3,
     senderAlias: 'Pending Baker',
@@ -625,7 +626,7 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
     targetAlias: 'QA Baker'
   };
   const awakeningDormantDays = 900;
-  const awakeningTimestamp = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+  const awakeningTimestamp = new Date(now - 3 * 60 * 60 * 1000).toISOString();
   const previousActivityTime = new Date(Date.parse(awakeningTimestamp) - awakeningDormantDays * 24 * 60 * 60 * 1000).toISOString();
   return {
     kind: 'tezos-whale-watch',
