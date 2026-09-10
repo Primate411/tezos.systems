@@ -545,7 +545,8 @@ const sampleBakers = [
     bakingPower: 950000000000,
     consensusAddress: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQ',
     balance: 900000000000,
-    software: { version: 'v25.0', date: '2026-06-16T11:58:56Z' }
+    software: { version: 'v25.0', date: '2026-06-16T11:58:56Z' },
+    softwareUpdateTime: new Date(Date.now() - 3 * 86400000).toISOString()
   },
   {
     address: SAMPLE_ADDRESS_2,
@@ -561,7 +562,8 @@ const sampleBakers = [
     bakingPower: 650000000000,
     consensusAddress: null,
     balance: 600000000000,
-    software: { version: 'v24.4', date: '2026-04-17T10:26:39Z' }
+    software: { version: 'v24.4', date: '2026-04-17T10:26:39Z' },
+    softwareUpdateTime: new Date(Date.now() - 5 * 86400000).toISOString()
   },
   {
     address: SAMPLE_ADDRESS_3,
@@ -577,7 +579,8 @@ const sampleBakers = [
     bakingPower: 420000000000,
     consensusAddress: null,
     balance: 500000000000,
-    software: { version: 'v25.1', date: '2026-06-18T19:55:16Z' }
+    software: { version: 'v25.1', date: '2026-06-18T19:55:16Z' },
+    softwareUpdateTime: new Date(Date.now() - 2 * 86400000).toISOString()
   }
 ];
 
@@ -12842,9 +12845,32 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       viewport,
       serviceWorkers: 'block'
     });
-    await installFeatureMocks(context, { operatorAttestationSequence: ['missed', 'missed', 'missed', 'missed', 'realized'] });
+    await installFeatureMocks(context);
+    let softwareVersion = 'v25.0';
+    let softwareUpdateTime = new Date(Date.now() - 3 * 86400000).toISOString();
+    await context.route(`**/v1/delegates/${SAMPLE_ADDRESS}`, (route) => fulfillJson(route, {
+      ...sampleBakers[0],
+      software: { version: softwareVersion, date: '2026-06-16T11:58:56Z' },
+      softwareUpdateTime
+    }));
+    let attestationStatuses = Array(10).fill('missed');
+    let attestationHead = 12345670;
+    await context.route('**/v1/rights?**', (route) => {
+      if (new URL(route.request().url()).searchParams.get('type') !== 'attestation') return route.fallback();
+      return fulfillJson(route, attestationStatuses.map((status, index) => ({
+        level: attestationHead - index,
+        timestamp: new Date(Date.now() - index * 6000).toISOString(),
+        slots: 1,
+        status,
+        type: 'attestation',
+        baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+      })));
+    });
     await context.addInitScript((theme) => {
       window.__MY_TEZOS_OPERATOR_REFRESH_MS__ = 1000;
+      window.__MY_TEZOS_DRAWER_REFRESH_MS__ = 5000;
+      window.__operatorVisibility = 'visible';
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => window.__operatorVisibility });
       localStorage.setItem('tezos-systems-theme', theme);
       localStorage.setItem('tezos-toured', '1');
       localStorage.setItem('tezos-welcomed', '1');
@@ -12883,6 +12909,13 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       throw new Error(`my tezos baker live signal: initial stale state was not visible: ${JSON.stringify(state)}`);
     }
 
+    await page.waitForFunction(() => document.querySelector('#drawer-operator-status')?.textContent.includes('first block on version 3d ago'), null, { timeout: 15000 });
+    await page.waitForFunction(() => [...document.querySelectorAll('#my-baker-results [title]')]
+      .some((node) => node.title.includes('TzKT first observed this baker produce a block with this version')), null, { timeout: 15000 });
+    const softwareTooltip = await page.locator('#my-baker-results [title]').evaluateAll((nodes) => nodes.find((node) => node.title.includes('TzKT first observed this baker'))?.title || '');
+    assert(softwareTooltip.includes(new Date(softwareUpdateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
+      && !softwareTooltip.includes('Jun 16'), `Baker Signal ${label}: tooltip used the global software date: ${softwareTooltip}`);
+
     const before = await page.evaluate(() => {
       const panel = document.getElementById('drawer-operator-status');
       const body = document.getElementById('drawer-body');
@@ -12898,6 +12931,77 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       return { top: body.scrollTop, pageY: window.scrollY, selection: document.getSelection().toString(), rail: tab.parentElement.scrollLeft };
     });
 
+    softwareVersion = 'v25.1';
+    softwareUpdateTime = new Date(Date.now() - 2 * 86400000).toISOString();
+    await page.waitForFunction(() => {
+      const octez = [...document.querySelectorAll('#drawer-operator-status .drawer-operator-tile')]
+        .find((tile) => tile.querySelector('.drawer-operator-label')?.textContent === 'Octez');
+      return octez?.querySelector('strong')?.textContent === 'v25.1'
+        && octez.textContent.includes('first block on version 2d ago')
+        && octez.classList.contains('drawer-operator-ok')
+        && [...document.querySelectorAll('#my-baker-results .my-baker-stat')]
+          .some((stat) => stat.textContent.includes('Octez') && stat.textContent.includes('v25.1'));
+    }, null, { timeout: 15000 });
+
+    // Advance the actual rights fixture only after each state is observed, so
+    // polling/startup speed cannot skip over partial recovery or a relapse.
+    for (const successful of [1, 2, 4]) {
+      attestationHead++;
+      attestationStatuses = [...Array(successful).fill('realized'), ...Array(10 - successful).fill('missed')];
+      await page.waitForFunction(({ successful }) => {
+        const panel = document.querySelector('#drawer-operator-status');
+        const brief = document.querySelector('#drawer-baker-brief');
+        const detail = `${10 - successful}/10 recent attestation issues · latest ${successful} OK`;
+        return panel?.textContent.includes('Recovering') && panel.textContent.includes(detail)
+          && brief?.textContent.includes('Recovering') && brief.textContent.includes(detail);
+      }, { successful }, { timeout: 15000 }).catch(async (error) => {
+        throw new Error(`Baker Signal ${label}: recovery did not settle ${JSON.stringify(await page.evaluate(() => ({
+          operator: document.querySelector('#drawer-operator-status')?.textContent,
+          brief: document.querySelector('#drawer-baker-brief')?.textContent,
+          loading: window._myTezosData?.loading
+        })))}: ${error.message}`);
+      });
+      const recovering = await page.evaluate(() => {
+        const panel = document.querySelector('#drawer-operator-status');
+        const tiles = [...panel.querySelectorAll('.drawer-operator-tile')];
+        const working = tiles.find((tile) => tile.textContent.includes('Baker working?'));
+        const attestation = tiles.find((tile) => tile.querySelector('.drawer-operator-label')?.textContent === 'Attestation');
+        const brief = [...document.querySelectorAll('#drawer-baker-brief strong')].find((node) => node.textContent === 'Recovering');
+        const body = document.getElementById('drawer-body');
+        const tab = document.getElementById('my-tezos-tab-baker-signal');
+        return {
+          watch: working.classList.contains('drawer-operator-watch') && attestation.classList.contains('drawer-operator-watch'),
+          sameTone: getComputedStyle(working.querySelector('strong')).color === getComputedStyle(brief).color,
+          checkNow: panel.textContent.includes('Check now'),
+          top: body.scrollTop, pageY: window.scrollY, rail: tab.parentElement.scrollLeft, selection: document.getSelection().toString(),
+          sameTiles: tiles.every((tile, i) => tile === window.__bakerSignalTiles[i]),
+          focused: document.activeElement === tab,
+          visible: tiles.every((tile) => getComputedStyle(tile).opacity === '1' && getComputedStyle(tile).transform === 'none'),
+          overflow: body.scrollWidth > body.clientWidth + 1
+        };
+      });
+      assert(recovering.watch && recovering.sameTone && !recovering.checkNow && !recovering.overflow,
+        `Baker Signal ${label}: partial recovery must agree across all status surfaces ${JSON.stringify(recovering)}`);
+      assert(recovering.sameTiles && recovering.focused && recovering.visible
+        && recovering.top === before.top && recovering.pageY === before.pageY
+        && recovering.rail === before.rail && recovering.selection === before.selection,
+      `Baker Signal ${label}: partial recovery moved the reader ${JSON.stringify({ before, recovering })}`);
+      if (ARTIFACTS_DIR && successful === 4) {
+        await page.screenshot({ path: path.join(ARTIFACTS_DIR, `baker-signal-recovering-${label}.png`) });
+      }
+    }
+
+    // Even a lower issue count must remain urgent if the newest right is missed.
+    attestationHead++;
+    attestationStatuses = ['missed', ...Array(7).fill('realized'), 'missed', 'missed'];
+    await page.waitForFunction(() => {
+      const panel = document.querySelector('#drawer-operator-status');
+      return panel?.textContent.includes('Check now') && panel.textContent.includes('3/10 recent attestation issues')
+        && !panel.textContent.includes('Recovering') && document.querySelector('#drawer-baker-brief')?.textContent.includes('Check now');
+    }, null, { timeout: 15000 });
+
+    attestationHead++;
+    attestationStatuses = Array(10).fill('realized');
     try {
       await page.waitForFunction(() => {
         const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
@@ -12949,6 +13053,21 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     }));
     assert(ownership.allBakerPanelsOwned && ownership.overviewBakerSections === 0 && ownership.statusInSignal,
       `Baker Signal ${label}: baker content remained in Overview ${JSON.stringify(ownership)}`);
+    await page.evaluate(() => {
+      window.__operatorVisibility = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    softwareVersion = 'v25.2';
+    softwareUpdateTime = new Date(Date.now() - 86400000).toISOString();
+    await page.evaluate(() => {
+      window.__operatorVisibility = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await page.waitForFunction(() => {
+      const octez = [...document.querySelectorAll('#drawer-operator-status .drawer-operator-tile')]
+        .find((tile) => tile.querySelector('.drawer-operator-label')?.textContent === 'Octez');
+      return octez?.querySelector('strong')?.textContent === 'v25.2' && octez.textContent.includes('first block on version 1d ago');
+    }, null, { timeout: 15000 });
     const readerTop = await page.evaluate(() => {
       const body = document.getElementById('drawer-body');
       body.scrollTop = 30;
@@ -12972,9 +13091,12 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     await page.locator('#my-tezos-tab-overview').press('ArrowRight');
     assert(new URL(page.url()).searchParams.get('view') === 'baker-signal', 'Baker Signal tab must synchronize its route');
     assert(await page.locator('#drawer-operator-status .drawer-operator-panel').evaluate((panel) => panel === window.__bakerSignalPanel), 'Switching back must retain the signal panel');
+    attestationStatuses = ['realized', 'realized', ...Array(8).fill('missed')];
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('#drawer-operator-status .drawer-operator-panel').waitFor({ state: 'visible', timeout: 15000 });
     assert(await page.locator('#my-tezos-tab-baker-signal').getAttribute('aria-selected') === 'true', 'Baker Signal route must survive reload');
+    await page.waitForFunction(() => document.querySelector('#drawer-operator-status')?.textContent.includes('Recovering')
+      && document.querySelector('#drawer-operator-status')?.textContent.includes('8/10 recent attestation issues · latest 2 OK'), null, { timeout: 15000 });
 
     await page.locator('#my-tezos-tab-overview').click();
     await page.locator('#my-baker-input').fill(SAMPLE_IDLE_ADDRESS);
@@ -17359,6 +17481,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       octezLatestPower: modal?.querySelector('#health-octez-latest-power')?.textContent || '',
       octezKnown: modal?.querySelector('#health-octez-known')?.textContent || '',
       octezUpdatedAge: modal?.querySelector('#health-octez-updated')?.textContent || '',
+      octezUpdatedAt: modal?.querySelector('#health-octez-updated')?.dataset.healthAge || '',
       octezRows: modal?.querySelectorAll('#health-octez-version-list .health-octez-version-row').length || 0,
       octezLaggers: modal?.querySelectorAll('#health-octez-laggards .health-octez-laggard-row').length || 0,
       periodTelemetry: modal?.querySelector('#health-period-telemetry')?.textContent || '',
@@ -17986,6 +18109,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.octezRows >= 3, `network health chamber: Octez version distribution missing rows: ${healthState.octezRows}`);
   assert(healthState.octezLaggers >= 2 && /Second Baker/.test(healthState.octezVersions) && /v24\.4/.test(healthState.octezVersions), `network health chamber: Octez lagging baker list incomplete: ${healthState.octezVersions}`);
   assert(/ago|just now/.test(healthState.octezUpdatedAge), `network health chamber: Octez freshness age missing: ${healthState.octezUpdatedAge}`);
+  assert(healthState.octezVersions.includes('Latest version change')
+    && healthState.octezUpdatedAt === sampleBakers[2].softwareUpdateTime,
+  `network health chamber: version-change clock must use the baker's first block on its current version: ${healthState.octezUpdatedAt}`);
   assert(/Period Telemetry/.test(healthState.periodTelemetry) && /24H/.test(healthState.periodTelemetry) && /31D/.test(healthState.periodTelemetry), `network health chamber: period telemetry missing: ${healthState.periodTelemetry}`);
   assert(/Network Load/.test(healthState.networkLoad) && /Large tx rows/.test(healthState.networkLoad), `network health chamber: network load panel missing: ${healthState.networkLoad}`);
   assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);

@@ -7,7 +7,7 @@ import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
 import { fetchProtocolConstants, fetchStakingAPY, fetchWithDeadline, getExternalStakerApy } from '../core/api.js';
 import { fetchBakerLiquidityBakingVote } from '../core/liquidity-baking-vote.js';
-import { classifyOctezVersion, fetchOctezVersions } from '../core/octez-versions.js';
+import { classifyOctezVersion, fetchOctezVersions, normalizeBakerSoftware } from '../core/octez-versions.js';
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
 import {
     MAX_SAVED_MY_TEZOS_ADDRESSES,
@@ -21,7 +21,7 @@ const STORAGE_KEY = MY_TEZOS_ADDRESS_KEY;
 const TZKT = API_URLS.tzkt;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
 const DEFAULT_DELEGATION_LIMIT = 9;
-const INTERACTIVE_TZKT_INIT = { __tezosSystemsPriority: 'interactive' };
+const INTERACTIVE_TZKT_INIT = { cache: 'no-store', memoryCache: false, __tezosSystemsPriority: 'interactive' };
 let _bakerRenderSeq = 0;
 let _delegationLimit = DEFAULT_DELEGATION_LIMIT;
 let _delegationLimitPromise = null;
@@ -71,31 +71,16 @@ function fmtXTZ(mutez) {
     return xtz.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ꜩ';
 }
 
-function normalizeOctezSoftware(software) {
-    const rawVersion = typeof software === 'string'
-        ? software
-        : (software?.version || '');
-    const version = String(rawVersion || '').trim();
-    const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
-    const reportedAt = typeof software === 'object' && software ? software.date : null;
-    return {
-        known,
-        version: known ? version : 'Unknown',
-        reportedAt
-    };
-}
-
-function octezVersionTooltip(software) {
-    const info = normalizeOctezSoftware(software);
+function octezVersionTooltip(baker) {
+    const info = normalizeBakerSoftware(baker);
     if (!info.known) return 'TzKT has no Octez version report for this baker yet';
-    if (!info.reportedAt) return 'TzKT-reported delegate software version';
-    const date = new Date(info.reportedAt);
-    if (!Number.isFinite(date.getTime())) return 'TzKT-reported delegate software version';
-    return `TzKT reported this baker software version on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    if (!info.firstUsedAt) return 'TzKT-reported delegate software version; baker version-change time unavailable';
+    const date = new Date(info.firstUsedAt);
+    return `TzKT first observed this baker produce a block with this version on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
-function octezVersionDisplay(software, latestVersion) {
-    const info = normalizeOctezSoftware(software);
+function octezVersionDisplay(baker, latestVersion) {
+    const info = normalizeBakerSoftware(baker);
     const status = classifyOctezVersion(info.version, latestVersion);
     const latestText = status.latestVersion && status.latestVersion !== 'Unknown'
         ? ` Latest observed: ${status.latestVersion}.`
@@ -103,7 +88,7 @@ function octezVersionDisplay(software, latestVersion) {
     return {
         value: info.version,
         className: `my-baker-octez-${status.className}`,
-        tooltip: `${octezVersionTooltip(software)}.${latestText}`.replace(/\.\./g, '.')
+        tooltip: `${octezVersionTooltip(baker)}.${latestText}`.replace(/\.\./g, '.')
     };
 }
 
@@ -410,7 +395,7 @@ async function renderBakerData(address, container, { quiet = false } = {}) {
 
         // Show delegate's baker stats for non-baker addresses
         if (!bakerData && delegateBakerData) {
-            const octez = octezVersionDisplay(delegateBakerData.software, octezVersions?.latestVersion);
+            const octez = octezVersionDisplay(delegateBakerData, octezVersions?.latestVersion);
             grid.appendChild(createStatItem('Bkr Octez', octez.value, octez.tooltip, octez.className));
             grid.appendChild(createStatItem('Bkr Staking Power', fmtXTZ(delegateBakerData.stakingBalance)));
             grid.appendChild(createStatItem('Bkr Stakers', formatNumber(delegateBakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
@@ -427,7 +412,7 @@ async function renderBakerData(address, container, { quiet = false } = {}) {
 
         // If baker, show baker-specific stats
         if (bakerData) {
-            const octez = octezVersionDisplay(bakerData.software, octezVersions?.latestVersion);
+            const octez = octezVersionDisplay(bakerData, octezVersions?.latestVersion);
             grid.appendChild(createStatItem('Octez Version', octez.value, octez.tooltip, octez.className));
             grid.appendChild(createStatItem('Staking Power', fmtXTZ(bakerData.stakingBalance)));
             grid.appendChild(createStatItem('Ext. Staked', fmtXTZ(bakerData.externalStakedBalance)));

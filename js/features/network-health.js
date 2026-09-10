@@ -5421,7 +5421,7 @@ function renderOctezVersionsPanel(data) {
             <div class="lb-metric-grid health-metric-grid health-octez-metrics">
                 <div><span>Latest power</span><strong id="health-octez-latest-power">${formatPct(versions.latestPowerShare)}%</strong></div>
                 <div><span>Known bakers</span><strong id="health-octez-known">${formatCount(versions.knownBakers)} / ${formatCount(versions.totalBakers)}</strong></div>
-                <div><span>Freshest report</span><strong id="health-octez-updated"${healthAgeAttr(versions.freshestDate)}>${formatAge(versions.freshestDate)}</strong></div>
+                <div><span>Latest version change</span><strong id="health-octez-updated"${healthAgeAttr(versions.freshestDate)}>${formatAge(versions.freshestDate)}</strong></div>
             </div>
             <div class="health-octez-version-list" id="health-octez-version-list">
                 ${renderOctezVersionRows(versions.versionRows)}

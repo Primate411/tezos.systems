@@ -1295,7 +1295,18 @@ inline modal styles in `js/core/app.js`.
   and the existing
   baker/reward lifecycle, while its baker
   signal uses one full-width next-round band plus four equal Octez, working,
-  attestation, and DAL tiles. Shape-correct first-read cards hold the Overview
+  attestation, and DAL tiles. When the newest attestations succeed after older
+  issues, the working signal shows amber `Recovering`, with the remaining issue
+  count and latest successful streak. A new attestation issue returns `Check now`;
+  a clean recent window restores `Working` or `Back online`. The Attestation
+  tile and Baker Status card share the same recovery tone.
+  Octez version ages and tooltips use TzKT's baker-specific `softwareUpdateTime`
+  (the first block that baker produced with its current version), never the
+  software catalog's commit/first-seen date. Missing change times stay unavailable;
+  Network Health's latest version-change clock uses the same baker receipts.
+  The active baker's software is reread on every visible 15-second operator
+  refresh, with last-good receipts retained only when that read fails.
+  Shape-correct first-read cards hold the Overview
   frame while live sections settle into independent desktop columns, and later
   refreshes reconcile in place. Undelegated accounts link to the factual Baker
   Directory and show a disclosed Baking Benjamins site-builder recommendation

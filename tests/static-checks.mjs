@@ -998,6 +998,31 @@ async function checkMyTezosPortfolioContracts() {
       || !myTezos.includes("!isDrawerOpen() || document.visibilityState !== 'visible'")) {
     fail('Baker Signal must have its own accessible My Tezos tab with active-wallet scope and the existing quiet visible refresh');
   }
+  const operatorSummary = vm.runInNewContext(`${myTezos.slice(
+    myTezos.indexOf('function summarizeRecentAttestations('),
+    myTezos.indexOf('async function fetchOperatorHead(')
+  )}; ({ summarizeRecentAttestations, summarizeCycleAttestation, summarizeLiveOperatorStatus })`, {
+    RECENT_OPERATOR_ATTESTATIONS: 10,
+    formatLevel: String
+  });
+  const summarizeRights = (statuses) => operatorSummary.summarizeRecentAttestations(statuses.map((status, index) => ({ status, level: 100 - index })));
+  for (const successful of [0, 1, 2, 4, 9, 10]) {
+    const recent = summarizeRights([...Array(successful).fill('realized'), ...Array(10 - successful).fill('missed')]);
+    const expectedState = successful === 0 ? 'issue' : successful === 10 ? 'ok' : 'watch';
+    assert.equal(recent.state, expectedState, `Recent attestation recovery at ${successful}/10 successful rights`);
+    assert.equal(operatorSummary.summarizeCycleAttestation({ expected_cycle_activity: 1000, missed_slots: 11 }, recent).state, expectedState);
+    for (const blockState of ['ok', 'issue', 'unknown']) {
+      const live = operatorSummary.summarizeLiveOperatorStatus({ state: blockState, text: blockState }, recent);
+      assert.equal(live.state, expectedState);
+      assert.equal(live.value, successful === 0 ? 'Check now' : successful === 10 ? (blockState === 'issue' ? 'Back online' : 'Working') : 'Recovering');
+      if (successful > 0 && successful < 10) assert(live.detail.includes(`latest ${successful} OK`) && live.detail.includes(`${10 - successful}/10 recent attestation issue`));
+    }
+  }
+  assert.equal(summarizeRights(['missed', ...Array(9).fill('realized')]).state, 'issue', 'A new miss must end recovery even when the issue count is low');
+  assert.equal(summarizeRights(['future', 'realized', 'missed']).state, 'watch', 'Future rights must not interrupt confirmed recovery');
+  assert.equal(summarizeRights(['future', 'missed', 'realized']).state, 'issue', 'A future right must not count as recovery');
+  assert.equal(summarizeRights([]).state, 'unknown', 'Missing rights must not imply recovery');
+  assert.equal(summarizeRights(['future']).state, 'unknown', 'Future-only rights must not imply recovery');
   for (const id of ['drawer-operator-status', 'drawer-baker', 'drawer-baker-history', 'drawer-baker-activity', 'drawer-baker-brief', 'my-tezos-delegation-guidance']) {
     if (!signalPanel.includes(`id="${id}"`) || overviewPanel.includes(`id="${id}"`)) {
       fail(`Baker Signal must own ${id} outside Overview`);
@@ -2638,6 +2663,51 @@ async function checkSelectorContracts() {
   const leaderboard = await readText('js/features/leaderboard.js');
   const myTezos = await readText('js/features/my-tezos.js');
   const myBaker = await readText('js/features/my-baker.js');
+  const softwareModel = vm.runInNewContext(`${octezVersions.slice(
+    octezVersions.indexOf('export function normalizeBakerSoftware('),
+    octezVersions.indexOf('function startOctezVersionsRequest(')
+  ).replace(/^export /gm, '')}; ({ normalizeBakerSoftware, classifyOctezVersion, buildOctezVersions })`);
+  const oldSoftwareDate = '2026-01-01T00:00:00Z';
+  const bakerVersionTime = new Date(Date.now() - 3 * 86400000).toISOString();
+  const bakerSoftwareReceipt = { address: 'qa-baker', bakingPower: 10, software: { version: 'v25.1', date: oldSoftwareDate }, softwareUpdateTime: bakerVersionTime };
+  assert.equal(softwareModel.normalizeBakerSoftware(bakerSoftwareReceipt).firstUsedAt, bakerVersionTime);
+  for (const softwareUpdateTime of [undefined, null, '', 'invalid', new Date(Date.now() + 86400000).toISOString()]) {
+    assert.equal(softwareModel.normalizeBakerSoftware({ ...bakerSoftwareReceipt, softwareUpdateTime }).firstUsedAt, null,
+      'Missing/invalid baker-specific dates must never fall back to the software catalog date');
+  }
+  assert.equal(softwareModel.buildOctezVersions([bakerSoftwareReceipt]).freshestDate, bakerVersionTime);
+  assert.equal(softwareModel.buildOctezVersions([{ ...bakerSoftwareReceipt, softwareUpdateTime: null }]).freshestDate, null);
+  assert(octezVersions.includes("const fields = 'address,alias,bakingPower,software,softwareUpdateTime'"));
+  assert(health.includes('Latest version change') && !health.includes('Freshest report'));
+  const summarizeSoftware = vm.runInNewContext(`${myTezos.slice(
+    myTezos.indexOf('function summarizeOctezSoftware('), myTezos.indexOf('async function fetchBakerOctezSoftware(')
+  )}; summarizeOctezSoftware`, { ...softwareModel, relativeTime: (date) => date });
+  assert(summarizeSoftware(bakerSoftwareReceipt, 'v25.2').detail.includes(bakerVersionTime));
+  assert(!summarizeSoftware(bakerSoftwareReceipt, 'v25.2').detail.includes(oldSoftwareDate));
+  assert(summarizeSoftware({ ...bakerSoftwareReceipt, softwareUpdateTime: null }, 'v25.2').detail.includes('time unavailable'));
+  const softwareTooltip = vm.runInNewContext(`${myBaker.slice(
+    myBaker.indexOf('function octezVersionTooltip('), myBaker.indexOf('/**\n * Resolve Tezos Domains name')
+  )}; octezVersionTooltip`, softwareModel);
+  assert(softwareTooltip(bakerSoftwareReceipt).includes(new Date(bakerVersionTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })));
+  assert(softwareTooltip({ ...bakerSoftwareReceipt, softwareUpdateTime: null }).includes('time unavailable'));
+  let currentSoftwareReceipt = bakerSoftwareReceipt;
+  let softwareReads = 0;
+  const readSoftware = vm.runInNewContext(`${myTezos.slice(
+    myTezos.indexOf('async function fetchBakerOctezSoftware('), myTezos.indexOf('function rightsUrl(')
+  )}; fetchBakerOctezSoftware`, {
+    TZKT: 'https://api.tzkt.io/v1', _lastGoodOctezSoftware: new Map(), summarizeOctezSoftware: summarizeSoftware,
+    fetchOctezVersions: async () => ({ latestVersion: 'v25.2' }),
+    fetchJsonWithTimeout: async () => { softwareReads++; return currentSoftwareReceipt; }
+  });
+  assert.equal((await readSoftware('qa-baker')).version, 'v25.1');
+  currentSoftwareReceipt = { ...bakerSoftwareReceipt, software: { ...bakerSoftwareReceipt.software, version: 'v25.2' } };
+  assert.equal((await readSoftware('qa-baker')).version, 'v25.2', 'A new operator read must not reuse a cached software version');
+  currentSoftwareReceipt = null;
+  const failedSoftwareRead = await readSoftware('qa-baker');
+  assert.equal(failedSoftwareRead.version, 'v25.2');
+  assert(failedSoftwareRead.detail.includes('refresh unavailable'));
+  assert.equal((await readSoftware('another-baker')).version, 'Unknown', 'Last-good software must remain scoped to its baker');
+  assert.equal(softwareReads, 4);
   const siteJourney = await readText('js/core/site-journey.js');
   const comparison = await readText('js/features/comparison.js');
   const compareIndex = await readText('compare/index.html');

@@ -19,15 +19,20 @@ async function fetchJson(url, retries = 2, { priority = 'normal' } = {}) {
     }, retries + 1);
 }
 
-function normalizeOctezSoftware(software) {
+export function normalizeBakerSoftware(baker) {
+    const software = baker?.software;
     const rawVersion = typeof software === 'string' ? software : software?.version;
-    const rawDate = typeof software === 'object' && software ? software.date : null;
+    // software.date describes the commit or its first appearance anywhere.
+    // Only softwareUpdateTime identifies this baker's first block on the version.
+    // https://api.tzkt.io/#tag/Delegates/operation/Delegates_GetByAddress
+    const rawDate = baker?.softwareUpdateTime;
+    const dateMs = typeof rawDate === 'string' && rawDate.trim() ? Date.parse(rawDate) : NaN;
     const version = String(rawVersion || '').trim();
     const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
     return {
         known,
         version: known ? version : 'Unknown',
-        date: rawDate || null
+        firstUsedAt: known && Number.isFinite(dateMs) && dateMs <= Date.now() ? rawDate : null
     };
 }
 
@@ -94,7 +99,7 @@ export function classifyOctezVersion(version, latestVersion) {
 }
 
 function normalizeOctezVersionBaker(row) {
-    const software = normalizeOctezSoftware(row?.software);
+    const software = normalizeBakerSoftware(row);
     return {
         address: row?.address || '',
         alias: row?.alias || '',
@@ -144,12 +149,12 @@ function buildOctezVersions(rows) {
         };
         current.bakerCount += 1;
         current.power += baker.bakingPower;
-        if (baker.software.date) {
-            const dateMs = new Date(baker.software.date).getTime();
+        if (baker.software.firstUsedAt) {
+            const dateMs = new Date(baker.software.firstUsedAt).getTime();
             const currentMs = current.latestDate ? new Date(current.latestDate).getTime() : 0;
             const freshestMs = freshestDate ? new Date(freshestDate).getTime() : 0;
-            if (Number.isFinite(dateMs) && dateMs > currentMs) current.latestDate = baker.software.date;
-            if (Number.isFinite(dateMs) && dateMs > freshestMs) freshestDate = baker.software.date;
+            if (Number.isFinite(dateMs) && dateMs > currentMs) current.latestDate = baker.software.firstUsedAt;
+            if (Number.isFinite(dateMs) && dateMs > freshestMs) freshestDate = baker.software.firstUsedAt;
         }
         groups.set(key, current);
     }
@@ -211,7 +216,7 @@ function buildOctezVersions(rows) {
 function startOctezVersionsRequest(priority) {
     const sequence = ++octezVersionsRequestSequence;
     const request = (async () => {
-        const fields = 'address,alias,bakingPower,software';
+        const fields = 'address,alias,bakingPower,software,softwareUpdateTime';
         const rows = [];
         let offset = 0;
         while (true) {

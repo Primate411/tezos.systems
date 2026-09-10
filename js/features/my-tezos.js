@@ -23,7 +23,7 @@ import {
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
-import { classifyOctezVersion, fetchOctezVersions } from '../core/octez-versions.js';
+import { classifyOctezVersion, fetchOctezVersions, normalizeBakerSoftware } from '../core/octez-versions.js';
 import { fetchObjktProfile } from './objkt.js';
 import { refresh as refreshMyBakerStats } from './my-baker.js';
 import { initRewardsTracker } from './rewards-tracker.js';
@@ -70,12 +70,11 @@ const RECENT_BAKER_ACTIVITY_LIMIT = 40;
 const RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT = 6;
 const RECENT_OPERATOR_ATTESTATIONS = 10;
 const RIGHTS_FETCH_TIMEOUT_MS = 12000;
-const OCTEZ_VERSION_TTL_MS = 10 * 60 * 1000;
 const OPERATOR_SIGNAL_REFRESH_MS = 15000;
 const DRAWER_STATS_REFRESH_MS = 30000;
 const ACTIVE_VIEW_REFRESH_MS = 30000;
 const BAKING_BENJAMINS_NAME = 'Baking Benjamins';
-const _octezSoftwareCache = new Map();
+const _lastGoodOctezSoftware = new Map();
 const _tezNameMemoryCache = new Map();
 let _activeOvernightReport = null;
 let _activeOvernightAddress = '';
@@ -284,15 +283,10 @@ async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FET
     }
 }
 
-function summarizeOctezSoftware(software, latestVersion = 'Unknown') {
-    const rawVersion = typeof software === 'string'
-        ? software
-        : (software?.version || '');
-    const version = String(rawVersion || '').trim();
-    const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
-    const reportedAt = typeof software === 'object' && software ? software.date : null;
+function summarizeOctezSoftware(baker, latestVersion = 'Unknown') {
+    const { known, version, firstUsedAt } = normalizeBakerSoftware(baker);
     const status = classifyOctezVersion(known ? version : 'Unknown', latestVersion);
-    const reportDetail = reportedAt ? `reported ${relativeTime(reportedAt)}` : 'TzKT delegate software';
+    const reportDetail = firstUsedAt ? `first block on version ${relativeTime(firstUsedAt)}` : 'Baker version-change time unavailable';
     const detail = known
         ? `${status.label}${status.latestVersion && status.latestVersion !== 'Unknown' ? ` · latest ${status.latestVersion}` : ''} · ${reportDetail}`
         : 'No TzKT version report yet';
@@ -307,16 +301,16 @@ function summarizeOctezSoftware(software, latestVersion = 'Unknown') {
 }
 
 async function fetchBakerOctezSoftware(bakerAddr) {
-    const now = Date.now();
-    const cached = _octezSoftwareCache.get(bakerAddr);
-    if (cached && now - cached.time < OCTEZ_VERSION_TTL_MS) return cached.value;
-
+    // The active baker is part of every 15-second operator read. Retain raw
+    // receipts only for failures; never let a software TTL hide a new version.
     const [delegate, versions] = await Promise.all([
         fetchJsonWithTimeout(`${TZKT}/delegates/${encodeURIComponent(bakerAddr)}`, null, 8000),
         fetchOctezVersions().catch(() => null)
     ]);
-    const value = summarizeOctezSoftware(delegate?.software, versions?.latestVersion);
-    _octezSoftwareCache.set(bakerAddr, { time: now, value });
+    if (delegate) _lastGoodOctezSoftware.set(bakerAddr, delegate);
+    const receipt = delegate || _lastGoodOctezSoftware.get(bakerAddr);
+    const value = summarizeOctezSoftware(receipt, versions?.latestVersion);
+    if (!delegate && receipt) value.detail += ' · refresh unavailable';
     return value;
 }
 
@@ -381,13 +375,16 @@ function summarizeRecentAttestations(rows) {
     const okCount = recent.length - issues.length;
     const rate = (okCount / recent.length) * 100;
     const latest = recent[0] || null;
+    // Rights arrive newest first. A leading run of successes shows recovery
+    // while older issues remain in the window, including on a fresh page load.
+    const recoveryStreak = issues.length ? recent.findIndex((row) => row.status !== 'realized') : 0;
     return {
-        state: issues.length ? 'issue' : 'ok',
+        state: issues.length ? (recoveryStreak > 0 ? 'watch' : 'issue') : 'ok',
         rate,
         value: `${rate.toFixed(1)}%`,
         latest,
         detail: issues.length
-            ? `${issues.length}/${recent.length} recent attestation issue${issues.length > 1 ? 's' : ''}`
+            ? `${issues.length}/${recent.length} recent attestation issue${issues.length > 1 ? 's' : ''}${recoveryStreak > 0 ? ` · latest ${recoveryStreak} OK` : ''}`
             : `Last ${recent.length} attestations OK · latest level ${formatLevel(latest?.level)}`
     };
 }
@@ -426,6 +423,14 @@ function summarizeCycleAttestation(participation, recent) {
 }
 
 function summarizeLiveOperatorStatus(latestBlock, recentAttestations) {
+    if (recentAttestations.state === 'watch') {
+        return {
+            state: 'watch',
+            value: 'Recovering',
+            detail: recentAttestations.detail
+        };
+    }
+
     if (recentAttestations.state === 'ok' && latestBlock.state === 'issue') {
         return {
             state: 'ok',
@@ -1605,7 +1610,7 @@ function buildMorningBrief(data) {
         healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:#ef4444">inactive ⚠️</strong>`;
     } else if (data.operatorStatus?.live) {
         const live = data.operatorStatus.live;
-        const color = live.state === 'issue' ? 'var(--color-error, #ef4444)' : live.state === 'ok' ? 'var(--color-success, #10b981)' : 'var(--text-dim, #888)';
+        const color = live.state === 'issue' ? 'var(--color-error, #ef4444)' : live.state === 'watch' ? 'var(--chamber-watch-color, #f5d65b)' : live.state === 'ok' ? 'var(--color-success, #10b981)' : 'var(--text-dim, #888)';
         healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:${color}">${escapeHtml(live.value)}</strong><br><span class="brief-sub">${escapeHtml(live.detail)}</span>`;
     } else if (data.healthScore !== null && data.attestRate) {
         healthText = `<strong>${escapeHtml(data.bakerName)}</strong> ${data.health.icon} ${data.attestRate}% cycle attestation power`;
