@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-10',
+        entries: [
+            { type: '🔧', text: 'Nightly wallet compatibility checks exclude test-environment noise while continuing to detect SDK loading failures' }
+        ]
+    },
+    {
         date: '2026-09-08',
         entries: [
             { type: '🔧', text: 'Widgets keep their last successful readings through source failures, expose source time and retry, and refresh without moving readers' },

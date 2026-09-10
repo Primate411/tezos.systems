@@ -13569,7 +13569,14 @@ async function smokeOctezConnectSdkLoader(browser, baseUrl) {
     serviceWorkers: 'block'
   });
   await installFeatureMocks(context);
+  // Keep the real dashboard CSP and wallet loader, but remove unrelated
+  // analytics and the worker API that Playwright deliberately blocks. Neither
+  // is an SDK upstream; strict collection must still reject every SDK issue.
+  await context.route(url => url.hostname === 'gc.zgo.at' && url.pathname === '/count.js', route => route.fulfill({
+    status: 200, contentType: 'application/javascript', body: '/* analytics disabled in SDK canary */'
+  }));
   await context.addInitScript(() => {
+    delete Navigator.prototype.serviceWorker;
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
@@ -13609,8 +13616,29 @@ async function smokeOctezConnectSdkLoader(browser, baseUrl) {
   assert(sdkState.hasActiveEvent, `octez connect sdk loader: missing Beacon active account event ${JSON.stringify(sdkState)}`);
   assert(sdkState.hasPermissionsRequest && sdkState.hasOperationRequest && sdkState.hasActiveAccountRead, `octez connect sdk loader: client shape mismatch ${JSON.stringify(sdkState)}`);
 
-  await context.close();
+  await page.close();
   assert(issues.length === 0, `octez connect sdk loader browser issues:\n${issues.join('\n')}`);
+
+  // A fresh document cannot reuse the successful module. Prove that excluding
+  // test-environment noise has not hidden a real upstream import failure.
+  const failureIssues = [];
+  const failurePage = await context.newPage();
+  attachIssueCollectors(failurePage, 'octez connect sdk failure', failureIssues);
+  await failurePage.route('https://esm.sh/**', route => route.abort('failed'));
+  await failurePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  const failure = await failurePage.evaluate(async () => {
+    const wallet = await import('/js/core/wallet.js');
+    try {
+      await wallet.loadOctezConnect();
+      return '';
+    } catch (error) {
+      return String(error?.message || error);
+    }
+  });
+  assert(failure, 'octez connect sdk loader: a failed upstream import must reject');
+  assert(failureIssues.some(issue => issue.includes('request failed:') && issue.includes('https://esm.sh/')),
+    `octez connect sdk loader: upstream failure must reach issue collection ${JSON.stringify(failureIssues)}`);
+  await context.close();
   log('ok - octez connect sdk loader');
 }
 

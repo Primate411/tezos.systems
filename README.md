@@ -2159,6 +2159,10 @@ caches it by the resolved Playwright version rather than invalidating the large
 browser cache for unrelated lockfile edits. A scheduled high-risk five-repeat
 canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
+The SDK canary retains the dashboard CSP and real wallet loader while disabling
+analytics and the service-worker API blocked by the browser harness. Strict
+warning collection stays enabled, and an injected SDK import failure verifies
+that actual upstream failures still reach the test result.
 GitHub Pages must use **GitHub Actions** as its build source; the workflow uploads
 the validated repository artifact and preserves dot-prefixed public paths such
 as `.well-known`. Scheduled repository writers explicitly dispatch that workflow
