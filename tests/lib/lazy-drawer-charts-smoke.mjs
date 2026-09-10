@@ -11,6 +11,10 @@ async function setup(browser, installFeatureMocks, { width = 1440, theme = 'clea
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     if (address) localStorage.setItem('tezos-systems-my-baker-address', address);
+    window.addEventListener('my-tezos-memory-ready', event => {
+      const fixture = window.__lazyChartHistory;
+      if (fixture && event.detail?.compositionAddresses?.length === 1 && event.detail.compositionAddresses[0] === address) Object.assign(event.detail, fixture);
+    });
   }, { theme, address });
   const page = await context.newPage(), errors = [], requests = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -24,10 +28,15 @@ async function seedHistory(page, address) {
   await page.evaluate(address => {
     const points = [3, 2, 1].map((days, index) => ({ timestamp: Date.now() - days * 86400000, totalMutez: 1000000000 + index * 1000000, level: 12340000 + index, source: 'tzkt-balance-history', cadence: 'daily' }));
     const coverage = { completed: 3, target: 3, complete: true };
-    window.dispatchEvent(new CustomEvent('my-tezos-memory-ready', { detail: {
-      compositionAddresses: [address], aggregate: points, aggregateCoverage: coverage,
+    const history = {
+      aggregate: points, aggregateCoverage: coverage,
       seriesByAddress: { [address]: points }, coverageByAddress: { [address]: coverage }, sourceStatus: { stage: 'complete' }
-    } }));
+    };
+    // This suite tests chart loading, not history synchronization. Keep its
+    // receipt stable when activation publishes cached or in-flight history.
+    // The init-script listener runs before the Portfolio renderer.
+    window.__lazyChartHistory = history;
+    window.dispatchEvent(new CustomEvent('my-tezos-memory-ready', { detail: { compositionAddresses: [address], ...history } }));
   }, address);
 }
 
@@ -112,6 +121,7 @@ export async function smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMo
         await page.locator(`#my-tezos-tab-${tab}`).click();
       }
       await chartReady(page, canvasId);
+      if (surface === 'portfolio') assert.equal(await page.evaluate(() => Chart.getChart(document.getElementById('portfolio-history-chart')).$exactHistoryPoints.length), 3, 'Retry renders the complete chart fixture');
       assert.equal(chartRequests(requests).length, 3, `${surface}: one failed library request plus exactly two successful scripts: ${JSON.stringify(chartRequests(requests))}`);
       if (artifactsDir) {
         await page.locator(`#${canvasId}`).scrollIntoViewIfNeeded();
