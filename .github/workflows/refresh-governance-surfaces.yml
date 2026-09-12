@@ -35,6 +35,9 @@ jobs:
 
       - name: Refresh isolated generated-data lanes
         id: refresh
+        env:
+          # Optional: absent credentials use the public paginated REST API.
+          BLOCKSCOUT_API_KEY: ${{ secrets.BLOCKSCOUT_API_KEY }}
         continue-on-error: true
         run: npm run refresh:generated:scheduled -- --report "$RUNNER_TEMP/generated-refresh-report.json"
 

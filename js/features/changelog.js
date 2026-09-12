@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-12',
+        entries: [
+            { type: '🔧', text: 'Ecosystem refreshes use Etherlink’s public paginated API without requiring a key, respect rate limits, and preserve the last complete readings if a source fails' }
+        ]
+    },
+    {
         date: '2026-09-10',
         entries: [
             { type: '🔧', text: 'Nightly wallet compatibility checks exclude test-environment noise while continuing to detect SDK loading failures' }

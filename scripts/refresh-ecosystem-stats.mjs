@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { execFile } from 'node:child_process';
+import { createBlockscoutClient } from './lib/blockscout-client.mjs';
+import { fetchBlockscoutHistory } from './lib/blockscout-history.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -44,8 +46,11 @@ const TZKT_NETWORK_REQUEST_GAP_MS = 350;
 const RECENT_WEEKS_TO_REBUILD = 3;
 const tzktCatalogReceipt = [];
 const execFileAsync = promisify(execFile);
-let blockscoutRequestGate = Promise.resolve();
-let blockscoutNextRequestAt = 0;
+const {
+  requestJson: requestBlockscoutJson,
+  pace: paceBlockscoutRequest,
+  extendCooldown: extendBlockscoutCooldown
+} = createBlockscoutClient({ gapMs: BLOCKSCOUT_REQUEST_GAP_MS });
 let tzktNetworkNextRequestAt = 0;
 
 // Raw wallet sets are aggregate-only generator state. They are never written
@@ -144,74 +149,6 @@ async function requestTzktNetworkJson(url, { attempts = 8 } = {}) {
     }
   }
   throw new Error(`TzKT network-wide scan exhausted ${attempts} attempts: ${cleanError(lastError)}`);
-}
-
-async function paceBlockscoutRequest() {
-  const previous = blockscoutRequestGate;
-  let release;
-  blockscoutRequestGate = new Promise((resolve) => {
-    release = resolve;
-  });
-  await previous;
-  const delay = Math.max(0, blockscoutNextRequestAt - Date.now());
-  if (delay) await wait(delay);
-  blockscoutNextRequestAt = Date.now() + BLOCKSCOUT_REQUEST_GAP_MS;
-  release();
-}
-
-function blockscoutRateLimited(payload) {
-  const message = `${payload?.message || ''} ${typeof payload?.result === 'string' ? payload.result : ''}`;
-  return /too many requests|rate limit|limit reached/i.test(message);
-}
-
-function extendBlockscoutCooldown(ms) {
-  blockscoutNextRequestAt = Math.max(blockscoutNextRequestAt, Date.now() + ms);
-}
-
-async function requestBlockscoutJson(url, { attempts = 10 } = {}) {
-  let lastError;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    let retryAfterMs = 0;
-    try {
-      await paceBlockscoutRequest();
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(60_000),
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'tezos.systems ecosystem stats generator'
-        }
-      });
-      const body = await response.text();
-      let payload = null;
-      try {
-        payload = JSON.parse(body);
-      } catch {
-        // The body is preserved in the source error below.
-      }
-      const payloadRateLimited = blockscoutRateLimited(payload);
-      if (response.ok && payload && !payloadRateLimited) return payload;
-      const retryAfter = Number(response.headers.get('retry-after'));
-      if (Number.isFinite(retryAfter) && retryAfter > 0) retryAfterMs = retryAfter * 1000;
-      if (payloadRateLimited) retryAfterMs = Math.max(retryAfterMs, 60_000);
-      if (response.status !== 429
-        && ![500, 502, 503, 504].includes(response.status)
-        && !payloadRateLimited) {
-        throw new Error(`HTTP ${response.status}: ${body.slice(0, 240)}`);
-      }
-      lastError = new Error(`HTTP ${response.status}: ${body.slice(0, 240)}`);
-    } catch (error) {
-      lastError = error;
-    }
-    if (attempt < attempts) {
-      const delay = Math.max(retryAfterMs, Math.min(30_000, 1_000 * (2 ** (attempt - 1))));
-      extendBlockscoutCooldown(delay);
-      console.warn(`Blockscout request throttled; retrying in ${Math.round(delay / 1000)}s (${attempt}/${attempts})`);
-      await waitForRetry(delay);
-    }
-  }
-  const request = new URL(url);
-  const address = request.searchParams.get('address');
-  throw new Error(`Blockscout request exhausted ${attempts} attempts${address ? ` for ${address}` : ''}: ${cleanError(lastError)}`);
 }
 
 async function mapLimit(values, limit, worker) {
@@ -668,11 +605,14 @@ async function prepareBlockscoutHistory(manifest, resolved, from, to) {
     }))));
   if (!assignments.length) return new Map();
   const csvBackfill = hasFlag('--backfill');
-  console.log(`Prefetching Etherlink history for ${assignments.length} reviewed contracts via ${csvBackfill ? 'complete CSV exports' : 'bounded JSON ranges'}`);
+  const authenticated = Boolean(process.env.BLOCKSCOUT_API_KEY?.trim());
+  console.log(`Prefetching Etherlink history for ${assignments.length} reviewed contracts via ${csvBackfill ? 'complete CSV exports' : authenticated ? 'bounded JSON ranges' : 'public paginated REST'}`);
   const results = await mapLimit(assignments, csvBackfill ? 1 : BLOCKSCOUT_REQUEST_CONCURRENCY, async (assignment, index) => {
     const rows = csvBackfill
       ? await fetchBlockscoutCsv(assignment.address, assignment.from, to)
-      : await fetchBlockscoutSlice(assignment.address, assignment.from, to);
+      : authenticated
+        ? await fetchBlockscoutSlice(assignment.address, assignment.from, to)
+        : await fetchBlockscoutHistory(assignment.address, assignment.from, to, requestBlockscoutJson);
     if ((index + 1) % 10 === 0 || index === assignments.length - 1) {
       console.log(`Fetched Etherlink contract ${index + 1}/${assignments.length}`);
     }
@@ -696,7 +636,9 @@ async function fetchBlockscoutMetrics(assignments, to, history = null) {
       }))
     : await mapLimit(assignments, BLOCKSCOUT_REQUEST_CONCURRENCY, async (assignment) => ({
         assignment,
-        rows: await fetchBlockscoutSlice(assignment.address, assignment.from, to)
+        rows: process.env.BLOCKSCOUT_API_KEY?.trim()
+          ? await fetchBlockscoutSlice(assignment.address, assignment.from, to)
+          : await fetchBlockscoutHistory(assignment.address, assignment.from, to, requestBlockscoutJson)
       }));
   for (const { assignment, rows } of results) {
     const target = assignment.address.toLowerCase();

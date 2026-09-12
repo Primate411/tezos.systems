@@ -1598,9 +1598,20 @@ smart-contract and asset catalogs, resolves and freezes the reviewed contract
 universe, reconstructs every completed UTC week from the earliest declared app
 start, and writes a separate explicitly partial current-week pulse. Full
 Etherlink backfills use Blockscout's complete per-address transaction CSV
-export once per reviewed contract; routine incremental refreshes use bounded
-JSON ranges split into at most seven-day requests before fetch, with explicit
-rate-limit pacing. A normal
+export once per reviewed contract. Routine incremental refreshes need no API
+key: they use the public `/api/v2/addresses/{address}/transactions?filter=to`
+endpoint, follow explicit page cursors newest-first to the fixed warm-up
+boundary, and reject incomplete pages, repeated cursors, invalid receipts, and
+changed ordering. Shared pacing stays below the public request limit.
+An optional `BLOCKSCOUT_API_KEY` Actions secret selects authenticated bounded
+JSON ranges of at most seven days through `https://api.blockscout.com/42793/api`.
+That optional credential must be a PRO key from the Blockscout developer portal;
+keys stay out of published artifacts and logs. The client respects `Retry-After`
+and Blockscout's
+millisecond `X-RateLimit-Reset`, including shared cooldowns across workers.
+A reset longer than five minutes stops the lane with an actionable quota error
+and preserves its last-good artifacts instead of repeatedly hitting the limit.
+Full CSV backfills retain their separate export transport and limits. A normal
 refresh re-fetches a warm-up cohort plus the latest three completed weeks so
 returning-wallet rates remain reproducible; newly resolved contracts are
 append-only and move that rebuild boundary back to their first eligible week.

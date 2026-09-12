@@ -764,9 +764,15 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   contracts, resolves and freezes the reviewed contract universe, reconstructs
   complete weekly Tezos/Etherlink active-wallet and interaction history, and
   uses one complete Blockscout transaction CSV export per reviewed Etherlink
-  contract for full backfills. Incremental runs use paced bounded JSON ranges
-  and rebuild a warm-up week plus the latest three completed weeks. Newly
-  discovered alias contracts remain append-only and move the rebuild boundary
+  contract for full backfills. Incremental runs default to the keyless public
+  REST transaction API, follow explicit cursors to the fixed lower boundary,
+  and rebuild a warm-up week plus the latest three completed weeks.
+  `scripts/lib/blockscout-history.mjs` rejects incomplete pages, cursor loops,
+  malformed receipts, and changed ordering. The optional `BLOCKSCOUT_API_KEY`
+  Actions secret selects bounded JSON ranges via the PRO Etherlink proxy;
+  it is not required for scheduled refreshes. Shared pacing and reset-aware
+  cooldowns live in `scripts/lib/blockscout-client.mjs`. Failed scans retain
+  last-good artifacts. Newly discovered alias contracts remain append-only and move the rebuild boundary
   to their first eligible week. `npm run check:ecosystem`
   validates the manifest, content, and exact contract-universe receipts without
   network access; scheduled/full generated runs refresh it before launcher
