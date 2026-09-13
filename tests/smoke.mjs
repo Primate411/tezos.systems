@@ -38,7 +38,7 @@ import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
-import { encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
+import { decodeGeneratedTransport, encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -21444,7 +21444,8 @@ async function smokeMaxisChamber(browser, baseUrl) {
     const source = new URL(route.request().url());
     source.pathname = source.pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, '');
     const response = await route.fetch({ url: source.href });
-    const shard = await response.json();
+    const { value: shard } = await decodeGeneratedTransport(await response.text(), source.pathname,
+      value => createHash('sha256').update(value).digest('hex'));
     shard.smokeAlteredReceipt = true;
     // Keep the transport internally valid so the independent season receipt,
     // not just the outer decoder, must reject the altered original bytes.

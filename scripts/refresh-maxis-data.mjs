@@ -31,11 +31,12 @@ import {
 import { getMaxisSource } from './lib/maxis-source.mjs';
 import { MAXIS_SOURCE_CONFIG } from './lib/maxis-source-v2.mjs';
 import {
-  artifactBudgetErrors,
-  compactJsonBytes,
-  measureSeasonArtifactBudget,
   prettyJsonBytes
 } from './lib/maxis-artifact-budget.mjs';
+import {
+  artifactBudgetErrors, measureSeasonArtifactBudget, MAXIS_PASSPORT_STORAGE,
+  storedPassportText, readStoredPassport
+} from './lib/maxis-storage.mjs';
 import { fetchKeysetPages, fetchOffsetPages } from './lib/maxis-pagination.mjs';
 import {
   TRANSACTION_REPLAY_LEVELS,
@@ -807,6 +808,14 @@ async function evaluatorImplementationHash(version = CURRENT_MAXIS_EVALUATOR_VER
   const immutableFiles = source.IMMUTABLE_IMPLEMENTATION_FILES;
   if (!Array.isArray(immutableFiles) || !immutableFiles.length) throw new Error(`No immutable file closure for ${version}`);
   const files = immutableFiles.map((relative) => path.join(ROOT, relative));
+  // These three pre-migration storage adapters remain part of the historical
+  // v2 implementation receipt. The replacement storage contract is versioned
+  // independently; scoring, source IO, rules, and all other adapters stay frozen.
+  const legacyText = await fs.readFile(path.join(ROOT, 'scripts/lib/maxis-storage-legacy-v2.json'), 'utf8');
+  if (textHash(legacyText) !== 'c7057c2dacead6b6425963f371b8cb121ed73de8e6970ca4cc75914dfde67261') {
+    throw new Error('The archived v2 storage adapters were modified');
+  }
+  const legacyStorage = JSON.parse(legacyText);
   const semanticFunctions = [
     chunks,
     stableValue,
@@ -858,7 +867,7 @@ async function evaluatorImplementationHash(version = CURRENT_MAXIS_EVALUATOR_VER
     finalizeSeasonSummaryPayload,
     buildExactTransitionFinalization,
     buildFinalizedConcurrentManifest
-  ].map((fn) => fn.toString());
+  ].map((fn) => legacyStorage[fn.name] || fn.toString());
   const constants = stableValue({
     TZKT,
     OBJKT,
@@ -1225,7 +1234,7 @@ function prepareSeasonArtifacts({ fullSnapshot, season, rules, buildOptions, sum
 
 async function writePassportShards(paths, payloads) {
   for (const [shard, payload] of payloads) {
-    const bytes = compactJsonBytes(payload);
+    const bytes = Buffer.byteLength(storedPassportText(payload));
     if (bytes > MAX_PASSPORT_SHARD_BYTES) {
       throw new Error(`Refusing Passport shard ${shard}: ${bytes} bytes exceeds ${MAX_PASSPORT_SHARD_BYTES}`);
     }
@@ -1240,7 +1249,7 @@ async function writePassportShards(paths, payloads) {
   }
   for (const [shard, payload] of payloads) {
     const file = path.join(paths.passportDirectory, `${shard}.json`);
-    const next = passportShardText(payload);
+    const next = storedPassportText(payload);
     let current = null;
     try { current = await fs.readFile(file, 'utf8'); } catch (error) { if (error?.code !== 'ENOENT') throw error; }
     if (current !== next) await writeTextAtomic(file, next);
@@ -1250,7 +1259,8 @@ async function writePassportShards(paths, payloads) {
 async function readPassportShards(paths, availableShards = null, {
   expectedHashes = null,
   expectedSeasonId = null,
-  payloadCollector = null
+  payloadCollector = null,
+  expectedStorage = null
 } = {}) {
   let shards = availableShards;
   if (!Array.isArray(shards)) {
@@ -1266,17 +1276,25 @@ async function readPassportShards(paths, availableShards = null, {
   const byAddress = {};
   for (const shard of shards) {
     const raw = await fs.readFile(path.join(paths.passportDirectory, `${shard}.json`), 'utf8');
-    if (expectedHashes?.[shard] && textHash(raw) !== expectedHashes[shard]) {
+    const stored = JSON.parse(raw);
+    if (expectedStorage && stored.transport !== expectedStorage) {
+      throw new Error(`Passport shard ${shard} does not match its declared storage format`);
+    }
+    const { value: payload, text: sourceText } = await readStoredPassport(raw,
+      path.relative(ROOT, path.join(paths.passportDirectory, `${shard}.json`)));
+    if (stored.transport && raw !== storedPassportText(payload)) {
+      throw new Error(`Passport shard ${shard} storage is not canonical`);
+    }
+    if (expectedHashes?.[shard] && textHash(sourceText) !== expectedHashes[shard]) {
       throw new Error(`Passport shard ${shard} content hash is invalid`);
     }
-    const payload = JSON.parse(raw);
     if (Number(payload.schema) !== 2 || payload.shard !== shard || payload.shardAlgorithm !== PASSPORT_SHARD_ALGORITHM) {
       throw new Error(`Passport shard ${shard} has incompatible metadata`);
     }
     if (expectedSeasonId && payload.seasonId !== expectedSeasonId) {
       throw new Error(`Passport shard ${shard} seasonId does not match its summary`);
     }
-    if (payloadCollector) payloadCollector.set(shard, payload);
+    if (payloadCollector) payloadCollector.set(shard, stored);
     for (const [address, passport] of Object.entries(payload.passports || {})) {
       if (addressShard(address) !== shard || passport?.address !== address) {
         throw new Error(`Passport ${address} is in the wrong shard or has a mismatched identity`);
@@ -1406,6 +1424,7 @@ function buildSeasonSummary(fullSnapshot, shardPayloads) {
     honors: fullSnapshot.honors,
     history: fullSnapshot.history,
     passports: {
+      storage: MAXIS_PASSPORT_STORAGE,
       indexedAddresses: fullSnapshot.passportIndex.indexedAddresses,
       shardCount: PASSPORT_SHARD_COUNT,
       nonemptyShards: [...shardPayloads.keys()],
@@ -1958,6 +1977,7 @@ async function validateCommittedSeasonArtifacts() {
     const passports = await readPassportShards(paths, entry.availableShards, {
       expectedHashes: summary.passports.shardHashes,
       expectedSeasonId: entry.id,
+      expectedStorage: summary.passports?.storage,
       payloadCollector: committedShardPayloads
     });
     assertSeasonArtifactBudget({ rules, summary, transactionState, shardPayloads: committedShardPayloads });
@@ -2043,7 +2063,33 @@ async function buildFullSeasonSnapshot(options) {
   return source.buildFullSeasonSnapshot(options, SEASON_SOURCE_IO);
 }
 
+async function migrateSeasonStorage() {
+  await validateCommittedSeasonArtifacts();
+  const manifest = await readJson(SEASON_MANIFEST_FILE);
+  for (const entry of manifest.seasons.filter(item => ['active', 'settling'].includes(item.status))) {
+    const paths = seasonPaths(entry.id);
+    const summary = await readJson(paths.summaryFile);
+    if (summary.passports?.storage === MAXIS_PASSPORT_STORAGE) continue;
+    const rules = await readJson(paths.rulesFile);
+    const transactionState = await readJson(paths.transactionStateFile);
+    const byAddress = await readPassportShards(paths, entry.availableShards, {
+      expectedHashes: summary.passports.shardHashes, expectedSeasonId: entry.id
+    });
+    const shardPayloads = buildPassportShardPayloads({ byAddress }, { id: entry.id });
+    const next = sealSeasonArtifactBudget({ rules, transactionState, shardPayloads,
+      summary: { ...summary, passports: { ...summary.passports, storage: MAXIS_PASSPORT_STORAGE } }
+    });
+    assertSeasonArtifactBudget({ rules, summary: next, transactionState, shardPayloads });
+    // No evaluation, new source clock, rule rewrite, or finalized archive edit.
+    await writePassportShards(paths, shardPayloads);
+    await writeJsonAtomic(paths.summaryFile, next);
+    console.log(`Migrated ${entry.id}: ${summary.artifactBudget.totalBytes} -> ${next.artifactBudget.totalBytes} bytes; ${Object.keys(byAddress).length} Passports preserved`);
+  }
+  await validateCommittedSeasonArtifacts();
+}
+
 async function main() {
+  if (process.argv.includes('--migrate-storage')) return migrateSeasonStorage();
   const checkOnly = process.argv.includes('--check');
   const finalizeTransitionOnly = process.argv.includes('--finalize-transition-only');
   const config = await readJson(CONFIG_FILE);

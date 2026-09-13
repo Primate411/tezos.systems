@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-13',
         entries: [
+            { type: '🔧', text: 'Season Passport storage now uses lossless compression so refreshes fit their data limits while preserving every wallet, score, personal best, and earned badge' },
             { type: '🎨', text: 'My Tezos has a clearer Chamber layout, compact wallet navigation, grouped Baker Signal readings, and more space for history and artwork' },
             { type: '🔧', text: 'My Tezos keeps the last complete balance read clearly dated when updates fail, and unavailable collections no longer look like empty holdings' }
         ]

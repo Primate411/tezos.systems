@@ -14,7 +14,8 @@ const read = relative => fs.readFile(path.join(ROOT, relative), 'utf8');
 const sources = await transportSources();
 let originalBytes = 0, transportBytes = 0, originalGzip = 0, transportGzip = 0;
 for (const source of sources) {
-    const original = await read(source);
+    const stored = await read(source);
+    const original = (await decodeGeneratedTransport(stored, source, digest)).text;
     const compact = await read(generatedTransportPath(source).slice(1));
     assert.equal(compact, `${JSON.stringify(await encodeGeneratedTransport(original, source, digest))}\n`, `${source}: deterministic transport`);
     const decoded = await decodeGeneratedTransport(compact, source, digest);

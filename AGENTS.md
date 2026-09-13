@@ -798,7 +798,13 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   `scripts/lib/maxis-source-v2.mjs`: immutable v2 scoring plus source/build
   semantics. `scripts/lib/maxis-transactions-v2.mjs` owns the resumable exact
   transaction state, and `scripts/lib/maxis-artifact-budget.mjs` measures the
-  committed UTF-8 envelope (pretty core artifacts, compact Passport shards).
+  legacy committed UTF-8 envelope. `scripts/lib/maxis-storage.mjs` adds the
+  approved lossless `chamber-json-shapes-v1` Passport storage migration and a
+  separate physical-byte budget receipt. Its three archived pre-migration storage
+  adapters in `maxis-storage-legacy-v2.json` preserve the historical evaluator
+  hash; do not add scoring or source functions to this exception. Rules and
+  finalized archives remain byte-for-byte unchanged. Both legacy schema-2 JSON
+  and compressed storage decode to the same source bytes and SHA-256 receipts.
   Future evaluators must register as new
   versioned modules; changing a v2 semantic dependency invalidates
   active/settling v2 rules and is not a routine refactor. Active artifacts are

@@ -425,7 +425,7 @@
       "get": {
         "operationId": "getMaxisPassportShard",
         "summary": "Get a sharded protocol-season Passport ledger",
-        "description": "Address-indexed season progress and badge receipts for one hexadecimal shard.",
+        "description": "Address-indexed season progress and badge receipts for one hexadecimal shard. Active and settling shards may use the lossless chamber-json-shapes-v1 envelope; decode it with js/core/generated-transport.mjs. Season SHA-256 receipts identify the decoded schema-2 JSON, while the storage budget measures the compressed file. Legacy plain JSON remains supported.",
         "x-refresh-cadence": "Active and settling seasons refresh on the generated schedule; finalized seasons are immutable",
         "x-license-boundary": "Underlying chain and API facts retain their source terms; original selection and arrangement are CC BY 4.0 where owned.",
         "responses": {

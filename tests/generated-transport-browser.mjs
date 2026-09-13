@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
 import { chromium } from 'playwright';
-import { generatedTransportPath } from '../js/core/generated-transport.mjs';
+import { decodeGeneratedTransport, generatedTransportPath } from '../js/core/generated-transport.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const baseIndex = process.argv.indexOf('--base-url');
@@ -68,12 +69,13 @@ try {
     const shardFiles = await Promise.all((await fs.readdir(path.join(ROOT, directory))).filter(name => /^[0-9a-f]{2}\.json$/.test(name))
         .map(async name => ({ name, bytes: (await fs.stat(path.join(ROOT, directory, name))).size })));
     const largest = shardFiles.sort((a, b) => b.bytes - a.bytes)[0].name;
-    const shard = JSON.parse(await fs.readFile(path.join(ROOT, directory, largest), 'utf8'));
+    const shard = (await decodeGeneratedTransport(await fs.readFile(path.join(ROOT, directory, largest), 'utf8'), `${directory}/${largest}`, text => createHash('sha256').update(text).digest('hex'))).value;
     const address = Object.keys(shard.passports)[0];
-    for (const width of [1440, 390]) {
+    for (const width of [1440, 390]) for (const sourceMode of ['transport', 'canonical-fallback']) {
         const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
         try {
             await context.route('**/*', route => new URL(route.request().url()).origin === new URL(baseUrl).origin ? route.continue() : route.abort());
+            if (sourceMode === 'canonical-fallback') await context.route('**/data/transports/v1/data/maxis/**', route => route.fulfill({ status: 404, body: '' }));
             await context.addInitScript(() => {
                 localStorage.setItem('tezos-systems-theme', 'matrix');
                 localStorage.setItem('tezos-toured', '1'); localStorage.setItem('tezos-welcomed', '1');
@@ -85,9 +87,10 @@ try {
             await page.locator('.maxis-passport-identity').waitFor({ timeout: 20000 });
             assert((await page.locator('.maxis-passport-identity').textContent()).includes(address));
             assert(requests.includes(generatedTransportPath(`${directory}/${largest}`)), 'largest real Passport shard uses its versioned transport');
-            assert(requests.every(request => request.startsWith('/data/transports/v1/')), 'Passport does not download both representations');
+            if (sourceMode === 'transport') assert(requests.every(request => request.startsWith('/data/transports/v1/')), 'Passport does not download both representations');
+            else assert(requests.includes(`/${directory}/${largest}`), 'canonical compressed shard loads when the mirror is unavailable');
             assert.deepEqual(errors, []);
-            if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `maxis-transport-${width}.png`) });
+            if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `maxis-${sourceMode}-${width}.png`) });
         } finally { await context.close(); }
     }
 } finally { await browser.close(); }

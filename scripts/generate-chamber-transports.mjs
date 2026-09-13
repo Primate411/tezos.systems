@@ -32,9 +32,10 @@ export async function generateChamberTransports({ root = ROOT, only = '', check 
     const sources = await transportSources(root, only);
     for (const source of sources) {
         const original = await fs.readFile(path.join(root, source), 'utf8');
-        const expected = `${JSON.stringify(await encodeGeneratedTransport(original, source, digest))}\n`;
+        const sourceDecoded = await decodeGeneratedTransport(original, source, digest);
+        const expected = `${JSON.stringify(await encodeGeneratedTransport(sourceDecoded.text, source, digest))}\n`;
         const decoded = await decodeGeneratedTransport(expected, source, digest);
-        if (decoded.text !== original) throw new Error(`Transport changed source bytes: ${source}`);
+        if (decoded.text !== sourceDecoded.text) throw new Error(`Transport changed source bytes: ${source}`);
         const target = path.join(root, generatedTransportPath(source).slice(1));
         const current = await fs.readFile(target, 'utf8').catch(error => { if (error.code === 'ENOENT') return null; throw error; });
         if (current !== expected) {

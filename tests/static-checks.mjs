@@ -68,7 +68,8 @@ import {
 import {
   artifactBudgetErrors,
   measureSeasonArtifactBudget
-} from '../scripts/lib/maxis-artifact-budget.mjs';
+} from '../scripts/lib/maxis-storage.mjs';
+import { readStoredPassport } from '../scripts/lib/maxis-storage.mjs';
 import { validateTransactionAccumulator } from '../scripts/lib/maxis-transactions-v2.mjs';
 import {
   buildGovernanceCareerArtifact,
@@ -9113,16 +9114,17 @@ async function checkMaxisContracts() {
     const shardPath = localArtifactPath(activeEntry.passportPathTemplate?.replace('{shard}', shard));
     const rawShard = await readText(shardPath);
     const expectedShardHash = seasonSummary?.passports?.shardHashes?.[shard];
-    const actualShardHash = createHash('sha256').update(rawShard).digest('hex');
+    const { value: payload, text: sourceShard } = await readStoredPassport(rawShard, shardPath);
+    const actualShardHash = createHash('sha256').update(sourceShard).digest('hex');
     if (!/^[0-9a-f]{64}$/.test(expectedShardHash || '') || actualShardHash !== expectedShardHash) {
       fail(`maxis Passport shard ${shard} does not match its SHA-256 receipt`);
     }
     verifiedShardHashes[shard] = actualShardHash;
-    const payload = JSON.parse(rawShard);
-    if (seasonSummary?.passports?.algorithm === 'sha256-compact-json-v1' && rawShard !== `${JSON.stringify(payload)}\n`) {
+    const storedPayload = JSON.parse(rawShard);
+    if (seasonSummary?.passports?.algorithm === 'sha256-compact-json-v1' && rawShard !== `${JSON.stringify(storedPayload)}\n`) {
       fail(`maxis Passport shard ${shard} is not canonical compact JSON`);
     }
-    passportShardPayloads.set(shard, payload);
+    passportShardPayloads.set(shard, storedPayload);
     const expectedShardSchema = seasonSummary?.artifactBudget ? 2 : Number(payload.schema);
     if (![1, 2].includes(Number(payload.schema)) || expectedShardSchema !== Number(payload.schema) || payload.seasonId !== activeEntry.id || payload.shard !== shard || payload.shardAlgorithm !== PASSPORT_SHARD_ALGORITHM) {
       fail(`maxis Passport shard ${shard} metadata is incompatible`);

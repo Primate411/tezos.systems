@@ -1553,7 +1553,17 @@ Snapshot time lives in the summary rather than every Passport file, so an
 unchanged shard preserves its exact bytes and SHA-256 receipt across refreshes.
 Each active season also carries a recomputable UTF-8 serialization budget
 receipt. Auditable rules, summary, and state stay pretty-printed while high-volume
-Passport shards use stable compact JSON with raw SHA-256 receipts. The
+Passport shards use the lossless `chamber-json-shapes-v1` storage envelope.
+The existing SHA-256 receipts still identify the exact decoded schema-2 JSON;
+wallets, ordering, scores, personal bests, and earned badges are unchanged.
+The versioned `utf8-pretty-core-shaped-shards-v2` budget measures committed
+compressed shard bytes. Legacy seasons retain their original measurement and
+remain readable. The approved storage migration archives only the three original
+v2 storage adapters for historical evaluator-hash verification; all scoring,
+source IO, frozen rules, and finalized archives remain unchanged. Run
+`node scripts/refresh-maxis-data.mjs --migrate-storage` for an idempotent,
+network-free migration of active/settling seasons only. Mirrored download
+transports reuse the same envelope and never wrap it a second time. The
 transaction state may not exceed 16 MiB, any Passport shard may not exceed 1
 MiB, and rules + summary + state + shards may not exceed 64 MiB. If the
 complete Transaction Passport tree would cross those limits, that lane is

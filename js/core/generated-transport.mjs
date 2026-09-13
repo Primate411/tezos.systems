@@ -25,6 +25,11 @@ export function generatedTransportPath(path) {
 }
 
 export async function encodeGeneratedTransport(text, path, sha256Text) {
+    return packGeneratedTransport(text, path, await sha256Text(text));
+}
+
+// The generator also needs synchronous, exact storage-byte measurements.
+export function packGeneratedTransport(text, path, sourceHash) {
     assert(typeof text === 'string' && bytes(text) <= MAX_GENERATED_SOURCE_BYTES, 'source exceeds byte budget');
     const value = JSON.parse(text);
     const indent = [0, 2].find(space => `${JSON.stringify(value, null, space)}\n` === text);
@@ -48,7 +53,7 @@ export async function encodeGeneratedTransport(text, path, sha256Text) {
     const data = encode(value);
     return {
         transport: GENERATED_TRANSPORT_VERSION,
-        source: { path: sourcePath(path), bytes: bytes(text), sha256: await sha256Text(text), indent },
+        source: { path: sourcePath(path), bytes: bytes(text), sha256: sourceHash, indent },
         shapes,
         data
     };

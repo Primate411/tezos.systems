@@ -1,5 +1,6 @@
 /** The static gate used by local npm commands and every hosted workflow. */
 export const STATIC_CHECKS = Object.freeze([
+  { "script": "tests/maxis-storage-check.mjs", "args": [] },
   { "script": "tests/css-build-check.mjs", "args": [] },
   { "script": "tests/optional-tools-lazy-check.mjs", "args": [] },
   {
