@@ -1241,7 +1241,7 @@ inline modal styles in `js/core/app.js`.
   360px wide; source links retain 44px touch targets. The `my-tezos-layout`
   browser suite covers 320px, 390px, desktop, and landscape geometry plus
   keyboard navigation and tab-scroll preservation. Direct-route checks also
-  enforce 44px touch targets and unclipped labels on compact Portfolio buttons.
+  enforce 44px touch targets and intact, unclipped words on compact Portfolio buttons.
   Its empty state separates two
   read-only setup paths: Octez.Connect opens the compatible Temple/Kukai wallet
   chooser and requests the selected public account, while watch-only setup

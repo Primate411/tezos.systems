@@ -27140,7 +27140,8 @@ body[data-theme="hen"]::after {
     #my-tezos-drawer .portfolio-summary-card { padding-right: 8px; }
     #my-tezos-drawer .portfolio-summary-card strong { font-size: 0.87rem; }
     #my-tezos-drawer :is(.portfolio-refresh, .my-tezos-action) { padding: 8px 12px; font-size: 0.69rem; }
-    #my-tezos-drawer .portfolio-heading-row > .portfolio-refresh { max-width: 100px; white-space: normal; align-self: flex-start; }
+    #my-tezos-drawer .portfolio-heading-row > .portfolio-refresh { max-width: 120px; white-space: normal; align-self: flex-start; }
+    #my-tezos-drawer .portfolio-refresh [data-portfolio-refresh-label] { overflow-wrap: normal; word-break: normal; }
     #my-tezos-drawer .portfolio-refresh-icon { border: 0; background: transparent; width: 14px; }
     #my-tezos-drawer .collection-profile-details { padding: 0 12px; }
     #my-tezos-drawer .drawer-operator-tile { min-height: 108px; }
@@ -27153,6 +27154,9 @@ body[data-theme="hen"]::after {
     #my-tezos-drawer .my-tezos-wallet-scope-bar { padding-block: 0; }
 }
 @media (max-width: 359px) {
+    #my-tezos-drawer .portfolio-heading-row { flex-direction: column; }
+    #my-tezos-drawer .portfolio-heading-row > .portfolio-refresh { max-width: none; white-space: nowrap; align-self: stretch; }
+    #my-tezos-drawer .portfolio-summary-card { padding-left: 0; border-left: 0; }
     #my-tezos-drawer .my-tezos-scope-totals { grid-template-columns: minmax(0, 1fr); }
     #my-tezos-drawer .my-tezos-scope-totals article:not([data-my-tezos-scope-total="total"]):not([data-my-tezos-scope-total="wallets"]) {
         flex-direction: row;

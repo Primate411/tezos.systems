@@ -16703,6 +16703,7 @@ async function smokeMyTezosPrettyRoute(browser, baseUrl) {
     { label: 'portfolio tablet', viewport: { width: 760, height: 900 }, path: '/my/?view=portfolio', expectedView: 'portfolio' },
     { label: 'portfolio compact drawer', viewport: { width: 700, height: 900 }, path: '/my/?view=portfolio', expectedView: 'portfolio' },
     { label: 'portfolio mobile', viewport: { width: 390, height: 844 }, path: '/my/?view=portfolio', expectedView: 'portfolio' },
+    { label: 'portfolio narrow phone', viewport: { width: 320, height: 740 }, path: '/my/?view=portfolio', expectedView: 'portfolio' },
     { label: 'transactions mobile', viewport: { width: 390, height: 844 }, path: '/my/?view=transactions', expectedView: 'transactions' },
     { label: 'collection mobile', viewport: { width: 390, height: 844 }, path: '/my/?view=collection', expectedView: 'collection' },
     { label: 'story mobile', viewport: { width: 390, height: 844 }, path: '/my/?view=story', expectedView: 'story' },
@@ -16738,6 +16739,13 @@ async function smokeMyTezosPrettyRoute(browser, baseUrl) {
       const refreshRect = refreshButton?.getBoundingClientRect();
       const refreshLabel = refreshButton?.querySelector('[data-portfolio-refresh-label]');
       const refreshLabelRect = refreshLabel?.getBoundingClientRect();
+      const refreshWordLines = refreshLabel?.firstChild?.nodeType === Node.TEXT_NODE
+        ? Array.from(refreshLabel.textContent.matchAll(/\S+/g), match => {
+          const range = document.createRange();
+          range.setStart(refreshLabel.firstChild, match.index);
+          range.setEnd(refreshLabel.firstChild, match.index + match[0].length);
+          return { word: match[0], lines: new Set(Array.from(range.getClientRects(), rect => Math.round(rect.top))).size };
+        }) : [];
       const activePanelElement = document.querySelector('[data-my-tezos-panel]:not([hidden])');
       const scopeSelectCandidate = document.querySelector('#my-tezos-wallet-scope');
       const scopeSelect = scopeSelectCandidate?.getClientRects().length ? scopeSelectCandidate : null;
@@ -16762,9 +16770,10 @@ async function smokeMyTezosPrettyRoute(browser, baseUrl) {
           && refreshButton.scrollWidth <= refreshButton.clientWidth + 1
           && refreshLabel.scrollWidth <= refreshLabel.clientWidth + 1
           && refreshLabel.scrollHeight <= refreshLabel.clientHeight + 1
+          && refreshWordLines.length > 0 && refreshWordLines.every(word => word.lines === 1)
           && refreshLabelRect.left >= refreshRect.left && refreshLabelRect.right <= refreshRect.right
           && refreshLabelRect.top >= refreshRect.top && refreshLabelRect.bottom <= refreshRect.bottom),
-        refreshGeometry: { width: refreshRect?.width, height: refreshRect?.height, labelWidth: refreshLabelRect?.width, labelHeight: refreshLabelRect?.height },
+        refreshGeometry: { width: refreshRect?.width, height: refreshRect?.height, labelWidth: refreshLabelRect?.width, labelHeight: refreshLabelRect?.height, words: refreshWordLines },
         localNoticeFits: Boolean(localNotice && localNotice.scrollWidth <= localNotice.clientWidth + 1),
         scopeSelect: scopeSelect ? {
           height: Math.round(scopeSelectRect?.height || 0),
@@ -16785,7 +16794,8 @@ async function smokeMyTezosPrettyRoute(browser, baseUrl) {
     assert(state.title.startsWith('My Tezos'), `my tezos pretty route ${label} title mismatch: ${state.title}`);
     if (expectedView === 'portfolio') {
       assert(state.search === '?view=portfolio' && state.portfolioSelected === 'true', `my tezos pretty route ${label} did not select Portfolio: ${JSON.stringify(state)}`);
-      assert(state.drawerWidth >= viewport.width - 1 && state.summaryRows === 2, `my tezos pretty route ${label} did not use full-width 2x2 Portfolio geometry: ${JSON.stringify(state)}`);
+      const expectedSummaryRows = viewport.width < 360 ? 4 : 2;
+      assert(state.drawerWidth >= viewport.width - 1 && state.summaryRows === expectedSummaryRows, `my tezos pretty route ${label} did not use full-width responsive Portfolio geometry: ${JSON.stringify(state)}`);
       assert(state.summaryInsideDrawer && state.refreshReadable && state.localNoticeFits, `my tezos pretty route ${label} clipped Portfolio cards, local notice, or action labels: ${JSON.stringify(state)}`);
       if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `my-tezos-route-${label.replaceAll(' ', '-')}.png`) });
       assert(!/tz[1-4]|KT1/.test(state.search), `my tezos pretty route ${label} leaked an address into the route: ${state.search}`);
