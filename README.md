@@ -1224,12 +1224,20 @@ inline modal styles in `js/core/app.js`.
   Explore's collapsed Recovery tools group, linking to
   `https://tzsafe.tez.page/` for the community fork and legacy KT1 multisig
   migration path while new multisig setups move toward protocol-native accounts.
+- My Tezos uses a compact shared wallet selector with a **Manage addresses**
+  shortcut. Overview owns the balance summary and an **Active wallet & connection**
+  disclosure; balances do not occupy the fixed header of every tab. Baker Signal
+  groups recent consensus separately from upcoming rights and software. Transactions
+  and Collection use compact count rows; Portfolio keeps its calculation notes
+  below the chart. Overview balances and receipts share the quiet visible-view
+  refresh cycle. Failed updates retain dated last-complete balances, and a failed
+  first collection read shows unavailable holdings instead of zero.
 - My Tezos adaptive personal room with Overview, Baker Signal, Portfolio, Transactions,
   Collection, Your Story, and Tezos X tabs. The drawer keeps all seven tabs
   visible on phones, remembers each tab's
   reading position, and keeps scope guidance, portfolio processing notes, and
-  collector profiles behind explicit disclosures. Exact balances remain in the
-  compact shared header. Collection uses two artwork columns on phones at least
+  collector profiles behind explicit disclosures. Exact balances appear in
+  Overview and Portfolio. Collection uses two artwork columns on phones at least
   360px wide; source links retain 44px touch targets. The `my-tezos-layout`
   browser suite covers 320px, 390px, desktop, and landscape geometry plus
   keyboard navigation and tab-scroll preservation. Its empty state separates two
@@ -1243,8 +1251,7 @@ inline modal styles in `js/core/app.js`.
   the unseen receipt lane when new indexed activity exists. Overview shows the three newest applied
   account receipts with a direct handoff to the complete Transactions view, and
   one shared wallet-scope control now governs all seven tabs. It defaults to all
-  included L1 wallets, keeps current total, spendable, and staked XTZ visible
-  above every view, and deliberately narrows Portfolio history, Transactions,
+  included L1 wallets and deliberately narrows Portfolio history, Transactions,
   Collection, and linked Tezos X accounts when one wallet is selected. A direct
   wallet choice also becomes the active account for baker, rewards, identity,
   and Story surfaces. Combined mode labels those account-only facts instead of

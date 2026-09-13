@@ -985,7 +985,7 @@ function renderBakerActivity(activity) {
 function renderOperatorTile(label, value, detail, state = 'unknown', extraClass = '') {
     const safeState = ['ok', 'watch', 'issue', 'unknown'].includes(state) ? state : 'unknown';
     return `
-        <div class="drawer-operator-tile drawer-operator-${safeState} ${extraClass}">
+        <div class="drawer-operator-tile drawer-operator-${safeState} ${extraClass}" data-quiet-key="operator-${escapeHtml(label)}">
             <span class="drawer-operator-label">${escapeHtml(label)}</span>
             <strong class="drawer-operator-value">${escapeHtml(value)}</strong>
             <span class="drawer-operator-detail">${escapeHtml(detail || '')}</span>
@@ -1052,14 +1052,20 @@ function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
         <div class="drawer-operator-panel">
             <div class="drawer-operator-header">
                 <h3>${escapeHtml(signalHeading)}</h3>
-                <p>Fresh round 0 rights, Octez version, and last ${RECENT_OPERATOR_ATTESTATIONS} attestations</p>
+                <p>Live consensus, upcoming rights, and baker software</p>
             </div>
             <div class="drawer-operator-grid">
-                ${next}
-                ${octez}
-                ${live}
-                ${attest}
-                ${dal}
+                <section class="drawer-operator-group" data-quiet-key="operator-recent" aria-label="Recent consensus">
+                    <h4>Recent consensus <span>Last ${RECENT_OPERATOR_ATTESTATIONS} attestations</span></h4>
+                    ${live}
+                    ${attest}
+                    ${dal}
+                </section>
+                <section class="drawer-operator-group" data-quiet-key="operator-next" aria-label="Next right and software">
+                    <h4>Next right &amp; software</h4>
+                    ${next}
+                    ${octez}
+                </section>
             </div>
         </div>
     `;
@@ -2278,6 +2284,10 @@ async function refreshActiveMyTezosView() {
             return module.refreshMyTezosTezosX({ background: true });
         }
         case 'overview':
+            return Promise.allSettled([
+                refreshMyTezosPortfolio({ allowHidden: true }),
+                refreshMyTezosMemory()
+            ]);
         case 'transactions':
         case 'story':
         default:
@@ -3192,6 +3202,12 @@ export function initMyTezos() {
     registerMyTezosView('tezos-x', () => import('./my-tezos-tezosx.mjs')
         .then((module) => module.activateMyTezosTezosX()));
     initMyTezosTabs();
+    document.getElementById('my-tezos-manage-addresses')?.addEventListener('click', () => {
+        setMyTezosView('portfolio', { routeMode: 'push' });
+        const heading = document.getElementById('portfolio-wallets-title');
+        heading?.scrollIntoView({ block: 'start', behavior: 'instant' });
+        heading?.focus({ preventScroll: true });
+    });
     window.addEventListener('my-tezos-view-changed', () => renderRewardsChart({ retry: true }));
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') renderRewardsChart();

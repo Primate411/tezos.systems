@@ -867,6 +867,10 @@ async function checkMyTezosPortfolioContracts() {
     'readScopedMyTezosEntries',
     "window.dispatchEvent(new CustomEvent('my-tezos-scope-changed'",
     "window.addEventListener('my-tezos-portfolio-ready'",
+    "window.addEventListener('my-tezos-portfolio-status'",
+    'quietlyMutate(freshness',
+    'Last complete read',
+    'update unavailable',
     "rememberMyTezosAddress(entry.address"
   ]) {
     if (!scope.includes(snippet)) fail(`My Tezos shared wallet scope contract missing: ${snippet}`);
@@ -886,11 +890,16 @@ async function checkMyTezosPortfolioContracts() {
   ]) {
     if (!myTezos.includes(snippet)) fail(`My Tezos all-view live refresh contract missing: ${snippet}`);
   }
+  if (!/case 'overview':\s*return Promise\.allSettled\(\[\s*refreshMyTezosPortfolio\(\{ allowHidden: true \}\),\s*refreshMyTezosMemory\(\)/.test(myTezos)) {
+    fail('My Tezos Overview must quietly refresh both visible balances and recent receipts through the visibility-gated view timer');
+  }
   for (const [source, snippet] of [
     [memory, 'export function refreshMyTezosMemory'],
     [collection, 'export async function refreshMyTezosCollection'],
     [collection, 'if (!background) renderedAssetLimit = MY_TEZOS_COLLECTION_PAGE_SIZE'],
     [collection, 'backgroundHoldings'],
+    [collection, "collectionReadState === 'error'"],
+    [collection, 'Collection unavailable.'],
     [tezosx, 'export async function refreshMyTezosTezosX'],
     [tezosx, 'preserveLoadedActivity'],
     [tezosx, 'if (!background) renderLinkedAccounts()']

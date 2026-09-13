@@ -11406,6 +11406,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
     `my tezos baker activity: full-width account journeys or independent stacks regressed ${JSON.stringify(settledLayout)}`
   );
 
+  await revealMyTezosAccountControls(page);
   await page.locator('#my-baker-input').fill(SAMPLE_IDLE_ADDRESS);
   await page.locator('#my-baker-save').click();
   await page.waitForFunction((address) => {
@@ -13099,6 +13100,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       && document.querySelector('#drawer-operator-status')?.textContent.includes('8/10 recent attestation issues · latest 2 OK'), null, { timeout: 15000 });
 
     await page.locator('#my-tezos-tab-overview').click();
+    await revealMyTezosAccountControls(page);
     await page.locator('#my-baker-input').fill(SAMPLE_IDLE_ADDRESS);
     await page.locator('#my-baker-save').click();
     await page.locator('#my-tezos-tab-baker-signal').click();
@@ -13496,11 +13498,13 @@ async function smokeMyTezosWalletConnect(browser, baseUrl) {
   assert(response?.ok(), `my tezos wallet connect: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').waitFor({ state: 'visible' });
   await page.locator('#my-tezos-btn').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos wallet connect drawer');
   await page.locator('#drawer-wallet-connect-btn').click();
   await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS, { timeout: 10000 });
+  await revealMyTezosAccountControls(page);
   await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 10000 });
 
   const connectedState = await page.evaluate(() => ({
@@ -13533,6 +13537,7 @@ async function smokeMyTezosWalletConnect(browser, baseUrl) {
   `footer delegation: wallet request must contain only the canonical Baking Benjamins delegation ${JSON.stringify(delegationState)}`);
   assert(delegationState.button === 'Submitted' && /Submitted/.test(delegationState.status), `footer delegation: successful wallet state missing ${JSON.stringify(delegationState)}`);
 
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').waitFor({ state: 'visible' });
   await page.locator('#my-tezos-btn').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos wallet reconnect drawer');
@@ -13985,6 +13990,11 @@ async function smokeMyTezosHistoricalRewards(browser, baseUrl) {
   log('ok - my tezos historical rewards smoke');
 }
 
+async function revealMyTezosAccountControls(page) {
+  const details = page.locator('.drawer-account-details');
+  if (!await details.evaluate(el => el.open)) await details.locator('summary').click();
+}
+
 async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -14008,9 +14018,11 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   assert(response?.ok(), `my tezos address switch: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').waitFor({ state: 'visible' });
   await page.locator('#my-tezos-btn').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos address switch drawer');
+  await revealMyTezosAccountControls(page);
   await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 5000 });
   await assert(
     (await page.locator('#my-baker-input').inputValue()) === SAMPLE_ADDRESS,
@@ -14075,9 +14087,9 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
       children: children.map((rect) => ({ top: Math.round(rect.top), width: Math.round(rect.width) }))
     };
   });
-  assert(operatorGeometry.drawerWidth >= 879 && operatorGeometry.drawerWidth <= 961, `my tezos address switch: adaptive desktop width failed ${JSON.stringify(operatorGeometry)}`);
-  assert(operatorGeometry.labels.join('|') === 'Next round 0|Octez|Baker working?|Attestation|DAL', `my tezos address switch: operator tile contract drifted ${JSON.stringify(operatorGeometry)}`);
-  assert(operatorGeometry.children.slice(1).every((rect) => rect.top === operatorGeometry.children[1].top && Math.abs(rect.width - operatorGeometry.children[1].width) <= 1), `my tezos address switch: four operator tiles are not one equal row ${JSON.stringify(operatorGeometry)}`);
+  assert(operatorGeometry.drawerWidth >= 879 && operatorGeometry.drawerWidth <= 1081, `my tezos address switch: adaptive desktop width failed ${JSON.stringify(operatorGeometry)}`);
+  assert(operatorGeometry.labels.join('|') === 'Baker working?|Attestation|DAL|Next round 0|Octez', `my tezos address switch: operator tile contract drifted ${JSON.stringify(operatorGeometry)}`);
+  assert(operatorGeometry.children.length === 2 && operatorGeometry.children[0].top === operatorGeometry.children[1].top, `my tezos address switch: recent consensus and next right/software groups must share one desktop row ${JSON.stringify(operatorGeometry)}`);
 
   await page.locator('#my-tezos-tab-portfolio').click();
   await page.waitForFunction(() => {
@@ -14304,6 +14316,8 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelector('#portfolio-freshness')?.textContent?.includes('showing last complete read'), null, { timeout: 15000 });
   const failureTotal = await page.locator('[data-portfolio-total="total"] strong').innerText();
   assert(failureTotal.includes('600,000.00'), `my tezos address switch: failed portfolio refresh replaced the last complete total ${failureTotal}`);
+  const scopeFailure = await page.locator('#my-tezos-scope-freshness').textContent();
+  assert(scopeFailure.includes('Last complete read') && scopeFailure.includes('update unavailable') && !scopeFailure.includes('Complete current'), 'Overview must disclose the failed update alongside its last complete balance read');
   failPortfolio = false;
 
   await page.locator(`[data-portfolio-activate="${SAMPLE_ADDRESS}"]`).click();
@@ -15144,8 +15158,8 @@ async function smokeMyTezosMemory(browser, baseUrl) {
   assert(
     storyAction.actionCount === 1
       && storyAction.injectedActions === 0
-      && storyAction.width >= 160
-      && storyAction.height >= 38
+      && storyAction.width >= 100
+      && storyAction.height >= 44
       && storyAction.whiteSpace === 'nowrap'
       && storyAction.textOverflow <= 1,
     `my tezos memory: Story changes action is duplicated or collapsed ${JSON.stringify(storyAction)}`
@@ -15379,7 +15393,7 @@ async function smokeMyTezosCollection(browser, baseUrl) {
       && collected.scope.height <= 48
       && collected.scope.width <= collected.scope.headingWidth + 1
       && collected.scope.barOverflow <= 1
-      && new Set(collected.scope.metricTops.filter(top => top > 0)).size === 1
+      && collected.scope.metricTops.every(top => top === 0)
       && collected.scope.overflow <= 1
       && collected.scope.paddingRight >= 36
       && !/mono/i.test(collected.scope.fontFamily),
@@ -15432,7 +15446,49 @@ async function smokeMyTezosCollection(browser, baseUrl) {
 
   await context.close();
   assert(issues.length === 0, `my tezos collection browser issues:\n${issues.join('\n')}`);
-  log('ok - my tezos collection smoke');
+  const failureContext = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+  await installFeatureMocks(failureContext);
+  await failureContext.addInitScript(address => {
+    localStorage.setItem('tezos-systems-theme', 'clean');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+    localStorage.setItem('tezos-systems-saved-addresses', JSON.stringify([{ network: 'tezos-l1', address, included: true, addedAt: Date.now() }]));
+  }, SAMPLE_ADDRESS);
+  let collectionUnavailable = true;
+  await failureContext.route('**/v3/graphql', route => {
+    if (collectionUnavailable && route.request().postData()?.includes('MyTezosCollection')) {
+      return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'Collection temporarily unavailable' }) });
+    }
+    return route.fallback();
+  });
+  const failurePage = await failureContext.newPage();
+  await openMyTezosSmokeView(failurePage, baseUrl, 'collection');
+  await failurePage.waitForFunction(() => document.querySelector('#collection-status')?.dataset.state === 'error');
+  assert((await failurePage.locator('#collection-empty').innerText()).includes('Collection unavailable'), 'A failed first read must be visibly unavailable, not empty');
+  assert((await failurePage.locator('#collection-summary strong').allTextContents()).every(value => value === '—'), 'Failed first reads must not invent zero holdings');
+  await failurePage.locator('[data-collection-mode="created"]').click();
+  assert((await failurePage.locator('#collection-empty').innerText()).includes('Collection unavailable'), 'Changing collection modes must retain the source failure');
+  await failurePage.locator('[data-collection-mode="collected"]').click();
+  collectionUnavailable = false;
+  await failurePage.evaluate(async () => {
+    const module = await import('/js/features/my-tezos-collection.mjs');
+    await module.refreshMyTezosCollection({ force: true, background: true });
+  });
+  await failurePage.waitForFunction(() => document.querySelector('#collection-status')?.dataset.state === 'complete');
+  const lastGood = await failurePage.evaluate(() => {
+    window.__collectionLastGood = document.querySelector('#collection-grid .collection-asset-card');
+    return document.querySelector('[data-collection-total="assets"] strong').textContent;
+  });
+  collectionUnavailable = true;
+  await failurePage.evaluate(async () => {
+    const module = await import('/js/features/my-tezos-collection.mjs');
+    await module.refreshMyTezosCollection({ force: true, background: true });
+  });
+  assert(await failurePage.locator('[data-collection-total="assets"] strong').textContent() === lastGood, 'A later source failure retains the last complete holdings');
+  assert(await failurePage.evaluate(() => window.__collectionLastGood === document.querySelector('#collection-grid .collection-asset-card')), 'Failure keeps the exact artwork node being read');
+  await failureContext.close();
+  log('ok - my tezos collection, honest source failure, recovery, and last-good holdings');
 }
 
 async function smokeMyTezosTezosX(browser, baseUrl) {
@@ -15612,6 +15668,56 @@ async function smokeMyTezosViewLiveRefresh(browser, baseUrl) {
   await page.waitForFunction((before) => (
     Number(document.querySelector('[data-transactions-total="receipts"] strong')?.textContent) > before
   ), overviewReceipts, { timeout: 10000 });
+
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForFunction(() => document.querySelector('#my-tezos-scope-freshness')?.dataset.state === 'complete');
+    const overviewBefore = await page.evaluate(() => {
+      const body = document.querySelector('#drawer-body');
+      const total = document.querySelector('[data-my-tezos-scope-total="total"] strong');
+      const scope = document.querySelector('#my-tezos-wallet-scope');
+      const label = document.querySelector('.my-tezos-balance-hero h3');
+      scope.focus({ preventScroll: true });
+      body.scrollTop = 120;
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      const selection = document.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      window.__liveOverviewTotal = total;
+      window.__liveOverviewScope = scope;
+      window.__liveOverviewLabel = label;
+      return { total: total.textContent, scrollTop: body.scrollTop, pageScroll: window.scrollY, selection: selection.toString(), scope: scope.value };
+    });
+    await page.waitForFunction(before => (
+      document.querySelector('[data-my-tezos-scope-total="total"] strong')?.textContent !== before
+        && document.querySelector('#my-tezos-scope-freshness')?.dataset.state === 'complete'
+    ), overviewBefore.total, { timeout: 10000 });
+    const overviewAfter = await page.evaluate(() => ({
+      sameTotal: document.querySelector('[data-my-tezos-scope-total="total"] strong') === window.__liveOverviewTotal,
+      sameLabel: document.querySelector('.my-tezos-balance-hero h3') === window.__liveOverviewLabel,
+      focused: document.activeElement === window.__liveOverviewScope,
+      selection: document.getSelection().toString(),
+      scrollTop: document.querySelector('#drawer-body').scrollTop,
+      pageScroll: window.scrollY,
+      scope: document.querySelector('#my-tezos-wallet-scope').value,
+      activeView: document.querySelector('[data-my-tezos-view][aria-selected="true"]')?.dataset.myTezosView
+    }));
+    assert(overviewAfter.sameTotal && overviewAfter.sameLabel && overviewAfter.focused
+      && overviewAfter.selection === overviewBefore.selection && overviewAfter.scope === overviewBefore.scope
+      && overviewAfter.scrollTop === overviewBefore.scrollTop && overviewAfter.pageScroll === overviewBefore.pageScroll
+      && overviewAfter.activeView === 'overview', `Overview balance refresh moved the reader or replaced retained content ${JSON.stringify({ overviewBefore, overviewAfter })}`);
+    const overviewReaderScroll = await page.evaluate(async () => {
+      const body = document.querySelector('#drawer-body');
+      body.scrollTop += 40;
+      const intended = body.scrollTop;
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return { intended, actual: body.scrollTop };
+    });
+    assert(overviewReaderScroll.actual === overviewReaderScroll.intended, 'Overview reconciliation must not overwrite a new reader scroll');
+
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.locator('#my-tezos-tab-transactions').click();
   await page.waitForFunction(() => document.querySelector('#portfolio-memory-status')?.dataset.state === 'complete', null, { timeout: 15000 });
@@ -16177,6 +16283,7 @@ async function smokeMyTezosSubdomainInput(browser, baseUrl) {
   await page.locator('#my-tezos-btn').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 5000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos subdomain input drawer');
+  await revealMyTezosAccountControls(page);
   await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#my-baker-input').fill(domain);
   await page.waitForFunction(() => document.querySelector('#my-baker-save')?.textContent?.trim() === 'Save', null, { timeout: 3000 });

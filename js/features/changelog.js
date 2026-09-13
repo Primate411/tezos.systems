@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-13',
+        entries: [
+            { type: '🎨', text: 'My Tezos has a clearer Chamber layout, compact wallet navigation, grouped Baker Signal readings, and more space for history and artwork' },
+            { type: '🔧', text: 'My Tezos keeps the last complete balance read clearly dated when updates fail, and unavailable collections no longer look like empty holdings' }
+        ]
+    },
+    {
         date: '2026-09-12',
         entries: [
             { type: '🔧', text: 'Ecosystem refreshes use Etherlink’s public paginated API without requiring a key, respect rate limits, and preserve the last complete readings if a source fails' }

@@ -41,6 +41,8 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
           const values = [...document.querySelectorAll('.my-tezos-scope-totals strong')].filter(el => el.getBoundingClientRect().width > 0);
           return {
             bodyHeight: body.clientHeight,
+            chromeHeight: window.innerHeight - body.clientHeight,
+            pinnedBalances: Boolean(document.querySelector('#my-tezos-wallet-scope-bar .my-tezos-scope-totals')),
             bodyOverflow: body.scrollWidth - body.clientWidth,
             panelOverflow: panel.scrollWidth - panel.clientWidth,
             tabs,
@@ -49,6 +51,8 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
             panelTop: panel.getBoundingClientRect().top - body.getBoundingClientRect().top
           };
         }, view);
+        assert(!geometry.pinnedBalances, 'Balances belong to Overview, leaving other tabs room to read');
+        assert(geometry.chromeHeight <= (width <= 480 ? 210 : 190), `${width}: shared header must stay compact`);
         assert(geometry.bodyHeight >= height * (height < 500 ? 0.47 : 0.6), `${width} ${view}: fixed chrome crowds out reading space ${JSON.stringify(geometry)}`);
         assert(geometry.bodyOverflow <= 1 && geometry.panelOverflow <= 1, `${width} ${view}: horizontal overflow ${JSON.stringify(geometry)}`);
         assert.deepEqual(geometry.clippedTotals, [], `${width}: exact wallet totals must fit`);
@@ -94,11 +98,15 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
       });
       assert(collectionScroll > 500);
       await page.locator('#my-tezos-tab-transactions').click();
-      await page.evaluate(() => { document.getElementById('drawer-body').scrollTop = 160; });
+      const transactionScroll = await page.evaluate(() => {
+        const body = document.getElementById('drawer-body');
+        body.scrollTop = 160;
+        return body.scrollTop;
+      });
       await page.locator('#my-tezos-tab-collection').click();
       assert.equal(await page.locator('#drawer-body').evaluate(el => el.scrollTop), collectionScroll);
       await page.locator('#my-tezos-tab-transactions').click();
-      assert.equal(await page.locator('#drawer-body').evaluate(el => el.scrollTop), 160);
+      assert.equal(await page.locator('#drawer-body').evaluate(el => el.scrollTop), transactionScroll);
       // Two animation frames are enough to catch a deferred tab restore stomping on a new scroll.
       const immediateScroll = await page.evaluate(async () => {
         document.getElementById('my-tezos-tab-collection').click();
@@ -123,6 +131,14 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
       await page.locator('.my-tezos-reading > summary').click();
       assert.equal(await page.locator('.my-tezos-reading').evaluate(el => el.open), true);
       await page.locator('#my-tezos-reading-verdict').waitFor({ state: 'visible' });
+      await page.locator('#my-tezos-tab-overview').click();
+      assert.equal(await page.locator('.drawer-account-details').evaluate(el => el.open), false, 'Account controls start collapsed');
+      await page.locator('.drawer-account-details > summary').click();
+      await page.locator('#my-baker-input').waitFor({ state: 'visible' });
+      await page.locator('#my-tezos-manage-addresses').click();
+      assert.equal(await page.locator('#my-tezos-tab-portfolio').getAttribute('aria-selected'), 'true');
+      assert.equal(await page.evaluate(() => document.activeElement?.id), 'portfolio-wallets-title');
+      await page.locator('#portfolio-add-address').waitFor({ state: 'visible' });
       assert.deepEqual(errors, [], `${width}: no uncaught browser errors`);
     } finally {
       await context.close();

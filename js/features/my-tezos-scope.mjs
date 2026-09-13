@@ -5,7 +5,7 @@
  * user choice and then becomes the active account for account-only surfaces.
  */
 
-import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { quietlyMutate, quietlySyncHtml } from '../core/quiet-refresh.js';
 import { escapeHtml } from '../core/utils.js';
 import {
     MY_TEZOS_ADDRESS_KEY,
@@ -19,6 +19,7 @@ const SCOPE_SESSION_KEY = 'tezos-systems-my-tezos-wallet-scope-v1';
 
 let initialized = false;
 let latestPortfolioDetail = null;
+let portfolioReadState = 'loading';
 
 function includedEntries(entries = readSavedMyTezosEntries()) {
     return entries.filter((entry) => entry.included !== false);
@@ -68,12 +69,9 @@ function resetScopeTotals(count) {
     };
     Object.entries(values).forEach(([key, value]) => {
         const target = document.querySelector(`[data-my-tezos-scope-total="${key}"] strong`);
-        if (target) target.textContent = value;
+        if (target && target.textContent !== value) quietlyMutate(target, () => { target.textContent = value; });
     });
-    const freshness = document.getElementById('my-tezos-scope-freshness');
-    if (freshness) freshness.textContent = count
-        ? 'Downloading current public balances to this browser…'
-        : 'Include a saved wallet to calculate totals.';
+    renderScopeFreshness(null);
 }
 
 function renderScopeTotals(detail = latestPortfolioDetail) {
@@ -90,14 +88,27 @@ function renderScopeTotals(detail = latestPortfolioDetail) {
     };
     Object.entries(values).forEach(([key, value]) => {
         const target = document.querySelector(`[data-my-tezos-scope-total="${key}"] strong`);
-        if (target) target.textContent = value;
+        if (target && target.textContent !== value) quietlyMutate(target, () => { target.textContent = value; });
     });
+    renderScopeFreshness(detail);
+}
+
+function renderScopeFreshness(detail = latestPortfolioDetail) {
     const freshness = document.getElementById('my-tezos-scope-freshness');
-    if (freshness) {
-        freshness.textContent = detail.count
-            ? `Complete current read · calculated locally from ${detail.count} wallet${detail.count === 1 ? '' : 's'}`
-            : 'Include a saved wallet to calculate totals.';
-    }
+    if (!freshness) return;
+    const current = detail?.scope === readMyTezosScope() ? detail : null;
+    const stamp = current?.timestamp
+        ? new Date(current.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+    const message = current?.count
+        ? `Last complete read${stamp ? ` · ${stamp}` : ''} · ${current.count} wallet${current.count === 1 ? '' : 's'}${portfolioReadState === 'error' ? ' · update unavailable' : ' · local calculation'}`
+        : portfolioReadState === 'error'
+            ? 'Balances unavailable · no partial total shown. Retry from Portfolio.'
+            : readScopedMyTezosEntries().length ? 'Reading current public balances…' : 'Include a saved wallet to calculate totals.';
+    quietlyMutate(freshness, () => {
+        if (freshness.textContent !== message) freshness.textContent = message;
+        freshness.dataset.state = portfolioReadState;
+    });
 }
 
 function renderAccountOnlyBoundaries(scope, entries) {
@@ -170,6 +181,7 @@ export function setMyTezosScope(nextScope, { source = 'scope' } = {}) {
         : MY_TEZOS_SCOPE_ALL;
     try { sessionStorage.setItem(SCOPE_SESSION_KEY, scope); } catch {}
     latestPortfolioDetail = null;
+    portfolioReadState = 'loading';
     if (scope !== MY_TEZOS_SCOPE_ALL) {
         const entry = included.find((candidate) => candidate.address === scope);
         const activeAddress = localStorage.getItem(MY_TEZOS_ADDRESS_KEY) || '';
@@ -211,6 +223,10 @@ export function initMyTezosScope() {
         try { sessionStorage.setItem(SCOPE_SESSION_KEY, nextScope); } catch {}
         latestPortfolioDetail = null;
         renderMyTezosScope();
+    });
+    window.addEventListener('my-tezos-portfolio-status', (event) => {
+        portfolioReadState = event.detail?.state || 'loading';
+        renderScopeFreshness();
     });
     window.addEventListener('my-tezos-portfolio-ready', (event) => {
         if (!event.detail || event.detail.scope !== readMyTezosScope()) return;

@@ -209,7 +209,7 @@ function renderEmptySummary(message = 'Add or include an address to calculate a 
     if (rates) rates.textContent = 'Current fiat equivalents appear when the shared XTZ price is available.';
 }
 
-function renderSummary(model) {
+function renderSummary(model, { stale = false } = {}) {
     const summary = document.getElementById('portfolio-summary');
     if (!summary) return;
     const { prices, entries, rows, timestamp } = model;
@@ -233,8 +233,8 @@ function renderSummary(model) {
     const coverage = document.getElementById('portfolio-coverage');
     if (coverage) {
         coverage.textContent = scope === MY_TEZOS_SCOPE_ALL
-            ? `${scopedEntries.length}/${currentEntries().length} saved addresses included · complete current read`
-            : `${scopedEntries[0]?.label || shortAddress(scopedEntries[0]?.address)} selected · complete current read`;
+            ? `${scopedEntries.length}/${currentEntries().length} saved addresses included · ${stale ? 'last complete read; update unavailable' : 'complete current read'}`
+            : `${scopedEntries[0]?.label || shortAddress(scopedEntries[0]?.address)} selected · ${stale ? 'last complete read; update unavailable' : 'complete current read'}`;
     }
     const rates = document.getElementById('portfolio-rates');
     if (rates) {
@@ -667,6 +667,7 @@ function setFreshness(message, state = '') {
     if (!freshness) return;
     freshness.textContent = message;
     freshness.dataset.state = state;
+    window.dispatchEvent(new CustomEvent('my-tezos-portfolio-status', { detail: { state } }));
 }
 
 function setPortfolioRefreshState(loading, count = includedEntries().length) {
@@ -740,7 +741,7 @@ export async function refreshMyTezosPortfolio({ force = false, allowHidden = fal
             if (error?.name === 'AbortError' || requestGeneration !== portfolioGeneration) return null;
             const sameComposition = lastCompletePortfolio?.composition === composition;
             if (sameComposition) {
-                renderSummary(lastCompletePortfolio);
+                renderSummary(lastCompletePortfolio, { stale: true });
                 renderWalletList(currentEntries(), lastCompletePortfolio);
                 renderHistory();
             } else {

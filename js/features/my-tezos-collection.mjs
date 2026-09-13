@@ -34,6 +34,7 @@ let refreshController = null;
 let collectionSyncId = '';
 let renderedAssetLimit = MY_TEZOS_COLLECTION_PAGE_SIZE;
 let renderedAssetSignature = '';
+let collectionReadState = 'loading';
 
 function includedEntries() {
     return readSavedMyTezosEntries().filter((entry) => entry.included !== false);
@@ -154,7 +155,7 @@ function renderCollection() {
         Object.entries(values).forEach(([key, value]) => {
             const cell = summaryTarget.querySelector(`[data-collection-total="${key}"] strong`);
             if (cell) {
-                const text = String(value);
+                const text = !relevant.length && collectionReadState === 'error' ? '—' : String(value);
                 cell.textContent = text;
                 cell.closest('article')?.classList.toggle('is-wide-total', text.length > 9);
             }
@@ -178,7 +179,9 @@ function renderCollection() {
     if (!allAssets.length) {
         quietlySyncHtml(grid, '');
         renderedAssetSignature = '';
-        empty.textContent = includedEntries().length
+        empty.textContent = collectionReadState === 'error' && selectedEntries().length
+            ? 'Collection unavailable. Objkt could not be read; holdings are unknown. We’ll retry while this tab is open.'
+            : includedEntries().length
             ? collectionMode === 'created'
                 ? 'No created assets are available in the loaded Objkt coverage.'
                 : 'No collected assets are available in the loaded Objkt coverage.'
@@ -226,6 +229,7 @@ function renderCollection() {
 
 function reconcileCollectionRender({ background = false, message, state }) {
     const render = () => {
+        collectionReadState = state;
         renderCollection();
         setStatus(message, state);
     };
@@ -439,7 +443,7 @@ export async function refreshMyTezosCollection({ force = false, background = fal
             }
             reconcileCollectionRender({
                 background,
-                message: `${error.message || 'Objkt unavailable'} · showing last saved holdings`,
+                message: `${error.message || 'Objkt unavailable'} · ${currentRecords.length ? 'showing last saved holdings' : 'no saved holdings available'}`,
                 state: 'error'
             });
             return null;

@@ -26791,3 +26791,373 @@ body[data-theme="hen"]::after {
         letter-spacing: 0.03em;
     }
 }
+
+/* MY_TEZOS_LAZY_START */
+/* My Tezos uses the Chamber hierarchy: a quiet frame, a clear lead fact,
+   and source-bounded rows. This layer belongs only to the lazy personal room. */
+#my-tezos-drawer {
+    --my-surface: color-mix(in srgb, var(--bg-primary) 96%, white 4%);
+    --my-edge: color-mix(in srgb, var(--text-secondary) 20%, transparent);
+    width: clamp(880px, 72vw, 1080px);
+    border-left: 1px solid var(--my-edge);
+    font-family: var(--font-ui);
+    line-height: 1.5;
+}
+#my-tezos-drawer .drawer-header {
+    min-height: 76px;
+    padding: 10px 28px;
+    border-top: 3px solid color-mix(in srgb, var(--accent-cyan) 55%, transparent);
+    border-bottom: 0;
+}
+.drawer-heading { min-width: 0; }
+.drawer-eyebrow {
+    display: block;
+    color: var(--text-secondary);
+    font: 500 0.6rem/1.5 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.drawer-eyebrow > span { padding-inline: 0.4rem; opacity: 0.5; }
+#my-tezos-drawer .drawer-title {
+    margin: 2px 0 0;
+    font-family: var(--font-display);
+    font-size: 1.55rem;
+    line-height: 1.25;
+    letter-spacing: 0.025em;
+}
+#my-tezos-drawer .drawer-close { border-radius: 50%; background: transparent; }
+#my-tezos-drawer .my-tezos-tabs {
+    gap: 4px;
+    padding: 0 24px;
+    border-color: var(--my-edge);
+}
+#my-tezos-drawer .my-tezos-tab {
+    flex: 1 1 auto;
+    min-height: 44px;
+    padding-inline: 8px;
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+#my-tezos-drawer .my-tezos-tab.active {
+    background: linear-gradient(0deg, color-mix(in srgb, var(--accent-cyan) 8%, transparent), transparent);
+}
+#my-tezos-drawer .my-tezos-wallet-scope-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 8px 28px;
+    border-color: var(--my-edge);
+    background: var(--bg-primary);
+}
+#my-tezos-drawer .my-tezos-scope-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#my-tezos-drawer .my-tezos-scope-control > span {
+    font: 500 0.66rem/1.4 var(--font-ui);
+    text-transform: none;
+    letter-spacing: 0;
+}
+#my-tezos-drawer .my-tezos-scope-control .my-tezos-scope-select {
+    flex: 1 1 0;
+    max-width: 350px;
+    min-height: 40px;
+    border-color: var(--my-edge);
+    border-radius: 8px;
+    font: 600 0.78rem/1.4 var(--font-ui);
+}
+.my-tezos-manage-addresses {
+    min-height: 44px;
+    padding: 0 2px 0 8px;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font: 500 0.75rem/1.4 var(--font-ui);
+    white-space: nowrap;
+    cursor: pointer;
+}
+.my-tezos-manage-addresses > span { margin-left: 6px; color: var(--accent-cyan); }
+.my-tezos-manage-addresses:is(:hover, :focus-visible) { color: var(--text-primary); }
+.my-tezos-manage-addresses:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+#my-tezos-drawer .drawer-body { padding: 24px 28px 28px; }
+#my-tezos-drawer :is(.my-tezos-feature-shell, .my-tezos-portfolio-shell, .drawer-connected) { gap: 20px; }
+#my-tezos-drawer .portfolio-heading-row { gap: 16px; align-items: center; }
+#my-tezos-drawer :is(.portfolio-heading-row h3, .drawer-operator-header h3) {
+    margin: 3px 0 6px;
+    font: 600 1.35rem/1.3 var(--font-display);
+}
+#my-tezos-drawer :is(.portfolio-heading-row p, .portfolio-section-heading p, .drawer-operator-header p) {
+    font: 400 0.8rem/1.55 var(--font-ui);
+    color: var(--text-secondary);
+    opacity: 1;
+}
+#my-tezos-drawer .portfolio-kicker {
+    font: 500 0.63rem/1.5 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+}
+#my-tezos-drawer .my-tezos-balance-hero {
+    padding: 20px 24px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, var(--my-edge));
+    border-radius: 12px;
+    background: linear-gradient(115deg, color-mix(in srgb, var(--accent-cyan) 7%, var(--bg-primary)), var(--my-surface));
+}
+.my-tezos-local-label {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    border: 1px solid var(--my-edge);
+    border-radius: 5px;
+    color: var(--text-secondary);
+    font: 500 0.63rem/1.4 'JetBrains Mono', monospace;
+}
+#my-tezos-drawer .my-tezos-scope-totals {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 18px 0 10px;
+}
+#my-tezos-drawer .my-tezos-scope-totals article {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+#my-tezos-drawer .my-tezos-scope-totals [data-my-tezos-scope-total="wallets"] { display: none; }
+#my-tezos-drawer [data-my-tezos-scope-total="total"] { grid-column: auto; }
+#my-tezos-drawer .my-tezos-scope-totals span {
+    font: 500 0.72rem/1.4 var(--font-ui);
+    letter-spacing: 0;
+    text-transform: none;
+}
+#my-tezos-drawer .my-tezos-scope-totals strong {
+    max-width: 100%;
+    font: 500 clamp(0.8rem, 1.15vw, 1.05rem)/1.5 'JetBrains Mono', monospace !important;
+    text-overflow: clip;
+}
+#my-tezos-drawer [data-my-tezos-scope-total="total"] strong {
+    color: var(--accent-cyan);
+    font-size: clamp(1.05rem, 1.65vw, 1.5rem) !important;
+}
+#my-tezos-drawer #my-tezos-scope-freshness {
+    display: block;
+    min-height: 2.8em;
+    margin: 12px 0 0;
+    color: var(--text-secondary);
+    font: 400 0.69rem/1.4 var(--font-ui);
+}
+#my-tezos-drawer #my-tezos-scope-freshness[data-state="error"] { color: var(--color-warning, #c98b36); }
+#my-tezos-drawer .my-tezos-scope-boundary {
+    padding: 10px 14px;
+    border: 0;
+    border-left: 2px solid var(--my-edge);
+    border-radius: 0;
+    background: transparent;
+}
+#my-tezos-drawer .my-tezos-scope-boundary :is(strong, span) { font-size: 0.76rem; line-height: 1.5; }
+#my-tezos-drawer .drawer-address-bar { margin: 0; padding: 0; }
+#my-tezos-drawer .drawer-address-bar .drawer-controls { margin: 0; gap: 8px; }
+#my-tezos-drawer .drawer-address-bar .wallet-connect-row { margin: 8px 0 0; }
+#my-tezos-drawer .drawer-address-bar .my-baker-error:empty { display: none; }
+#my-tezos-drawer :is(.my-tezos-overview-transactions, .portfolio-history-panel, .portfolio-wallets-panel,
+    .portfolio-memory-panel, .my-tezos-feature-panel, .drawer-operator-panel, .drawer-activity-panel,
+    .brief-section, .tezosx-detail-section) {
+    padding: 20px;
+    border: 1px solid var(--my-edge);
+    border-radius: 10px;
+    background: var(--my-surface);
+    box-shadow: none;
+}
+#my-tezos-drawer .portfolio-activity-panel { padding: 0; border: 0; background: transparent; gap: 0; }
+#my-tezos-drawer .portfolio-activity-panel > .portfolio-section-heading { margin: 0; }
+#my-tezos-drawer .portfolio-activity-item {
+    padding: 14px 4px;
+    border: 0;
+    border-bottom: 1px solid var(--my-edge);
+    border-radius: 0;
+    background: transparent;
+}
+#my-tezos-drawer .portfolio-activity-item.activity-item-nft { background: rgba(183, 148, 246, 0.045); }
+#my-tezos-drawer .portfolio-activity-item strong { font-size: 0.82rem; }
+#my-tezos-drawer .portfolio-activity-item small { font-size: 0.71rem; }
+#my-tezos-drawer .portfolio-history-empty { min-height: 100px; margin: 0; }
+#my-tezos-drawer .portfolio-history-stage .portfolio-history-empty { min-height: 0; }
+#my-tezos-drawer :is(.portfolio-refresh, .my-tezos-action) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--my-edge);
+    border-radius: 8px;
+    background: var(--my-surface);
+    box-shadow: none;
+    font: 500 0.76rem/1.4 var(--font-ui);
+}
+#my-tezos-drawer .portfolio-summary-grid {
+    gap: 0;
+    padding: 18px 0;
+    border-block: 1px solid var(--my-edge);
+}
+#my-tezos-drawer .portfolio-summary-card {
+    min-height: 0;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 0;
+    border-left: 1px solid var(--my-edge);
+    background: transparent;
+    box-shadow: none;
+}
+#my-tezos-drawer .portfolio-summary-card:first-child { padding-left: 0; border-left: 0; }
+#my-tezos-drawer .portfolio-summary-card strong { font-size: 1rem; color: var(--text-primary); }
+#my-tezos-drawer .portfolio-summary-total strong { color: var(--accent-cyan); }
+#my-tezos-drawer .portfolio-summary-card span { font: 500 0.7rem/1.5 var(--font-ui); text-transform: none; letter-spacing: 0; }
+#my-tezos-drawer .portfolio-summary-card small { font-size: 0.65rem; line-height: 1.5; }
+#my-tezos-drawer :is(.transactions-shell, .collection-shell) .my-tezos-feature-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    padding: 10px 0;
+    border-block: 1px solid var(--my-edge);
+}
+#my-tezos-drawer :is(.transactions-shell, .collection-shell) .my-tezos-feature-summary article {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+#my-tezos-drawer :is(.transactions-shell, .collection-shell) .my-tezos-feature-summary strong {
+    font: 500 0.82rem/1.8 'JetBrains Mono', monospace !important;
+}
+#my-tezos-drawer :is(.transactions-shell, .collection-shell) .my-tezos-feature-summary span {
+    font: 400 0.72rem/1.5 var(--font-ui);
+    letter-spacing: 0;
+    text-transform: none;
+}
+#my-tezos-drawer .collection-profile-details { display: block; padding: 0 14px; }
+#my-tezos-drawer .collection-profile-details #collection-profiles { padding-bottom: 14px; }
+#my-tezos-drawer .collection-asset-card { border-color: var(--my-edge); background: var(--my-surface); border-radius: 10px; }
+#my-tezos-drawer .collection-asset-card strong { font: 600 0.85rem/1.5 var(--font-ui); }
+#my-tezos-drawer .portfolio-data-details { padding: 0 14px; border: 1px solid var(--my-edge); background: transparent; }
+#my-tezos-drawer .portfolio-data-details .portfolio-history-boundary { padding: 0; border: 0; background: transparent; }
+#my-tezos-drawer .drawer-operator-header { flex-direction: column; gap: 0; margin-bottom: 20px; }
+#my-tezos-drawer .drawer-operator-header p { max-width: none; text-align: left; }
+#my-tezos-drawer .drawer-operator-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; }
+.drawer-operator-group { min-width: 0; }
+#my-tezos-drawer .drawer-operator-group > h4 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    margin: 0 0 6px;
+    color: var(--text-primary);
+    font: 600 0.76rem/1.5 var(--font-ui);
+}
+.drawer-operator-group > h4 > span { color: var(--text-secondary); font-size: 0.64rem; font-weight: 400; }
+#my-tezos-drawer .drawer-operator-tile {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.85fr) minmax(0, 1fr);
+    align-content: center;
+    align-items: baseline;
+    min-height: 110px;
+    padding: 12px 0;
+    border: 0;
+    border-top: 1px solid var(--my-edge);
+    border-radius: 0;
+    background: transparent;
+    gap: 6px 12px;
+}
+#my-tezos-drawer .drawer-operator-label { font: 400 0.72rem/1.5 var(--font-ui); text-transform: none; letter-spacing: 0; }
+#my-tezos-drawer .drawer-operator-value {
+    font: 600 1.1rem/1.3 'JetBrains Mono', monospace !important;
+    text-align: right;
+    text-shadow: none;
+}
+#my-tezos-drawer .drawer-operator-next .drawer-operator-value { font-size: 1.35rem !important; }
+#my-tezos-drawer .drawer-operator-detail { grid-column: 1 / -1; font: 400 0.74rem/1.5 var(--font-ui); opacity: 1; }
+#my-tezos-drawer .drawer-more-section { padding: 16px 0 0; border: 0; border-top: 1px solid var(--my-edge); border-radius: 0; background: transparent; }
+#my-tezos-drawer .drawer-more-label { font: 500 0.72rem/1.4 var(--font-ui); text-transform: none; letter-spacing: 0; }
+#my-tezos-drawer .drawer-more-copy { display: none; }
+#my-tezos-drawer .drawer-account-journey-card {
+    min-height: 64px;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    padding: 10px 12px;
+    border-color: var(--my-edge);
+    background: transparent;
+    box-shadow: none;
+}
+#my-tezos-drawer .drawer-account-journey-icon { width: 28px; height: 28px; font-size: 0.8rem; border: 0; box-shadow: none; }
+#my-tezos-drawer .drawer-account-journey-kicker { display: none; }
+#my-tezos-drawer .drawer-account-journey-copy strong { font: 600 0.8rem/1.4 var(--font-ui); }
+#my-tezos-drawer .drawer-account-journey-copy small { font: 400 0.68rem/1.4 var(--font-ui); }
+#my-tezos-drawer .my-tezos-story-card > .brief-section-title { display: none; }
+#my-tezos-drawer .my-tezos-story-card { padding: 0; border: 0; background: transparent; }
+#my-tezos-drawer .tezosx-detail-section a { color: var(--accent-cyan); text-underline-offset: 3px; }
+#my-tezos-drawer .drawer-footer { margin: 0; }
+.drawer-account-details { min-width: 0; border-bottom: 1px solid var(--my-edge); }
+.drawer-account-details > summary { min-height: 44px; align-content: center; color: var(--text-secondary); font: 500 0.78rem/1.5 var(--font-ui); cursor: pointer; }
+.drawer-account-details > summary:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+#my-tezos-drawer .drawer-account-details .drawer-address-bar { padding: 8px 0 16px; }
+@media (max-width: 900px) {
+    #my-tezos-drawer { width: 100vw; }
+}
+@media (max-width: 760px) {
+    #my-tezos-drawer .drawer-operator-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    #my-tezos-drawer .portfolio-summary-grid { gap: 18px 0; }
+    #my-tezos-drawer .portfolio-summary-card:nth-child(odd) { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 480px) {
+    #my-tezos-drawer .drawer-header { min-height: 58px; padding: 5px 16px; }
+    #my-tezos-drawer .drawer-title { font-size: 1.25rem; }
+    .drawer-eyebrow { font-size: 0.5rem; }
+    #my-tezos-drawer .my-tezos-tabs { padding: 0 8px; gap: 0; }
+    #my-tezos-drawer .my-tezos-tab { padding: 0 1px; font-size: 0.7rem; }
+    #my-tezos-drawer .my-tezos-wallet-scope-bar { padding: 6px 16px; gap: 8px; }
+    #my-tezos-drawer .my-tezos-scope-control > span { display: none; }
+    #my-tezos-drawer .my-tezos-scope-select { font-size: 0.72rem; }
+    .my-tezos-manage-addresses { max-width: 88px; white-space: normal; font-size: 0.7rem; text-align: right; }
+    .my-tezos-manage-addresses > span { display: none; }
+    #my-tezos-drawer .drawer-body { padding: 18px 16px 24px; }
+    #my-tezos-drawer :is(.my-tezos-feature-shell, .my-tezos-portfolio-shell, .drawer-connected) { gap: 16px; }
+    #my-tezos-drawer .my-tezos-balance-hero { padding: 16px; }
+    #my-tezos-drawer .my-tezos-scope-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+    #my-tezos-drawer [data-my-tezos-scope-total="total"] { grid-column: 1 / -1; }
+    #my-tezos-drawer .my-tezos-scope-totals strong { font-size: 0.85rem !important; }
+    #my-tezos-drawer [data-my-tezos-scope-total="total"] strong { font-size: 1.6rem !important; }
+    #my-tezos-drawer :is(.portfolio-heading-row h3, .drawer-operator-header h3) { font-size: 1.2rem; }
+    #my-tezos-drawer .portfolio-heading-row { flex-direction: row; align-items: flex-start; }
+    #my-tezos-drawer :is(.my-tezos-overview-transactions, .portfolio-history-panel, .portfolio-wallets-panel,
+        .portfolio-memory-panel, .my-tezos-feature-panel, .drawer-operator-panel, .drawer-activity-panel,
+        .brief-section, .tezosx-detail-section) { padding: 14px; }
+    #my-tezos-drawer .portfolio-summary-card { padding-right: 8px; }
+    #my-tezos-drawer .portfolio-summary-card strong { font-size: 0.87rem; }
+    #my-tezos-drawer :is(.portfolio-refresh, .my-tezos-action) { padding: 8px 12px; font-size: 0.69rem; }
+    #my-tezos-drawer .portfolio-heading-row > .portfolio-refresh { max-width: 100px; white-space: normal; align-self: flex-start; }
+    #my-tezos-drawer .portfolio-refresh-icon { border: 0; background: transparent; width: 14px; }
+    #my-tezos-drawer .collection-profile-details { padding: 0 12px; }
+    #my-tezos-drawer .drawer-operator-tile { min-height: 108px; }
+    #my-tezos-drawer .drawer-more-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-height: 500px) and (min-width: 481px) {
+    #my-tezos-drawer .drawer-header { min-height: 48px; padding: 0 20px; }
+    #my-tezos-drawer .drawer-eyebrow { display: none; }
+    #my-tezos-drawer .drawer-title { font-size: 1.2rem; }
+    #my-tezos-drawer .my-tezos-wallet-scope-bar { padding-block: 0; }
+}
+@media (max-width: 359px) {
+    #my-tezos-drawer .my-tezos-scope-totals { grid-template-columns: minmax(0, 1fr); }
+    #my-tezos-drawer .my-tezos-scope-totals article:not([data-my-tezos-scope-total="total"]):not([data-my-tezos-scope-total="wallets"]) {
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+    }
+}
+/* MY_TEZOS_LAZY_END */
