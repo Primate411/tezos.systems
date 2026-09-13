@@ -1240,7 +1240,9 @@ inline modal styles in `js/core/app.js`.
   Overview and Portfolio. Collection uses two artwork columns on phones at least
   360px wide; source links retain 44px touch targets. The `my-tezos-layout`
   browser suite covers 320px, 390px, desktop, and landscape geometry plus
-  keyboard navigation and tab-scroll preservation. Its empty state separates two
+  keyboard navigation and tab-scroll preservation. Direct-route checks also
+  enforce 44px touch targets and unclipped labels on compact Portfolio buttons.
+  Its empty state separates two
   read-only setup paths: Octez.Connect opens the compatible Temple/Kukai wallet
   chooser and requests the selected public account, while watch-only setup
   accepts a public Tezos address or `.tez` name without an extension, pairing,
