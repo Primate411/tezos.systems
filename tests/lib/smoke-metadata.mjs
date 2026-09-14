@@ -70,8 +70,11 @@ const RULES = [
     files: [
       'js/features/my-tezos*',
       'js/features/my-baker.js',
+      'js/features/baker-report-card.js',
       'js/features/rewards-tracker.js',
       'js/core/my-tezos*',
+      'js/core/baker-schedule.mjs',
+      'tests/baker-schedule-check.mjs',
       'js/core/wallet.js',
       'css/my-tezos*',
       'tests/lib/my-tezos-layout-smoke.mjs'

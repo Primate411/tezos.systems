@@ -2658,6 +2658,8 @@ async function installFeatureMocks(context, options = {}) {
         return fulfillJson(route, {
           blocks_per_cycle: Number(cycleMilestone?.blocksPerCycle) || 10800,
           minimal_block_delay: '6',
+          minimal_participation_ratio: { numerator: 2, denominator: 3 },
+          dal_parametric: { incentives_enable: true, minimal_participation_ratio: { numerator: '16', denominator: '25' } },
           hard_gas_limit_per_block: '1040000',
           consensus_committee_size: 7000,
           edge_of_staking_over_delegation: 3,
@@ -12847,6 +12849,8 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       serviceWorkers: 'block'
     });
     await installFeatureMocks(context);
+    let gradeParticipation = { expected_cycle_activity: 7000, minimal_cycle_activity: 5600, missed_slots: 0, missed_levels: 0 };
+    await context.route('**/participation', route => fulfillJson(route, gradeParticipation));
     let softwareVersion = 'v25.0';
     let softwareUpdateTime = new Date(Date.now() - 3 * 86400000).toISOString();
     await context.route(`**/v1/delegates/${SAMPLE_ADDRESS}`, (route) => fulfillJson(route, {
@@ -12856,8 +12860,20 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     }));
     let attestationStatuses = Array(10).fill('missed');
     let attestationHead = 12345670;
+    let scheduleMode = 'complete';
     await context.route('**/v1/rights?**', (route) => {
-      if (new URL(route.request().url()).searchParams.get('type') !== 'attestation') return route.fallback();
+      const query = new URL(route.request().url()).searchParams;
+      if (query.get('type') === 'baking' && query.get('status') === 'future') {
+        assert(query.get('round') === '0', 'Schedule must query round 0 only');
+        assert(query.get('limit') === '100', 'Schedule must scan 100 assignments');
+        assert(query.get('sort.asc') === 'level', 'Schedule must be ordered');
+        assert(query.get('level.gt') === '12345678', 'Schedule must start beyond the confirmed head');
+        if (scheduleMode === 'unavailable') return fulfillJson(route, null);
+        return fulfillJson(route, Array.from({ length: scheduleMode === 'short' ? 2 : scheduleMode === 'empty' ? 0 : 100 }, (_, index) => ({
+          level: 12345858 + index * 600, round: 0, status: 'future', type: 'baking'
+        })));
+      }
+      if (query.get('type') !== 'attestation') return route.fallback();
       return fulfillJson(route, attestationStatuses.map((status, index) => ({
         level: attestationHead - index,
         timestamp: new Date(Date.now() - index * 6000).toISOString(),
@@ -12872,6 +12888,13 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       window.__MY_TEZOS_DRAWER_REFRESH_MS__ = 5000;
       window.__operatorVisibility = 'visible';
       Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => window.__operatorVisibility });
+      window.__scheduleHiddenFetches = 0;
+      const scheduleFetch = window.fetch.bind(window);
+      window.fetch = (input, ...args) => {
+        const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+        if (document.visibilityState === 'hidden' && url.pathname.endsWith('/rights') && url.searchParams.get('type') === 'baking' && url.searchParams.get('status') === 'future' && url.searchParams.get('limit') === '100') window.__scheduleHiddenFetches++;
+        return scheduleFetch(input, ...args);
+      };
       localStorage.setItem('tezos-systems-theme', theme);
       localStorage.setItem('tezos-toured', '1');
       localStorage.setItem('tezos-welcomed', '1');
@@ -12916,6 +12939,20 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     const softwareTooltip = await page.locator('#my-baker-results [title]').evaluateAll((nodes) => nodes.find((node) => node.title.includes('TzKT first observed this baker'))?.title || '');
     assert(softwareTooltip.includes(new Date(softwareUpdateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
       && !softwareTooltip.includes('Jun 16'), `Baker Signal ${label}: tooltip used the global software date: ${softwareTooltip}`);
+
+    await page.locator('.drawer-baker-grade .grade-score').waitFor({ state: 'visible' });
+    await page.locator('.drawer-grade-method summary').click();
+    const gradeLayout = await page.evaluate(() => {
+      const grade = document.querySelector('.drawer-baker-grade');
+      const status = document.querySelector('#drawer-baker-brief .brief-section-baker');
+      window.__bakerGrade = grade;
+      window.__bakerGradeButton = grade.querySelector('.report-card-btn');
+      return { grade: grade.getBoundingClientRect().toJSON(), status: status.getBoundingClientRect().toJSON(), text: grade.textContent, buttons: document.querySelectorAll('#drawer-baker .report-card-btn').length };
+    });
+    assert(gradeLayout.text.includes('Cycle participation') && gradeLayout.text.includes('100/100') && gradeLayout.text.includes('7,000') && gradeLayout.buttons === 1,
+      `Baker Grade ${label}: missing evidence or duplicated report action ${JSON.stringify(gradeLayout)}`);
+    assert(label === 'desktop' ? gradeLayout.grade.left >= gradeLayout.status.right && Math.abs(gradeLayout.grade.top - gradeLayout.status.top) < 1 : gradeLayout.grade.top >= gradeLayout.status.bottom,
+      `Baker Grade ${label}: must sit to the right on desktop and stack on phones ${JSON.stringify(gradeLayout)}`);
 
     const before = await page.evaluate(() => {
       const panel = document.getElementById('drawer-operator-status');
@@ -13029,6 +13066,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       return {
         top: body.scrollTop, pageY: window.scrollY, selection: document.getSelection().toString(), rail: tab.parentElement.scrollLeft,
         samePanel: panel.querySelector('.drawer-operator-panel') === window.__bakerSignalPanel,
+        gradePreserved: document.querySelector('.drawer-baker-grade') === window.__bakerGrade && document.querySelector('.drawer-grade-method').open && document.querySelector('.drawer-baker-grade .report-card-btn') === window.__bakerGradeButton,
         sameTiles: Array.from(panel.querySelectorAll('.drawer-operator-tile')).every((tile, i) => tile === window.__bakerSignalTiles[i]),
         focused: document.activeElement === tab,
         selected: tab.getAttribute('aria-selected'),
@@ -13038,7 +13076,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
         scope: document.getElementById('my-tezos-baker-signal-scope').textContent
       };
     });
-    assert(after.samePanel && after.sameTiles && after.focused && after.selected === 'true' && after.visible && after.emptyHidden,
+    assert(after.gradePreserved && after.samePanel && after.sameTiles && after.focused && after.selected === 'true' && after.visible && after.emptyHidden,
       `Baker Signal ${label}: background refresh lost the visible keyed panel or tab state ${JSON.stringify(after)}`);
     assert(Math.abs(after.top - before.top) < 1 && after.pageY === before.pageY && after.rail === before.rail && after.selection === before.selection,
       `Baker Signal ${label}: background refresh moved the reader ${JSON.stringify({ before, after })}`);
@@ -13076,6 +13114,74 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     });
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     assert(await page.locator('#drawer-body').evaluate((body) => body.scrollTop) === readerTop, `Baker Signal ${label}: delayed restoration overwrote reader scroll`);
+    // Maintenance keeps the same controls, disclosure, selection and viewport
+    // through new reads, source failures, shorter horizons, and empty schedules.
+    await page.waitForFunction(() => document.querySelector('.drawer-schedule-freshness')?.textContent.includes('100 rights checked'));
+    assert(await page.locator('.drawer-schedule-right').count() === 3, 'Show three upcoming slots');
+    const nextStyle = await page.locator('.drawer-schedule-right').evaluateAll(tiles => tiles.map(tile => ({ background: getComputedStyle(tile).backgroundColor, height: tile.clientHeight, contentHeight: [...tile.children].reduce((sum, child) => sum + child.getBoundingClientRect().height, 0) })));
+    assert(nextStyle[0].background !== nextStyle[1].background, 'The immediate next R0 needs a distinct highlight');
+    assert(nextStyle.every(tile => tile.height - tile.contentHeight < 85), 'Upcoming rights must not stretch into tall empty boxes');
+    const rewardNotice = await page.locator('.drawer-schedule-reward-note').innerText();
+    assert(rewardNotice.includes('2/3') && rewardNotice.includes('64%') && rewardNotice.includes('cycle rewards'), 'Reward notice must use the separate current consensus and DAL thresholds');
+    assert((await page.locator('.drawer-maintenance-result').innerText()).includes('After level 12,345,858'), 'Earliest 15-minute fit is after the first assignment, with buffers');
+    await page.locator('#baker-maintenance-duration').selectOption('30');
+    await page.locator('[data-quiet-key="schedule-method"] summary').click();
+    const scheduleBefore = await page.evaluate(() => {
+      const select = document.getElementById('baker-maintenance-duration');
+      const body = document.getElementById('drawer-body');
+      select.focus({ preventScroll: true });
+      const range = document.createRange();
+      range.selectNodeContents(document.querySelector('.drawer-maintenance-heading h4'));
+      document.getSelection().removeAllRanges();
+      document.getSelection().addRange(range);
+      body.scrollTop = 100;
+      window.__scheduleSelect = select;
+      window.__scheduleNode = document.querySelector('.drawer-baker-schedule');
+      return { top: body.scrollTop, pageY: window.scrollY, selection: document.getSelection().toString() };
+    });
+    const checkScheduleReader = async () => {
+      const current = await page.evaluate(() => ({
+        top: document.getElementById('drawer-body').scrollTop, pageY: window.scrollY,
+        selection: document.getSelection().toString(),
+        same: document.getElementById('baker-maintenance-duration') === window.__scheduleSelect && document.querySelector('.drawer-baker-schedule') === window.__scheduleNode,
+        focused: document.activeElement === window.__scheduleSelect,
+        value: window.__scheduleSelect.value,
+        open: document.querySelector('[data-quiet-key="schedule-method"]').open,
+        visible: getComputedStyle(window.__scheduleNode).opacity === '1' && getComputedStyle(window.__scheduleNode).transform === 'none',
+        overflow: document.getElementById('drawer-body').scrollWidth - document.getElementById('drawer-body').clientWidth
+      }));
+      assert(current.same && current.focused && current.open && current.visible && current.value === '30' && current.overflow <= 1,
+        `Baker schedule ${label}: lost reader state ${JSON.stringify(current)}`);
+      assert(current.top === scheduleBefore.top && current.pageY === scheduleBefore.pageY && current.selection === scheduleBefore.selection,
+        `Baker schedule ${label}: moved the reading position or selection ${JSON.stringify({ current, scheduleBefore })}`);
+    };
+    const beforeRefresh = await page.locator('.drawer-baker-schedule').getAttribute('data-schedule-checked');
+    await page.waitForFunction(() => document.querySelector('.drawer-maintenance-result')?.textContent.includes('After level 12,345,858'));
+    await page.waitForFunction(before => document.querySelector('.drawer-baker-schedule')?.dataset.scheduleChecked !== before, beforeRefresh);
+    await checkScheduleReader();
+    const levelsBeforeFailure = await page.locator('.drawer-schedule-right .drawer-operator-detail').allTextContents();
+    scheduleMode = 'unavailable';
+    await page.waitForFunction(() => document.querySelector('.drawer-schedule-freshness')?.textContent.includes('Last confirmed data'));
+    assert(JSON.stringify(await page.locator('.drawer-schedule-right .drawer-operator-detail').allTextContents()) === JSON.stringify(levelsBeforeFailure), 'Failed schedule read retains the confirmed levels');
+    assert((await page.locator('.drawer-maintenance-result').innerText()).includes('Waiting for a fresh schedule'));
+    await checkScheduleReader();
+    scheduleMode = 'short';
+    await page.waitForFunction(() => document.querySelector('.drawer-schedule-freshness')?.textContent.includes('2 rights checked'));
+    assert((await page.locator('[data-quiet-key="schedule-method"]').innerText()).includes('2 of up to 100 published'));
+    assert((await page.locator('.drawer-schedule-right').nth(2).innerText()).includes('No further published right'));
+    await checkScheduleReader();
+    scheduleMode = 'empty';
+    await page.waitForFunction(() => document.querySelector('.drawer-schedule-freshness')?.textContent.includes('0 rights checked'));
+    assert((await page.locator('.drawer-maintenance-result').innerText()).includes('No fitting gap'));
+    await checkScheduleReader();
+    scheduleMode = 'complete';
+    await page.waitForFunction(() => document.querySelector('.drawer-schedule-freshness')?.textContent.includes('100 rights checked'));
+    await checkScheduleReader();
+    await page.locator('[data-quiet-key="schedule-method"] summary').click();
+    await page.evaluate(() => { window.__operatorVisibility = 'hidden'; document.dispatchEvent(new Event('visibilitychange')); });
+    await waitForIntentionalRealTime(page, 'my-tezos-hidden-refresh-window');
+    assert(await page.evaluate(() => window.__scheduleHiddenFetches === 0), `Hidden Baker Signal ${label} does not initiate new schedule requests`);
+    await page.evaluate(() => { window.__operatorVisibility = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
     if (ARTIFACTS_DIR) {
       await page.evaluate(() => {
         document.getSelection().removeAllRanges();
@@ -13098,6 +13204,26 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     assert(await page.locator('#my-tezos-tab-baker-signal').getAttribute('aria-selected') === 'true', 'Baker Signal route must survive reload');
     await page.waitForFunction(() => document.querySelector('#drawer-operator-status')?.textContent.includes('Recovering')
       && document.querySelector('#drawer-operator-status')?.textContent.includes('8/10 recent attestation issues · latest 2 OK'), null, { timeout: 15000 });
+
+    await page.waitForFunction(() => document.querySelector('.drawer-baker-grade[data-grade-state="current"] .grade-score')?.textContent === '100/100');
+    gradeParticipation = null;
+    await page.locator('.drawer-baker-grade[data-grade-state="stale"]').waitFor();
+    assert((await page.locator('.drawer-baker-grade').innerText()).includes('100/100'), 'Participation failure must retain the last confirmed score');
+    gradeParticipation = { expected_cycle_activity: 0, missed_slots: 0 };
+    await page.locator('.drawer-baker-grade[data-grade-state="unavailable"]').waitFor();
+    assert(!(await page.locator('.drawer-baker-grade').innerText()).includes('100/100'), 'Zero expected power must not earn a perfect grade');
+    gradeParticipation = { expected_cycle_activity: 7000, missed_slots: 350 };
+    await page.waitForFunction(() => document.querySelector('.drawer-baker-grade .grade-score')?.textContent === '90/100');
+    await page.locator('.drawer-baker-grade .report-card-btn').click();
+    const reportResult = await page.waitForFunction(() => {
+      if (document.querySelector('#share-modal.visible')) return 'ready';
+      const error = document.querySelector('#report-card-overlay')?.textContent;
+      return error?.includes('Failed') ? error : null;
+    }, null, { timeout: 20000 });
+    assert(await reportResult.jsonValue() === 'ready', `Full Baker Report failed: ${await reportResult.jsonValue()}`);
+    assert(await page.locator('#share-modal.visible').isVisible(), 'The full report preview must be visibly open');
+    assert(await page.locator('#share-modal .share-modal-preview img[src^="data:image/png"]').count() === 1, 'Full Baker Report should generate a shareable preview');
+    await page.locator('#share-modal .share-modal-close').click();
 
     await page.locator('#my-tezos-tab-overview').click();
     await revealMyTezosAccountControls(page);

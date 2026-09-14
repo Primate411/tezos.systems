@@ -128,8 +128,10 @@ export function computeBakerScores(baker, participation) {
  * Fetch all data needed for a baker report card
  */
 async function fetchBakerReport(bakerAddress) {
+    // A clicked report must not wait behind passive dashboard refreshes.
+    const interactive = { __tezosSystemsPriority: 'interactive' };
     // Fetch baker data
-    const bakerResp = await fetchWithDeadline(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`);
+    const bakerResp = await fetchWithDeadline(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`, interactive);
     if (!bakerResp.ok) throw new Error('Baker not found');
     const baker = await bakerResp.json();
 
@@ -138,8 +140,8 @@ async function fetchBakerReport(bakerAddress) {
     let participation = null;
     try {
         const [partResp, headResp] = await Promise.all([
-            fetchWithDeadline(`${TZKT}/rewards/bakers/${encodeURIComponent(bakerAddress)}?limit=8&sort.desc=cycle&select=cycle,expectedBlocks,blocks,missedBlocks,expectedAttestations,attestations,missedAttestations`),
-            fetchWithDeadline(`${TZKT}/head`, { cache: 'no-store' })
+            fetchWithDeadline(`${TZKT}/rewards/bakers/${encodeURIComponent(bakerAddress)}?limit=8&sort.desc=cycle&select=cycle,expectedBlocks,blocks,missedBlocks,expectedAttestations,attestations,missedAttestations`, interactive),
+            fetchWithDeadline(`${TZKT}/head`, { ...interactive, cache: 'no-store' })
         ]);
         if (partResp.ok && headResp.ok) {
             const partData = await partResp.json();
@@ -158,7 +160,7 @@ async function fetchBakerReport(bakerAddress) {
     let allBakers = [];
     let allBakersFailed = false;
     try {
-        const abResp = await fetchWithDeadline(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance,bakingPower&sort.desc=id`);
+        const abResp = await fetchWithDeadline(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance,bakingPower&sort.desc=id`, interactive);
         if (abResp.ok) {
             const bakerRows = await abResp.json();
             if (!Array.isArray(bakerRows)) throw new Error('Unexpected baker ranking payload');
@@ -392,7 +394,9 @@ export async function showBakerReportCard(bakerAddress) {
 export function initBakerReportCard() {
     // Listen for baker data being rendered — add report card button
     const observer = new MutationObserver(() => {
-        const section = document.getElementById('drawer-baker') || document.getElementById('my-baker-section');
+        // My Tezos owns the button inside its quietly refreshed grade card.
+        if (document.getElementById('drawer-baker')) return;
+        const section = document.getElementById('my-baker-section');
         if (!section) return;
 
         // Keep the control synchronized when the saved account changes roles.

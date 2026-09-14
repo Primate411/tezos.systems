@@ -1227,11 +1227,28 @@ inline modal styles in `js/core/app.js`.
 - My Tezos uses a compact shared wallet selector with a **Manage addresses**
   shortcut. Overview owns the balance summary and an **Active wallet & connection**
   disclosure; balances do not occupy the fixed header of every tab. Baker Signal
-  groups recent consensus separately from upcoming rights and software. Transactions
+  uses compact status pills for upcoming rights, software, and recent consensus. Transactions
   and Collection use compact count rows; Portfolio keeps its calculation notes
   below the chart. Overview balances and receipts share the quiet visible-view
   refresh cycle. Failed updates retain dated last-complete balances, and a failed
   first collection read shows unavailable holdings instead of zero.
+- Baker Signal displays the next three round-0 rights and scans up to 100 published
+  assignments for the earliest 5/15/30/60-minute outage fit and longest baking gap,
+  reserving two-minute buffers on each side. Estimates use a confirmed head timestamp
+  and the current protocol block delay. Missing, stale, malformed, or slipped timing
+  withholds maintenance suggestions while retaining the last confirmed schedule.
+  Short schedules disclose their returned count; no gap is inferred after the last
+  assignment. These are round-0 baking gaps only: attestation, DAL, and later-round
+  duties can still occur. The selector, open methodology, and reader state survive
+  the existing visibility-gated quiet refresh.
+  The immediate next right has a gold highlight. The reward note reads current
+  consensus and DAL participation thresholds from protocol constants (currently
+  2/3 and 64%, respectively), preserves the cycle scope and other eligibility
+  conditions, and distinguishes missed baking rewards and fees.
+  Baker Grade sits beside Baker Status (stacked on phones), showing its current-cycle
+  participation score, missed and expected attestation power, an expandable scoring
+  explanation, and access to the separate broader shareable report. Missing or zero
+  expected power stays ungraded; the explanation remains open through refresh.
 - My Tezos adaptive personal room with Overview, Baker Signal, Portfolio, Transactions,
   Collection, Your Story, and Tezos X tabs. The drawer keeps all seven tabs
   visible on phones, remembers each tab's

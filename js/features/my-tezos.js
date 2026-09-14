@@ -14,6 +14,7 @@ import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { countsAsProtocolUpgrade } from '../core/protocol-count.js';
 import { fetchProtocolConstants, fetchStakingAPY, fetchWithRetry, getExternalStakerApy } from '../core/api.js';
 import { buildBakerCapacitySnapshot } from '../core/baker-capacity.mjs';
+import { BAKER_SCHEDULE_LIMIT, MAINTENANCE_BUFFER_MINUTES, MAINTENANCE_DURATIONS, buildBakerSchedule, isBakerScheduleFresh, planBakerMaintenance, readBakerRewardThresholds } from '../core/baker-schedule.mjs';
 import {
     BAKING_BENJAMINS_DELEGATE_ADDRESS,
     getWalletAccount,
@@ -21,7 +22,7 @@ import {
     shortAddress as shortWalletAddress
 } from '../core/wallet.js';
 import { fetchXTZPrice } from './price.js';
-import { letterGrade } from './baker-report-card.js';
+import { letterGrade, showBakerReportCard } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
 import { classifyOctezVersion, fetchOctezVersions, normalizeBakerSoftware } from '../core/octez-versions.js';
 import { fetchObjktProfile } from './objkt.js';
@@ -50,7 +51,7 @@ import {
     MY_TEZOS_SCOPE_ALL
 } from './my-tezos-scope.mjs';
 import { enqueueToast } from '../ui/toast-queue.js';
-import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
+import { quietlyMutate, quietlySyncHtml } from '../core/quiet-refresh.js';
 import {
     buildMyTezosJourneyLinks,
     hasExplicitLinkedEtherlinkAccount,
@@ -75,6 +76,8 @@ const DRAWER_STATS_REFRESH_MS = 30000;
 const ACTIVE_VIEW_REFRESH_MS = 30000;
 const BAKING_BENJAMINS_NAME = 'Baking Benjamins';
 const _lastGoodOctezSoftware = new Map();
+const _lastGoodBakerSchedules = new Map();
+let _maintenanceDurationMinutes = 15;
 const _tezNameMemoryCache = new Map();
 let _activeOvernightReport = null;
 let _activeOvernightAddress = '';
@@ -266,9 +269,14 @@ async function fetchDALParticipation(bakerAddr) {
     } catch { return null; }
 }
 
-async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FETCH_TIMEOUT_MS) {
+async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FETCH_TIMEOUT_MS, { visibleOnly = false } = {}) {
+    if (visibleOnly && document.visibilityState !== 'visible') return fallback;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    const stopWhenHidden = () => {
+        if (document.visibilityState !== 'visible') controller.abort();
+    };
+    if (visibleOnly) document.addEventListener('visibilitychange', stopWhenHidden);
     try {
         return await fetchWithRetry(url, {
             signal: controller.signal,
@@ -280,6 +288,7 @@ async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FET
         return fallback;
     } finally {
         clearTimeout(timeout);
+        if (visibleOnly) document.removeEventListener('visibilitychange', stopWhenHidden);
     }
 }
 
@@ -321,13 +330,13 @@ function rightsUrl(params) {
 function parseBlockDelaySeconds(constants) {
     const raw = constants?.minimal_block_delay;
     const value = Array.isArray(raw) ? raw[0] : raw;
-    const seconds = parseFloat(String(value ?? '').replace(/"/g, ''));
-    return Number.isFinite(seconds) && seconds > 0 ? seconds : 6;
+    const seconds = Number(value);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
 }
 
-async function fetchBlockDelaySeconds() {
+async function fetchOperatorProtocol() {
     const constants = await fetchJsonWithTimeout(`${OCTEZ}/chains/main/blocks/head/context/constants`, null, 8000);
-    return parseBlockDelaySeconds(constants);
+    return { blockDelaySeconds: parseBlockDelaySeconds(constants), rewardThresholds: readBakerRewardThresholds(constants) };
 }
 
 function formatDuration(ms) {
@@ -495,20 +504,22 @@ async function fetchOperatorHead() {
 }
 
 async function fetchBakerOperatorStatus(bakerAddr, participation) {
-    if (!bakerAddr) return null;
-    const [head, blockDelaySeconds, dalParticipation, octez] = await Promise.all([
+    if (!bakerAddr || document.visibilityState !== 'visible') return null;
+    const [head, protocol, dalParticipation, octez] = await Promise.all([
         fetchOperatorHead(),
-        fetchBlockDelaySeconds(),
+        fetchOperatorProtocol(),
         fetchDALParticipation(bakerAddr),
         fetchBakerOctezSoftware(bakerAddr)
     ]);
+    if (document.visibilityState !== 'visible') return null;
+    const { blockDelaySeconds, rewardThresholds } = protocol;
     const headLevel = Number(head?.level);
     if (!Number.isFinite(headLevel)) {
         const dal = summarizeDalParticipation(dalParticipation);
         const attestation = summarizeCycleAttestation(participation, null);
         return {
             live: { state: 'unknown', value: 'No data', detail: 'Could not read current chain head' },
-            nextBlock: null,
+            schedule: { state: 'stale', snapshot: _lastGoodBakerSchedules.get(bakerAddr) || null, bakerAddr },
             lastBlock: null,
             attestation,
             dal,
@@ -524,10 +535,10 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             status: 'future',
             'level.gt': String(headLevel),
             round: '0',
-            limit: '20',
+            limit: String(BAKER_SCHEDULE_LIMIT),
             'sort.asc': 'level',
             select: 'level,cycle,round,status,type'
-        }), []),
+        }), null, RIGHTS_FETCH_TIMEOUT_MS, { visibleOnly: true }),
         fetchJsonWithTimeout(rightsUrl({
             baker: enc,
             type: 'baking',
@@ -548,9 +559,15 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
         }), [])
     ]);
 
-    const next = firstRoundZeroRight(nextBlocks);
-    const levelDiff = next ? Number(next.level) - headLevel : null;
-    const etaMs = Number.isFinite(levelDiff) ? levelDiff * blockDelaySeconds * 1000 : null;
+    const snapshot = buildBakerSchedule({ rights: nextBlocks, head, blockDelaySeconds, rewardThresholds });
+    const previousSchedule = _lastGoodBakerSchedules.get(bakerAddr);
+    if (snapshot && (!previousSchedule || snapshot.headLevel >= previousSchedule.headLevel)) {
+        _lastGoodBakerSchedules.delete(bakerAddr);
+        _lastGoodBakerSchedules.set(bakerAddr, snapshot);
+        if (_lastGoodBakerSchedules.size > 8) _lastGoodBakerSchedules.delete(_lastGoodBakerSchedules.keys().next().value);
+    }
+    const retainedSchedule = _lastGoodBakerSchedules.get(bakerAddr) || null;
+    const schedule = { state: snapshot && isBakerScheduleFresh(retainedSchedule) ? 'fresh' : 'stale', snapshot: retainedSchedule, bakerAddr };
     const latestBlock = summarizeRightStatus(firstRoundZeroRight(latestBlocks));
     const recentAttestations = summarizeRecentAttestations(Array.isArray(latestAttestations) ? latestAttestations : []);
     const dal = summarizeDalParticipation(dalParticipation);
@@ -559,12 +576,7 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
 
     return {
         live,
-        nextBlock: next ? {
-            level: next.level,
-            round: next.round,
-            eta: formatDuration(etaMs),
-            detail: `Level ${formatLevel(next.level)}${next.round != null ? `, round ${next.round}` : ''}`
-        } : null,
+        schedule,
         lastBlock: latestBlock,
         attestation,
         dal,
@@ -650,9 +662,9 @@ export async function fetchBakerVoteStatus(bakerAddr) {
 
 function calcBakerHealth(participation) {
     if (!participation) return null;
-    const expected = participation.expected_cycle_activity || 0;
-    const missed = participation.missed_slots || 0;
-    if (expected === 0) return 100;
+    const expected = participation.expected_cycle_activity;
+    const missed = participation.missed_slots;
+    if (!Number.isFinite(expected) || expected <= 0 || !Number.isFinite(missed) || missed < 0 || missed > expected) return null;
     const rate = ((expected - missed) / expected) * 100;
     if (rate >= 99) return 100;
     if (rate >= 97) return 95;
@@ -1007,6 +1019,73 @@ function renderBakerSignalUnavailable() {
     }
 }
 
+function formatScheduleTime(at) {
+    return new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+}
+
+function renderBakerSchedule(receipt) {
+    const snapshot = receipt?.snapshot;
+    const now = Date.now();
+    const fresh = receipt?.state === 'fresh' && isBakerScheduleFresh(snapshot, now);
+    const assignments = snapshot?.assignments || [];
+    const plan = fresh ? planBakerMaintenance(snapshot, { durationMinutes: _maintenanceDurationMinutes, now }) : null;
+    const clock = fresh ? now : snapshot?.observedAt;
+    const next = Array.from({ length: 3 }, (_, index) => {
+        const right = assignments[index];
+        const label = ['Next round 0', 'Following round 0', 'Third round 0'][index];
+        return `<div class="drawer-operator-tile drawer-schedule-right" data-quiet-key="schedule-slot-${index}">
+            <span class="drawer-operator-label">${label}</span>
+            <strong class="drawer-operator-value">${right ? escapeHtml(`${fresh ? '≈' : ''}${formatDuration(right.at - clock)}`) : '—'}</strong>
+            <span class="drawer-operator-detail">${right ? `Level <a href="https://tzkt.io/${escapeHtml(receipt.bakerAddr)}/schedule" target="_blank" rel="noopener noreferrer">${formatLevel(right.level)}</a>` : (snapshot ? 'No further published right' : 'Schedule unavailable')}</span>
+            <span class="drawer-schedule-time">${right ? escapeHtml(formatScheduleTime(right.at)) : 'Timing unavailable'}</span>
+        </div>`;
+    }).join('');
+    const coverage = snapshot
+        ? `${assignments.length === BAKER_SCHEDULE_LIMIT ? 'Next 100' : `${assignments.length} of up to 100 published`} round-0 rights${assignments.length ? ` · through level ${formatLevel(assignments.at(-1).level)}` : ''}`
+        : 'Up to 100 round-0 rights · schedule unavailable';
+    const status = fresh
+        ? `Checked ${formatScheduleTime(snapshot.observedAt)} · estimates at ${snapshot.blockDelaySeconds}s/block; delays can shift them.`
+        : (snapshot ? 'Last confirmed schedule · refresh or chain timing unavailable. Recheck before maintenance.' : 'Waiting for a confirmed head, block timing, and baking schedule.');
+    const earliest = plan?.earliest;
+    const longest = plan?.longest;
+    const windowText = earliest ? `${formatScheduleTime(earliest.start)} – ${formatScheduleTime(earliest.outageEnd)}` : '';
+    const longestMinutes = longest ? Math.floor(longest.durationMs / 60_000) : 0;
+    const thresholds = snapshot?.rewardThresholds;
+    const rewardNotice = thresholds
+        ? `Missing some duties does not reduce these cycle rewards if you still reach at least ${thresholds.consensus.numerator}/${thresholds.consensus.denominator} of expected consensus attestation activity and ${(100 * thresholds.dal.numerator / thresholds.dal.denominator).toLocaleString('en-US', { maximumFractionDigits: 2 })}% of eligible DAL slots, and meet the other reward conditions.`
+        : 'Missing some duties need not reduce cycle rewards if participation thresholds and other reward conditions are met. Current thresholds are unavailable.';
+    return `<section class="drawer-operator-next drawer-baker-schedule" data-quiet-key="baker-schedule" data-schedule-state="${fresh ? 'fresh' : 'stale'}" data-schedule-checked="${snapshot?.observedAt || ''}" aria-label="Upcoming baking rights and maintenance planning">
+        <div class="drawer-schedule-upcoming">${next}</div>
+        <div class="drawer-maintenance" data-quiet-key="maintenance">
+            <div class="drawer-maintenance-heading">
+                <h4>Maintenance gaps</h4>
+                <label for="baker-maintenance-duration">Outage
+                    <select id="baker-maintenance-duration">${MAINTENANCE_DURATIONS.map(minutes => `<option value="${minutes}"${minutes === _maintenanceDurationMinutes ? ' selected' : ''}>${minutes} min</option>`).join('')}</select>
+                </label>
+            </div>
+            <div class="drawer-maintenance-result" data-quiet-key="maintenance-result">
+                <span class="drawer-operator-label">Earliest fit · ${MAINTENANCE_BUFFER_MINUTES}m buffers each side</span>
+                <strong>${earliest ? `In ≈${formatDuration(earliest.start - now)}` : (fresh ? 'No fitting gap in this scan' : 'Waiting for a fresh schedule')}</strong>
+                <span class="drawer-maintenance-window">${escapeHtml(windowText || (fresh ? 'Try a shorter outage or check the schedule again later.' : 'Maintenance suggestions resume after a confirmed refresh.'))}</span>
+                <span class="drawer-maintenance-between">${earliest ? `After level ${formatLevel(earliest.afterLevel)} · back before ${formatLevel(earliest.beforeLevel)}` : 'No confirmed outage window'}</span>
+            </div>
+            <p class="drawer-maintenance-longest">${longest ? `Longest buffered gap: ${longestMinutes < 1 ? '<1' : longestMinutes}m · ${escapeHtml(formatScheduleTime(longest.start))} – ${escapeHtml(formatScheduleTime(longest.end))}` : 'No usable gap confirmed within the returned rights.'}</p>
+        </div>
+        <div class="drawer-schedule-notes">
+            <p class="drawer-schedule-reward-note"><strong>Maintenance &amp; rewards.</strong> ${escapeHtml(rewardNotice)} Missed baking rewards and fees are separate.</p>
+            <details data-chamber-disclosure data-quiet-key="schedule-method"><summary>Schedule coverage &amp; timing</summary>
+                <p>${escapeHtml(coverage)}. No gap is inferred after the last returned right.</p>
+                <p>${escapeHtml(status)}</p>
+                <p>Windows leave ${MAINTENANCE_BUFFER_MINUTES} minutes after the head or preceding assignment and before the next. Allow additional time for your node to catch up.</p>
+                <p>Attestation and DAL duties continue; later-round baking is possible. This planner does not forecast your end-of-cycle participation. Consensus reward eligibility also requires nonce revelations; DAL rewards require consensus rewards and no DAL denunciation.</p>
+                <p><a href="https://octez.tezos.com/docs/active/consensus.html#rewards" target="_blank" rel="noopener noreferrer">Consensus reward rules</a> · <a href="https://octez.tezos.com/docs/active/dal_support.html#minimal-participation" target="_blank" rel="noopener noreferrer">DAL reward rules</a></p>
+                <a href="https://tzkt.io/${escapeHtml(receipt?.bakerAddr || '')}/schedule" target="_blank" rel="noopener noreferrer">Verify baker schedule on TzKT ↗</a>
+            </details>
+            <span class="drawer-schedule-freshness">${fresh ? `${assignments.length} rights checked · approximate times` : (snapshot ? 'Last confirmed data · timing unavailable' : 'Schedule unavailable')}</span>
+        </div>
+    </section>`;
+}
+
 function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
     const container = document.getElementById('drawer-operator-status');
     if (!container) return;
@@ -1026,9 +1105,7 @@ function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
     const empty = document.getElementById('my-tezos-baker-signal-empty');
     if (empty && !empty.hidden) quietlyMutate(empty, () => { empty.hidden = true; });
 
-    const next = status.nextBlock
-        ? renderOperatorTile('Next round 0', status.nextBlock.eta, status.nextBlock.detail, 'ok', 'drawer-operator-next')
-        : renderOperatorTile('Next round 0', 'No right found', 'No upcoming round 0 baking right returned', 'unknown', 'drawer-operator-next');
+    const next = renderBakerSchedule(status.schedule);
     const live = renderOperatorTile(
         'Baker working?',
         status.live.value,
@@ -1055,23 +1132,24 @@ function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
                 <p>Live consensus, upcoming rights, and baker software</p>
             </div>
             <div class="drawer-operator-grid">
-                <section class="drawer-operator-group" data-quiet-key="operator-recent" aria-label="Recent consensus">
-                    <h4>Recent consensus <span>Last ${RECENT_OPERATOR_ATTESTATIONS} attestations</span></h4>
-                    ${live}
-                    ${attest}
-                    ${dal}
-                </section>
-                <section class="drawer-operator-group" data-quiet-key="operator-next" aria-label="Next right and software">
-                    <h4>Next right &amp; software</h4>
-                    ${next}
-                    ${octez}
-                </section>
+                ${next}
+                ${octez}
+                ${live}
+                ${attest}
+                ${dal}
             </div>
         </div>
     `;
     if (container.children.length) quietlySyncHtml(container, html);
     else container.innerHTML = html;
     if (wasHidden) quietlyMutate(container, () => { container.hidden = false; });
+    const duration = container.querySelector('#baker-maintenance-duration');
+    if (duration) duration.onchange = () => {
+        const minutes = Number(duration.value);
+        if (!MAINTENANCE_DURATIONS.includes(minutes)) return;
+        _maintenanceDurationMinutes = minutes;
+        renderBakerOperatorStatus(status, isBaker, bakerName);
+    };
 }
 
 function getGreeting() {
@@ -2488,11 +2566,50 @@ function renderBriefCards(items) {
     }).join('');
 }
 
-function renderBakerBrief(cards) {
+function bakerParticipationSnapshot(participation, bakerAddr) {
+    const previous = window._myTezosData;
+    if (participation) return { participation, participationStale: false, participationObservedAt: Date.now() };
+    if (bakerAddr && previous?.bakerAddr === bakerAddr && previous.participation) {
+        return { participation: previous.participation, participationStale: true, participationObservedAt: previous.participationObservedAt };
+    }
+    return { participation: null, participationStale: false, participationObservedAt: null };
+}
+
+function renderBakerGrade(data) {
+    if (!data?.bakerAddr) return '';
+    const score = calcBakerHealth(data.participation);
+    const grade = score === null ? null : letterGrade(score);
+    const expected = data.participation?.expected_cycle_activity;
+    const missed = data.participation?.missed_slots;
+    const retained = grade ? ((1 - missed / expected) * 100).toFixed(1) : '—';
+    return `<section class="brief-section drawer-baker-grade" data-quiet-key="baker-grade" data-grade-state="${data.participationStale ? 'stale' : grade ? 'current' : 'unavailable'}">
+        <h4 class="brief-section-title">Baker Grade <span class="drawer-grade-basis" title="${data.participationObservedAt ? escapeHtml(new Date(data.participationObservedAt).toLocaleString()) : 'No participation receipt'}">${data.participationStale ? 'Last confirmed' : 'Cycle participation'}</span></h4>
+        <div class="drawer-grade-heading">
+            <strong class="grade-letter" style="color:${grade ? healthLabel(score).color : 'var(--text-secondary)'}">${grade?.grade || '—'}</strong>
+            <div><strong class="grade-score">${grade ? `${score}<small>/100</small>` : 'Unavailable'}</strong>
+                <span class="drawer-grade-summary">${grade ? `${retained}% cycle power retained` : 'Waiting for usable participation data'}</span></div>
+        </div>
+        <dl class="drawer-grade-facts">
+            <div><dt>Missed power so far</dt><dd>${grade ? fmtCount(missed) : '—'}</dd></div>
+            <div><dt>Expected cycle power</dt><dd>${grade ? fmtCount(expected) : '—'}</dd></div>
+        </dl>
+        <details class="drawer-grade-method" data-chamber-disclosure data-quiet-key="baker-grade-method">
+            <summary>How this grade works</summary>
+            <p>Current-cycle estimate: 1 − missed attestation power ÷ expected cycle power. Future duties remain; this is not a payout forecast.</p>
+            <p>Retained power → score: ≥99% → 100; ≥97% → 95; ≥95% → 90; ≥90% → 75; ≥67% → 50; below 67% → 25. No grade without usable expected power.</p>
+            <p>The full report separately scores completed-cycle participation, community, capacity, and consensus-key readiness.</p>
+        </details>
+        <button type="button" class="report-card-btn glass-button" title="Open the broader, shareable baker report">📋 Full Baker Report <span aria-hidden="true">↗</span></button>
+    </section>`;
+}
+
+function renderBakerBrief(cards, data) {
     const bakerBrief = document.getElementById('drawer-baker-brief');
     if (!bakerBrief) return;
     const bakerCards = cards.filter(card => card.accent === 'baker' || card.accent === 'governance');
-    quietlySyncHtml(bakerBrief, renderBriefCards(bakerCards));
+    quietlySyncHtml(bakerBrief, renderBriefCards(bakerCards) + renderBakerGrade(data));
+    const reportButton = bakerBrief.querySelector('.report-card-btn');
+    if (reportButton) reportButton.onclick = () => showBakerReportCard(data.bakerAddr);
     quietlyMutate(bakerBrief, () => { bakerBrief.hidden = bakerCards.length === 0; });
 }
 
@@ -2517,7 +2634,7 @@ function renderBriefTabs(cards, data) {
     if (container.children.length) quietlySyncHtml(container, sectionsHtml);
     else container.innerHTML = sectionsHtml;
 
-    renderBakerBrief(cards);
+    renderBakerBrief(cards, data);
 
     renderStoryPanel(storyCard, data);
 }
@@ -2615,6 +2732,7 @@ async function renderMorningBrief(address, force = false) {
             : Promise.resolve(null);
         operatorStatusPromise.then((status) => {
             if (requestSeq !== _briefRequestSeq || localStorage.getItem(STORAGE_KEY) !== address) return;
+            if (document.visibilityState !== 'visible') return;
             renderBakerOperatorStatus(status, isBaker, bakerName);
         }).catch(() => {});
         const bakerActivityPromise = isBaker
@@ -2642,7 +2760,8 @@ async function renderMorningBrief(address, force = false) {
             && (!isBaker || account.active !== false);
         const bakerInactive = Boolean(bakerAddr) && !bakerActive;
 
-        const healthScore = calcBakerHealth(participation);
+        const participationState = bakerParticipationSnapshot(participation, bakerAddr);
+        const healthScore = calcBakerHealth(participationState.participation);
         const health = healthLabel(healthScore);
 
         let rewardsLastCycle = 0;
@@ -2721,7 +2840,7 @@ async function renderMorningBrief(address, force = false) {
             bakerAddr, isBaker,
             totalXTZ, staked, xtzPrice, apyRate, apyBasis, activeRewardEstimate, estDaily, estAnnual,
             rewardsLastCycle, latestRewardCycle, rewardStreak,
-            bakerName, bakerInactive, healthScore, health, attestRate,
+            bakerName, bakerInactive, healthScore, health, attestRate, ...participationState,
             isStaker, hasRewardRole, story, activeProposal, bakerVote, bakerActivity, greetingName,
             operatorStatus: _latestOperatorSignal?.address === address ? _latestOperatorSignal.status : operatorStatus,
         };
@@ -2757,24 +2876,6 @@ async function renderMorningBrief(address, force = false) {
         renderWhileAwayNetworkCard();
         renderBakerActivity(bakerActivity);
         renderDelegationGuidance(data, requestSeq).catch(() => {});
-
-        // Feature 6: Baker health grade in drawer
-        if (healthScore !== null) {
-            const gradeInfo = letterGrade(healthScore);
-            const gradeContainer = document.getElementById('drawer-baker');
-            if (gradeContainer) {
-                const gradeEl = document.createElement('div');
-                gradeEl.className = 'drawer-baker-grade';
-                gradeEl.innerHTML = `
-                    <span class="grade-letter" style="color:${gradeInfo.color}">${gradeInfo.grade}</span>
-                    <span class="grade-label">Baker Grade</span>
-                    <span class="grade-score">${healthScore}/100</span>
-                `;
-                const existingGrade = gradeContainer.querySelector('.drawer-baker-grade');
-                if (existingGrade) quietlySyncElement(existingGrade, gradeEl.outerHTML);
-                else gradeContainer.insertBefore(gradeEl, gradeContainer.firstChild);
-            }
-        }
 
         // Feature 7: Historical rewards sparkline
         if (rewards && rewards.length > 1) {
@@ -2923,6 +3024,7 @@ async function refreshOperatorSignal({ force = false } = {}) {
         const participation = await fetchParticipation(context.bakerAddr);
         const operatorStatus = await fetchBakerOperatorStatus(context.bakerAddr, participation);
         if (requestSeq !== _operatorSignalSeq || localStorage.getItem(STORAGE_KEY) !== address) return;
+        if (!isDrawerOpen() || document.visibilityState !== 'visible') return;
 
         renderBakerOperatorStatus(operatorStatus, context.isBaker, context.bakerName);
         if (window._myTezosData?.fullAddress === address) {
@@ -2932,8 +3034,11 @@ async function refreshOperatorSignal({ force = false } = {}) {
                 isBaker: context.isBaker,
                 bakerName: context.bakerName || window._myTezosData.bakerName,
                 operatorStatus,
+                ...bakerParticipationSnapshot(participation, context.bakerAddr),
+                healthScore: calcBakerHealth(participation),
+                health: healthLabel(calcBakerHealth(participation)),
             };
-            if (!window._myTezosData.loading) renderBakerBrief(buildMorningBrief(window._myTezosData));
+            if (!window._myTezosData.loading) renderBakerBrief(buildMorningBrief(window._myTezosData), window._myTezosData);
         }
         updateFreshness({ signalLive: true });
         window.dispatchEvent(new Event('my-tezos-operator-signal-ready'));
