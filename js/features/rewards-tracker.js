@@ -587,6 +587,13 @@ function getBlocksRemaining(stats) {
   return null;
 }
 
+export function renderRewardsLoading() {
+  buildCSS();
+  return `<div id="${CONTAINER_ID}" aria-busy="true"><div class="rt-grid">
+    ${['⏱ Cycle Clock', '📈 Current Cycle', '🏆 Lifetime Rewards'].map(title => `<div class="rt-card"><div class="rt-card-title">${title}</div><div class="rt-value">—</div><div class="rt-sub">Reading reward data…</div></div>`).join('')}
+  </div></div><div class="drawer-rewards-spark" style="position:relative;width:100%;height:80px;margin-top:12px;"><div class="spark-label" style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">Reading earnings trend…</div><div style="position:relative;height:60px;"><canvas id="drawer-rewards-sparkline"></canvas></div></div>`;
+}
+
 function buildContainer(report, stats, xtzPrice) {
   const rewards = report.rows;
   const price = parsePrice(xtzPrice);
@@ -723,7 +730,8 @@ export async function initRewardsTracker(stats, xtzPrice, options = {}) {
   if (!address) return;
 
   const quiet = options.quiet === true && document.getElementById(CONTAINER_ID);
-  if (quiet) {
+  // Keep the drawer's loading or last-good cards in place during source reads.
+  if (quiet || document.getElementById('drawer-rewards')) {
     if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
   } else {
     destroyRewardsTracker();
@@ -789,7 +797,7 @@ export async function initRewardsTracker(stats, xtzPrice, options = {}) {
   const container = buildContainer(rewardReport, stats, xtzPrice);
   const historyTarget = document.getElementById('drawer-baker-history');
   if (historyTarget) {
-    const bakerCalendar = container.querySelector('.rt-calendar[data-reward-kind="baker"]');
+    const bakerCalendar = container.querySelector('.rt-calendar');
     quietlySyncHtml(historyTarget, bakerCalendar?.outerHTML || '');
     historyTarget.hidden = !bakerCalendar;
     bakerCalendar?.remove();
@@ -799,7 +807,10 @@ export async function initRewardsTracker(stats, xtzPrice, options = {}) {
       const sparkMarkup = drawerTarget.querySelector('.drawer-rewards-spark')?.outerHTML || '';
       quietlySyncHtml(drawerTarget, `${container.outerHTML}${sparkMarkup}`);
     }
-    else drawerTarget.replaceChildren(container);
+    else {
+      const spark = drawerTarget.querySelector('.drawer-rewards-spark');
+      drawerTarget.replaceChildren(container, ...(spark ? [spark] : []));
+    }
   } else {
     fallbackTarget.parentNode.insertBefore(container, fallbackTarget);
   }

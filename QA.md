@@ -45,6 +45,26 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 - `--strict-external` fails on upstream data warnings that are normally tolerated, such as CoinGecko or TzKT rate limits.
 - `--browser-executable` pins the browser executable used for the smoke crawl.
 
+## My Tezos loading geometry
+
+Run `my-tezos-layout-states` alongside `my-tezos-layout` and the affected live-refresh suites.
+The loading-state smoke holds external reads and compares real rendered x/y/width/height
+before and after completion across all seven tabs at 1440px, 390px, 320px, and 844px landscape. A change over
+one CSS pixel fails. Same-row peer cards must have equal heights, their content must
+fit, and the drawer must not overflow horizontally. Negative probes remove the grade
+card and break its shared row height to prove both regressions are detected.
+
+Unknown-length receipt lists may grow downward at the end of a view. Their top and
+width stay fixed, with all unrelated controls and cards above them; the smoke rejects
+controls stranded below those lists. This exception covers transaction/NFT receipts,
+recent baker accounts, and supplemental network receipts. It does not excuse missing
+fixed cards or shifting list headers. Opening a disclosure, switching receipt types,
+changing wallets, resizing, and explicit pagination are user-driven layout changes.
+Do not add blanket selector exclusions or increase the pixel tolerance to hide drift.
+
+Save pending/loaded screenshots and geometry JSON with `--artifacts-dir`. Visually
+review content density as well: matching giant empty placeholders is not acceptance.
+
 ## Manual visual pass
 
 Automated tests catch regressions, but still do this visual pass for UI-heavy changes:

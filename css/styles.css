@@ -27092,20 +27092,20 @@ body[data-theme="hen"]::after {
 #my-tezos-drawer .drawer-schedule-right .drawer-operator-value { font-size: 1.45rem; text-shadow: none; }
 #my-tezos-drawer .drawer-schedule-right .drawer-operator-label { min-height: 2.4em; font-size: 0.61rem; }
 #my-tezos-drawer .drawer-schedule-right .drawer-operator-detail { font-size: 0.7rem; opacity: 1; }
-.drawer-schedule-right .drawer-operator-detail a { display: block; }
+.drawer-schedule-right .drawer-operator-detail :is(a, span) { display: block; }
 .drawer-baker-schedule a { color: var(--accent-cyan); text-underline-offset: 3px; }
 .drawer-schedule-time { color: var(--text-secondary); font: 400 0.66rem/1.5 var(--font-ui); }
-.drawer-maintenance { min-width: 0; display: grid; align-content: start; gap: 10px; }
-.drawer-maintenance-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-#my-tezos-drawer .drawer-maintenance-heading h4 { margin: 0; font: 600 0.85rem/1.4 var(--font-ui); }
-.drawer-maintenance-heading label { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font: 400 0.7rem/1.4 var(--font-ui); }
+.drawer-operator-header > label { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font: 400 0.7rem/1.4 var(--font-ui); }
+.drawer-maintenance { min-width: 0; display: grid; align-content: start; gap: 6px; padding: 12px; border: 1px solid var(--my-edge); border-radius: 7px; background: var(--my-surface); }
+#my-tezos-drawer .drawer-maintenance h4 { margin: 0; min-height: 2.4em; font: 700 0.61rem/1.4 var(--font-ui); color: var(--text-secondary); letter-spacing: .08em; text-transform: uppercase; }
+.drawer-maintenance-buffer { color: var(--text-secondary); font: 400 0.65rem/1.5 var(--font-ui); }
 #baker-maintenance-duration { min-height: 44px; max-width: 100%; padding: 7px; border: 1px solid var(--my-edge); border-radius: 7px; background: var(--my-surface); color: var(--text-primary); font: inherit; }
 #baker-maintenance-duration:focus-visible, .drawer-baker-schedule summary:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
-.drawer-maintenance-result { display: grid; align-content: start; gap: 6px; min-height: 84px; }
+.drawer-maintenance-result { display: grid; align-content: start; gap: 6px; }
 #my-tezos-drawer .drawer-maintenance-result > strong { font: 600 1.05rem/1.4 var(--font-ui); color: var(--text-primary); }
 .drawer-maintenance-window { font: 500 0.74rem/1.5 var(--font-ui); }
 .drawer-maintenance-between, .drawer-schedule-freshness { color: var(--text-secondary); font: 400 0.65rem/1.5 var(--font-ui); }
-#my-tezos-drawer .drawer-maintenance-longest { min-height: 3em; margin: 0; color: var(--text-secondary); font: 400 0.68rem/1.5 var(--font-ui); }
+#my-tezos-drawer .drawer-maintenance-longest { min-height: 1.5em; margin: 0; color: var(--text-secondary); font: 400 0.68rem/1.5 var(--font-ui); }
 .drawer-schedule-notes { min-width: 0; grid-column: 1 / -1; display: grid; gap: 6px; }
 #my-tezos-drawer .drawer-schedule-notes p { margin: 0; color: var(--text-secondary); font: 400 0.69rem/1.5 var(--font-ui); }
 .drawer-schedule-notes details { min-width: 0; font: 400 0.69rem/1.5 var(--font-ui); }
@@ -27204,5 +27204,132 @@ body[data-theme="hen"]::after {
         align-items: baseline;
         justify-content: space-between;
     }
+}
+/* Data fills a reserved canvas; only explicit disclosures and pagination grow it. */
+#my-tezos-drawer .my-baker-loading-matrix { display: block; width: 100%; max-width: none; min-height: 0; margin: 0; padding: 0; }
+#my-tezos-drawer .my-baker-grid { grid-auto-rows: 90px; gap: 12px; min-height: 0; align-content: start; }
+#my-tezos-drawer .my-baker-stat { min-width: 0; min-height: 0; justify-content: center; }
+#my-tezos-drawer .my-baker-loading-stat { background: var(--my-surface); animation: none; }
+#my-tezos-drawer .drawer-loading-line { background: var(--my-edge); }
+#my-tezos-drawer .capacity-bar-card { min-height: 130px; }
+#my-tezos-drawer #drawer-baker-brief > :is(.brief-section-baker, .drawer-loading-card-baker, .drawer-baker-grade) { min-height: 324px; }
+#my-tezos-drawer #drawer-baker-brief > .brief-section-governance { min-height: 160px; }
+#my-tezos-drawer .drawer-schedule-right .drawer-operator-detail { min-height: 3em; }
+#my-tezos-drawer .drawer-operator-grid > .drawer-operator-tile { min-height: 132px; }
+#my-tezos-drawer .drawer-freshness { min-height: 48px; }
+#my-tezos-drawer .drawer-account-journey-card { min-height: 86px; }
+#my-tezos-drawer #drawer-brief > :is(.brief-section, .drawer-loading-card) { min-height: 156px; }
+#my-tezos-drawer .network-context-columns { align-items: stretch; }
+#my-tezos-drawer .network-personal-spotlight { align-content: start; }
+#my-tezos-drawer .portfolio-rates { min-height: 3em; }
+#my-tezos-drawer .my-tezos-feature-footer,
+#my-tezos-drawer .portfolio-activity-footer { min-height: 64px; align-items: start; }
+#my-tezos-drawer .tezos-story-identity { min-height: 154px; }
+#my-tezos-drawer .tezos-story-metric { min-height: 116px; }
+#my-tezos-drawer .tezos-story-actions { min-height: 44px; }
+#my-tezos-drawer .tezos-story-era-rail { min-height: 64px; }
+#my-tezos-drawer .tezos-story-next { min-height: 94px; }
+#my-tezos-drawer .tezos-story-badges { display: flex; overflow-x: auto; align-items: stretch; min-height: 88px; }
+#my-tezos-drawer .tezos-story-badge { flex: 0 0 260px; grid-template-columns: 1fr; align-content: center; }
+#my-tezos-drawer .tezos-story-badge span { text-align: left; }
+@media (max-width: 760px) {
+    #my-tezos-drawer #drawer-baker-brief > :is(.brief-section-baker, .drawer-loading-card-baker) { min-height: 220px; }
+    #my-tezos-drawer #drawer-baker-brief > .brief-section-governance { min-height: 220px; }
+    #my-tezos-drawer .drawer-operator-grid > .drawer-operator-tile { min-height: 156px; }
+    #my-tezos-drawer .portfolio-rates { min-height: 4.5em; }
+    #my-tezos-drawer .my-tezos-feature-footer,
+    #my-tezos-drawer .portfolio-activity-footer { min-height: 100px; }
+}
+
+#my-tezos-drawer #drawer-baker-details > :is(#drawer-more-section, .my-tezos-reading) { grid-column: 1 / -1; }
+#my-tezos-drawer .rt-card { min-height: 264px; }
+#my-tezos-drawer .rt-calendar { min-height: 110px; }
+#my-tezos-drawer .tezos-story-badges { min-height: 100px; }
+#my-tezos-drawer .my-tezos-overview-transactions { position: relative; }
+#my-tezos-drawer #my-tezos-overview-activity-list { min-height: 292px; grid-auto-rows: 88px; align-content: start; }
+#my-tezos-drawer #my-tezos-overview-activity-empty { position: absolute; inset: auto 20px; margin: 0; bottom: 70px; min-height: 0; }
+#my-tezos-drawer #my-tezos-overview-activity-status { min-height: 3em; }
+#my-tezos-drawer .portfolio-freshness { min-height: 64px; }
+@media (max-width: 760px) {
+    #my-tezos-drawer .rt-card { min-height: 264px; }
+    #my-tezos-drawer .rt-calendar { min-height: 180px; }
+    #my-tezos-drawer #my-tezos-overview-activity-list { min-height: 376px; grid-auto-rows: 116px; }
+    #my-tezos-drawer #my-tezos-overview-activity-status { min-height: 6em; }
+}
+
+#my-tezos-drawer #portfolio-coverage { min-height: 4.65em; }
+#my-tezos-drawer #portfolio-history-status { min-height: 5.6em; }
+#my-tezos-drawer #portfolio-management-status { min-height: 1.5em; }
+#my-tezos-drawer .portfolio-wallet-row > [data-label] { min-height: 18px; }
+#my-tezos-drawer #portfolio-while-away { min-height: 100px; }
+#my-tezos-drawer .drawer-account-journey-copy { align-content: start; }
+#my-tezos-drawer .drawer-account-journey-card { align-items: start; }
+#my-tezos-drawer .drawer-account-journey-copy small { min-height: 3em; }
+@media (max-width: 760px) {
+    #my-tezos-drawer .drawer-account-journey-card { min-height: 116px; }
+    #my-tezos-drawer #portfolio-while-away { min-height: 140px; }
+}
+
+#my-tezos-drawer .network-personal-spotlight-copy { min-height: 104px; display: grid; align-content: start; }
+#my-tezos-drawer .network-context-focus { min-height: 64px; align-content: start; }
+#my-tezos-drawer .network-personal-facts { grid-auto-rows: 88px; align-content: start; }
+#my-tezos-drawer .network-context-now-heading { min-height: 62px; align-content: start; }
+#my-tezos-drawer .network-context-lede { min-height: 3em; }
+#my-tezos-drawer .network-context-signals { grid-auto-rows: 120px; align-content: start; }
+#my-tezos-drawer .network-signal { overflow-wrap: anywhere; }
+#my-tezos-drawer [aria-busy="true"] .network-personal-fact { pointer-events: none; }
+
+#my-tezos-drawer .tezosx-detail-section[hidden] { display: none; }
+#my-tezos-drawer .tezosx-detail-tabs { min-height: 44px; }
+#my-tezos-drawer .drawer-baker-schedule { align-items: stretch; gap: 12px; }
+#my-tezos-drawer .drawer-schedule-upcoming { align-self: stretch; }
+#my-tezos-drawer .drawer-schedule-right, #my-tezos-drawer .drawer-maintenance { min-height: 166px; }
+#my-tezos-drawer .drawer-schedule-notes { gap: 6px; }
+#my-tezos-drawer .drawer-schedule-reward-note { min-height: 3em; }
+@media (max-width: 1100px) {
+    #my-tezos-drawer .drawer-maintenance { min-height: 152px; }
+}
+@media (max-width: 480px) {
+    #my-tezos-drawer .drawer-schedule-right .drawer-operator-label { min-height: 2.4em; }
+    #my-tezos-drawer .drawer-schedule-reward-note { min-height: 12em; }
+    #my-tezos-drawer .drawer-maintenance-longest { min-height: 3em; }
+}
+@media (max-width: 480px) {
+    #my-tezos-drawer .capacity-bar-card { min-height: 178px; }
+}
+@media (max-width: 480px) {
+    #my-tezos-drawer .drawer-maintenance { min-height: 200px; }
+}
+@media (max-width: 760px) {
+    #my-tezos-drawer .network-context-signals { grid-auto-rows: 160px; }
+}
+@media (max-width: 760px) {
+    #my-tezos-drawer .network-personal-spotlight-copy { min-height: 156px; }
+    #my-tezos-drawer .network-personal-facts { grid-auto-rows: 116px; }
+    #my-tezos-drawer .network-context-now-heading { min-height: 86px; }
+    #my-tezos-drawer .network-context-lede { min-height: 6em; }
+}
+@media (max-width: 760px) {
+    #my-tezos-drawer .network-context-focus { min-height: 64px; }
+}
+@media (max-width: 360px) {
+    #my-tezos-drawer .network-context-focus { min-height: 88px; }
+}
+#my-tezos-drawer .drawer-rewards-spark canvas { display: block; width: 100%; max-width: 100%; height: 100%; }
+@media (max-width: 360px) {
+    #my-tezos-drawer .capacity-bars { grid-template-columns: minmax(0, 1fr); }
+    #my-tezos-drawer .capacity-bar-card { min-height: 140px; }
+}
+#my-tezos-drawer .drawer-operator-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+#my-tezos-drawer .drawer-operator-header > h3 { grid-column: 1; grid-row: 1; }
+#my-tezos-drawer .drawer-operator-header > p { grid-column: 1 / -1; grid-row: 2; }
+#my-tezos-drawer .drawer-operator-header > label { grid-column: 2; grid-row: 1; }
+#my-tezos-drawer .drawer-activity-list { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+#my-tezos-drawer .drawer-activity-row { min-width: 0; }
+@media (max-width: 760px) {
+    #my-tezos-drawer .drawer-activity-main { width: 100%; }
+}
+@media (max-width: 360px) {
+    #my-tezos-drawer .drawer-schedule-right:not(:first-child) .drawer-operator-value { font-size: 1.1rem; }
 }
 /* MY_TEZOS_LAZY_END */

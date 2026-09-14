@@ -7,6 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-09-14',
         entries: [
+            { type: '🔧', text: 'My Tezos fills stable loading cards, keeps controls above growing receipt lists, and checks loading geometry and equal card heights in browser smoke tests' },
+            { type: '🎨', text: 'Baking rights and maintenance timing now share a compact, aligned schedule with the next round-zero block highlighted' },
             { type: '🔧', text: 'Baker Status and Grade now reserve both card positions while loading and align their bottom edges when displayed side by side' },
             { type: '🎨', text: 'Baker Grade now sits beside Baker Status in its own card, with cycle participation evidence, an explained scoring scale, and the full shareable report' },
             { type: '🎨', text: 'Baker Signal restores compact status pills for the next baking right, Octez version, baker health, attestations, and DAL' },

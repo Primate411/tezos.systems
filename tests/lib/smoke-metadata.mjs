@@ -77,7 +77,8 @@ const RULES = [
       'tests/baker-schedule-check.mjs',
       'js/core/wallet.js',
       'css/my-tezos*',
-      'tests/lib/my-tezos-layout-smoke.mjs'
+      'tests/lib/my-tezos-layout-smoke.mjs',
+      'tests/lib/my-tezos-layout-states-smoke.mjs'
     ],
     tags: ['my-tezos'],
     risk: 'high'

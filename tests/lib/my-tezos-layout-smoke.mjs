@@ -44,6 +44,7 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
             chromeHeight: window.innerHeight - body.clientHeight,
             pinnedBalances: Boolean(document.querySelector('#my-tezos-wallet-scope-bar .my-tezos-scope-totals')),
             bodyOverflow: body.scrollWidth - body.clientWidth,
+            escaped: [...panel.querySelectorAll('*')].filter(node => { const r = node.getBoundingClientRect(); return r.width && r.right > body.getBoundingClientRect().right + 1; }).slice(0, 12).map(node => ({ id: node.id, class: node.className, text: node.textContent.slice(0, 60) })),
             panelOverflow: panel.scrollWidth - panel.clientWidth,
             tabs,
             clippedTotals: values.filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent),

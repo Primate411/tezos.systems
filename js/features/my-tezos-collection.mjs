@@ -164,9 +164,10 @@ function renderCollection() {
     const spamButton = document.getElementById('collection-spam-toggle');
     if (spamButton) {
         const hiddenSpam = currentRecords.filter((record) => record.spam).length;
-        spamButton.textContent = showSpam ? 'Hide flagged' : `Flagged ${hiddenSpam}`;
+        spamButton.textContent = showSpam ? 'Hide flagged' : `Flagged ${!currentRecords.length && ['loading', 'error'].includes(collectionReadState) ? '—' : hiddenSpam}`;
         spamButton.setAttribute('aria-pressed', String(showSpam));
-        spamButton.hidden = hiddenSpam === 0;
+        spamButton.hidden = false;
+        spamButton.disabled = hiddenSpam === 0;
     }
     renderProfiles();
 

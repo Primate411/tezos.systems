@@ -3978,19 +3978,19 @@ function renderDrawerMilestoneLine(signals = getLiveCandidateSignals(lastStats |
   `;
 }
 
-function renderToDrawer(cycle, sentences) {
+function renderToDrawer(cycle, sentences, loading = false) {
   const container = document.getElementById('drawer-network');
   if (!container) return;
   const profile = getCurrentMyTezosProfile();
   const data = window._myTezosData || {};
   const portfolio = personalPortfolioSnapshot(data);
   const relevanceContext = personalSignalContext(data, portfolio);
-  const spotlight = buildPersonalSpotlight(data, profile, portfolio);
-  const facts = buildPersonalFacts(data, profile, portfolio);
-  const signals = selectDrawerNetworkSignals(sentences, profile, data, portfolio, relevanceContext);
+  const spotlight = loading ? { tone: 'default', eyebrow: 'Personalized Network Context', title: 'Reading your account context…', text: 'Waiting for confirmed public data.' } : buildPersonalSpotlight(data, profile, portfolio);
+  const facts = loading ? Array.from({ length: 6 }, (_, index) => ({ key: `pending-${index}`, icon: '—', label: 'Reading account context', value: '—', detail: 'Waiting for data…', tone: 'default', view: 'overview' })) : buildPersonalFacts(data, profile, portfolio);
+  const signals = loading ? Array.from({ length: 4 }, (_, index) => ({ id: `pending-${index}`, title: 'Reading network signal', detail: '—', text: 'Waiting for confirmed network data…', tone: 'default', icon: '—', category: 'network' })) : selectDrawerNetworkSignals(sentences, profile, data, portfolio, relevanceContext);
   const lead = getBriefingLead(profile, signals);
   const html = `
-    <section class="network-context-panel">
+    <section class="network-context-panel" aria-busy="${loading}">
       <div class="network-context-header">
         <div>
           <span class="network-context-kicker">Personalized Network Context</span>
@@ -4013,7 +4013,6 @@ function renderToDrawer(cycle, sentences) {
           </div>
         </section>
         <section class="network-live-column" aria-labelledby="network-live-title">
-          <div class="network-away-slot" data-network-away-slot data-quiet-key="network-away-slot"></div>
           <div class="network-context-now-heading">
             <div>
               <span>Tezos right now</span>
@@ -4022,10 +4021,11 @@ function renderToDrawer(cycle, sentences) {
             <a href="${escapeHtml(networkFeatureRoute('network'))}" data-network-route="${escapeHtml(networkFeatureRoute('network'))}" aria-label="${escapeHtml(networkFeatureLabel('network'))}">Open Network Pulse <span aria-hidden="true">↗</span></a>
           </div>
           <p class="network-context-lede" data-magic-text>${escapeHtml(lead)}</p>
-          ${renderDrawerMilestoneLine()}
           <div class="network-context-signals">
             ${signals.map((signal, index) => renderSignalCard(signal, index, data, portfolio, relevanceContext)).join('')}
           </div>
+          ${loading ? '' : renderDrawerMilestoneLine()}
+          <div class="network-away-slot" data-network-away-slot data-quiet-key="network-away-slot"></div>
         </section>
       </div>
     </section>
@@ -4034,6 +4034,10 @@ function renderToDrawer(cycle, sentences) {
   else container.innerHTML = html;
   wireNetworkContextNavigation(container);
   window.dispatchEvent(new Event('my-tezos-network-context-rendered'));
+}
+
+export function renderNetworkLoading() {
+  renderToDrawer('—', [], true);
 }
 
 export async function initDailyBriefing(stats, xtzPrice) {

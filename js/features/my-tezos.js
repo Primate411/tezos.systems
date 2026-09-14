@@ -27,8 +27,8 @@ import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
 import { classifyOctezVersion, fetchOctezVersions, normalizeBakerSoftware } from '../core/octez-versions.js';
 import { fetchObjktProfile } from './objkt.js';
 import { refresh as refreshMyBakerStats } from './my-baker.js';
-import { initRewardsTracker } from './rewards-tracker.js';
-import { getDailyDeltaSignalSummaries } from './daily-briefing.js';
+import { initRewardsTracker, renderRewardsLoading } from './rewards-tracker.js';
+import { getDailyDeltaSignalSummaries, renderNetworkLoading } from './daily-briefing.js';
 import {
     activateMyTezosPortfolio,
     initMyTezosPortfolio,
@@ -947,51 +947,28 @@ function renderBakerActivityRows(rows, type) {
     }).join('');
 }
 
-function renderBakerActivityGroup(title, rows, type) {
-    if (!rows.length) return '';
-    return `
-        <div class="drawer-activity-group">
-            <div class="drawer-activity-group-head">
-                <span>${title}</span>
-                <span>${rows.length}</span>
-            </div>
-            <div class="drawer-activity-list">
-                ${renderBakerActivityRows(rows, type)}
-            </div>
-        </div>
-    `;
-}
-
-function renderBakerActivity(activity) {
+function renderBakerActivity(activity, loading = false) {
     const container = document.getElementById('drawer-baker-activity');
     if (!container) return;
-    const delegators = activity?.delegators || [];
-    const stakers = activity?.stakers || [];
-    if (!delegators.length && !stakers.length) {
-        if (!container.hidden) quietlyMutate(container, () => {
-            container.hidden = true;
-            container.innerHTML = '';
+    if (!loading && !activity) {
+        if (window._myTezosData?.isBaker === false) quietlyMutate(container, () => { container.hidden = true; });
+        else if (container.querySelector('[aria-busy="true"]')) quietlyMutate(container, () => {
+            container.querySelector('[aria-busy]').setAttribute('aria-busy', 'false');
+            const message = container.querySelector('.drawer-activity-panel > p');
+            if (message) message.textContent = 'Recent reward accounts unavailable.';
         });
         return;
     }
-
-    const wasHidden = container.hidden;
-    const html = `
-        <div class="drawer-activity-panel">
-            <div class="drawer-activity-header">
-                <div>
-                    <h3>Latest reward accounts</h3>
-                    <p>New delegators and stakers in the last ${activity.days} days</p>
-                </div>
-                <span>${delegators.length + stakers.length}</span>
-            </div>
-            ${renderBakerActivityGroup('Latest delegators', delegators, 'delegator')}
-            ${renderBakerActivityGroup('Latest stakers', stakers, 'staker')}
-        </div>
-    `;
-    if (container.children.length) quietlySyncHtml(container, html);
-    else container.innerHTML = html;
-    if (wasHidden) quietlyMutate(container, () => { container.hidden = false; });
+    const delegators = activity?.delegators || [];
+    const stakers = activity?.stakers || [];
+    const html = `<div class="drawer-activity-panel" aria-busy="${loading}">
+        <div class="drawer-activity-header"><div><h3>Latest reward accounts</h3><p>New delegators and stakers in the last ${RECENT_BAKER_ACTIVITY_DAYS} days</p></div><span>${loading ? '—' : delegators.length + stakers.length}</span></div>
+        <div class="drawer-activity-group-head"><span>Latest delegators · ${loading ? '—' : delegators.length}</span><span>Latest stakers · ${loading ? '—' : stakers.length}</span></div>
+        <div class="drawer-activity-list">${renderBakerActivityRows(delegators, 'delegator')}${renderBakerActivityRows(stakers, 'staker')}</div>
+        ${!delegators.length && !stakers.length ? `<p>${loading ? 'Reading recent reward accounts…' : 'No recent reward-account records returned for this account.'}</p>` : ''}
+    </div>`;
+    quietlySyncHtml(container, html);
+    quietlyMutate(container, () => { container.hidden = false; });
 }
 
 function renderOperatorTile(label, value, detail, state = 'unknown', extraClass = '') {
@@ -1023,6 +1000,13 @@ function formatScheduleTime(at) {
     return new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
 }
 
+function formatScheduleWindow(start, end) {
+    const first = new Date(start);
+    const last = new Date(end);
+    if (first.toDateString() !== last.toDateString()) return `${formatScheduleTime(start)} – ${formatScheduleTime(end)}`;
+    return `${first.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – ${last.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`;
+}
+
 function renderBakerSchedule(receipt) {
     const snapshot = receipt?.snapshot;
     const now = Date.now();
@@ -1036,8 +1020,8 @@ function renderBakerSchedule(receipt) {
         return `<div class="drawer-operator-tile drawer-schedule-right" data-quiet-key="schedule-slot-${index}">
             <span class="drawer-operator-label">${label}</span>
             <strong class="drawer-operator-value">${right ? escapeHtml(`${fresh ? '≈' : ''}${formatDuration(right.at - clock)}`) : '—'}</strong>
-            <span class="drawer-operator-detail">${right ? `Level <a href="https://tzkt.io/${escapeHtml(receipt.bakerAddr)}/schedule" target="_blank" rel="noopener noreferrer">${formatLevel(right.level)}</a>` : (snapshot ? 'No further published right' : 'Schedule unavailable')}</span>
-            <span class="drawer-schedule-time">${right ? escapeHtml(formatScheduleTime(right.at)) : 'Timing unavailable'}</span>
+            <span class="drawer-operator-detail">${right ? `Level <a href="https://tzkt.io/${escapeHtml(receipt.bakerAddr)}/schedule" target="_blank" rel="noopener noreferrer">${formatLevel(right.level)}</a>` : 'Level <span>—</span>'}</span>
+            <span class="drawer-schedule-time">${right ? escapeHtml(formatScheduleTime(right.at)) : (snapshot ? 'No further published right' : 'Timing unavailable')}</span>
         </div>`;
     }).join('');
     const coverage = snapshot
@@ -1048,30 +1032,25 @@ function renderBakerSchedule(receipt) {
         : (snapshot ? 'Last confirmed schedule · refresh or chain timing unavailable. Recheck before maintenance.' : 'Waiting for a confirmed head, block timing, and baking schedule.');
     const earliest = plan?.earliest;
     const longest = plan?.longest;
-    const windowText = earliest ? `${formatScheduleTime(earliest.start)} – ${formatScheduleTime(earliest.outageEnd)}` : '';
+    const windowText = earliest ? formatScheduleWindow(earliest.start, earliest.outageEnd) : '';
     const longestMinutes = longest ? Math.floor(longest.durationMs / 60_000) : 0;
     const thresholds = snapshot?.rewardThresholds;
     const rewardNotice = thresholds
-        ? `Missing some duties does not reduce these cycle rewards if you still reach at least ${thresholds.consensus.numerator}/${thresholds.consensus.denominator} of expected consensus attestation activity and ${(100 * thresholds.dal.numerator / thresholds.dal.denominator).toLocaleString('en-US', { maximumFractionDigits: 2 })}% of eligible DAL slots, and meet the other reward conditions.`
+        ? `Cycle rewards stay intact if you reach at least ${thresholds.consensus.numerator}/${thresholds.consensus.denominator} of expected consensus attestation activity and ${(100 * thresholds.dal.numerator / thresholds.dal.denominator).toLocaleString('en-US', { maximumFractionDigits: 2 })}% of eligible DAL slots, and meet the other reward conditions.`
         : 'Missing some duties need not reduce cycle rewards if participation thresholds and other reward conditions are met. Current thresholds are unavailable.';
     return `<section class="drawer-operator-next drawer-baker-schedule" data-quiet-key="baker-schedule" data-schedule-state="${fresh ? 'fresh' : 'stale'}" data-schedule-checked="${snapshot?.observedAt || ''}" aria-label="Upcoming baking rights and maintenance planning">
         <div class="drawer-schedule-upcoming">${next}</div>
         <div class="drawer-maintenance" data-quiet-key="maintenance">
-            <div class="drawer-maintenance-heading">
-                <h4>Maintenance gaps</h4>
-                <label for="baker-maintenance-duration">Outage
-                    <select id="baker-maintenance-duration">${MAINTENANCE_DURATIONS.map(minutes => `<option value="${minutes}"${minutes === _maintenanceDurationMinutes ? ' selected' : ''}>${minutes} min</option>`).join('')}</select>
-                </label>
-            </div>
+            <h4 class="drawer-operator-label">MAINTENANCE GAP</h4>
             <div class="drawer-maintenance-result" data-quiet-key="maintenance-result">
-                <span class="drawer-operator-label">Earliest fit · ${MAINTENANCE_BUFFER_MINUTES}m buffers each side</span>
-                <strong>${earliest ? `In ≈${formatDuration(earliest.start - now)}` : (fresh ? 'No fitting gap in this scan' : 'Waiting for a fresh schedule')}</strong>
-                <span class="drawer-maintenance-window">${escapeHtml(windowText || (fresh ? 'Try a shorter outage or check the schedule again later.' : 'Maintenance suggestions resume after a confirmed refresh.'))}</span>
+                <strong>${earliest ? `In ≈${formatDuration(earliest.start - now)}` : (fresh ? 'No fitting gap' : 'Waiting for a fresh schedule')}</strong>
+                <span class="drawer-maintenance-window">${escapeHtml(windowText || (fresh ? 'Try a shorter outage or check the schedule again later.' : 'Awaiting confirmed timing.'))}</span>
                 <span class="drawer-maintenance-between">${earliest ? `After level ${formatLevel(earliest.afterLevel)} · back before ${formatLevel(earliest.beforeLevel)}` : 'No confirmed outage window'}</span>
             </div>
-            <p class="drawer-maintenance-longest">${longest ? `Longest buffered gap: ${longestMinutes < 1 ? '<1' : longestMinutes}m · ${escapeHtml(formatScheduleTime(longest.start))} – ${escapeHtml(formatScheduleTime(longest.end))}` : 'No usable gap confirmed within the returned rights.'}</p>
+            <span class="drawer-maintenance-buffer">Earliest fit · ${MAINTENANCE_BUFFER_MINUTES}m buffers each side</span>
         </div>
         <div class="drawer-schedule-notes">
+            <p class="drawer-maintenance-longest">${longest ? `Longest buffered gap: ${longestMinutes < 1 ? '<1' : longestMinutes}m · ${escapeHtml(formatScheduleWindow(longest.start, longest.end))}` : 'Longest buffered gap: awaiting a confirmed schedule.'}</p>
             <p class="drawer-schedule-reward-note"><strong>Maintenance &amp; rewards.</strong> ${escapeHtml(rewardNotice)} Missed baking rewards and fees are separate.</p>
             <details data-chamber-disclosure data-quiet-key="schedule-method"><summary>Schedule coverage &amp; timing</summary>
                 <p>${escapeHtml(coverage)}. No gap is inferred after the last returned right.</p>
@@ -1086,7 +1065,7 @@ function renderBakerSchedule(receipt) {
     </section>`;
 }
 
-function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
+function renderBakerOperatorStatus(status, isBaker, bakerName = '', loading = false) {
     const container = document.getElementById('drawer-operator-status');
     if (!container) return;
     if (!status) {
@@ -1101,9 +1080,13 @@ function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
         return;
     }
 
-    _latestOperatorSignal = { address: localStorage.getItem(STORAGE_KEY), status };
+    if (!loading) _latestOperatorSignal = { address: localStorage.getItem(STORAGE_KEY), status };
     const empty = document.getElementById('my-tezos-baker-signal-empty');
-    if (empty && !empty.hidden) quietlyMutate(empty, () => { empty.hidden = true; });
+    if (empty) quietlyMutate(empty, () => {
+        empty.hidden = true;
+        const copy = document.getElementById('my-tezos-baker-signal-message');
+        if (copy) copy.textContent = '';
+    });
 
     const next = renderBakerSchedule(status.schedule);
     const live = renderOperatorTile(
@@ -1126,10 +1109,13 @@ function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
         ? `Your baker signal · ${bakerName}`
         : (isBaker ? 'Baker signal' : 'Your baker signal');
     const html = `
-        <div class="drawer-operator-panel">
+        <div class="drawer-operator-panel" aria-busy="${loading}">
             <div class="drawer-operator-header">
                 <h3>${escapeHtml(signalHeading)}</h3>
                 <p>Live consensus, upcoming rights, and baker software</p>
+                <label for="baker-maintenance-duration">Outage
+                    <select id="baker-maintenance-duration">${MAINTENANCE_DURATIONS.map(minutes => `<option value="${minutes}"${minutes === _maintenanceDurationMinutes ? ' selected' : ''}>${minutes} min</option>`).join('')}</select>
+                </label>
             </div>
             <div class="drawer-operator-grid">
                 ${next}
@@ -1648,6 +1634,12 @@ function buildMorningBrief(data) {
             body: `<strong>${escapeHtml(data.bakerName || 'Your baker')}</strong> ${action} on ${proposal}.${timeLeft ? ` <span class="brief-sub">${timeLeft} left.</span>` : ''}${quorum}<br><span class="brief-sub"><a href="#chamber">Open Chamber</a> · <a href="/feed.xml" type="application/rss+xml">RSS feed</a></span>`,
             accent: 'governance',
         });
+    }
+
+    if (data.bakerAddr && !cards.some(card => card.accent === 'governance')) {
+        cards.push({ icon: '🏛️', title: 'Vote Check', accent: 'governance', body: data.bakerVote?.voted
+            ? `Your baker has voted this period.<br><span class="brief-sub"><a href="#chamber">Open Chamber</a> · <a href="/feed.xml">RSS feed</a></span>`
+            : 'No governance receipt available yet.' });
     }
 
     // Card 1: Earnings summary
@@ -2904,6 +2896,11 @@ async function renderMorningBrief(address, force = false) {
             }
         }
 
+        if (!rewards || rewards.length < 2) {
+            const label = document.querySelector('#drawer-rewards .spark-label');
+            if (label) label.textContent = rewards ? 'Earnings trend needs at least two recorded cycles.' : 'Earnings trend unavailable.';
+        }
+
         // Feature 10: Freshness indicator
         updateFreshness();
 
@@ -2936,6 +2933,12 @@ async function renderMorningBrief(address, force = false) {
             }
         }
         const storyContainer = document.getElementById('my-tezos-story-content');
+        const pendingStory = storyContainer?.querySelector('[aria-busy="true"]');
+        if (pendingStory) quietlyMutate(pendingStory, () => {
+            pendingStory.setAttribute('aria-busy', 'false');
+            pendingStory.querySelector('.tezos-story-persona').textContent = 'Your Story is unavailable';
+            pendingStory.querySelector('.tezos-story-summary').textContent = 'Retry the account read from Overview.';
+        });
         if (storyContainer && !storyContainer.querySelector('.tezos-story-dossier')) {
             const storyErrorHtml = `
                 <div class="my-baker-load-state my-baker-load-state-error">
@@ -3136,12 +3139,30 @@ function drawerLoadingCard(label, size = '') {
     `;
 }
 
+function storyLoadingCard() {
+    return `<div class="brief-section brief-section-story my-tezos-story-card" aria-busy="true">
+        <h4 class="brief-section-title">Your Tezos Story</h4>
+        <div class="brief-body"><div class="tezos-story-dossier">
+            <div class="tezos-story-identity"><span class="tezos-story-persona">Reading your on-chain story</span><div class="tezos-story-name">—</div><div class="tezos-story-summary">Checking account history…</div></div>
+            <div class="tezos-story-metrics">${['On-chain since', 'Protocol arc', 'Culture', 'Governance'].map(label => renderStoryMetric(label, '—', 'Reading history…')).join('')}</div>
+            <div class="tezos-story-badges">${renderStoryBadge('Reading milestones…', 'Public on-chain history')}</div>
+            <div class="tezos-story-actions"><button class="tezos-era-share-btn" type="button" disabled>Share era card</button><a href="/anthology/">Protocol Anthology</a></div>
+            ${renderStoryEraRail({ joinedEra: '', currentEra: '' })}
+            <div class="tezos-story-next"><span>Now watching</span><strong>Reading your next signal…</strong></div>
+        </div></div>
+        <button class="glass-button drawer-share-btn story-share-btn" disabled>📸 Share Your Story</button>
+    </div>`;
+}
+
 function seedDrawerLoadingState() {
     if (document.getElementById('drawer-operator-status')?.hidden) {
-        renderBakerSignalMessage('Checking the active wallet’s baker signal…');
+        const pending = { value: '—', detail: 'Reading current data…', state: 'unknown' };
+        renderBakerOperatorStatus({ live: pending, attestation: pending, dal: pending, octez: { version: '—', detail: 'Reading baker software…', state: 'unknown' }, schedule: { state: 'loading' } }, true, '', true);
     }
     const details = document.getElementById('drawer-baker-details');
     if (details) details.hidden = false;
+    const activity = document.getElementById('drawer-baker-activity');
+    if (activity && !activity.children.length) renderBakerActivity(null, true);
     const brief = document.getElementById('drawer-brief');
     if (brief && !brief.children.length) {
         brief.innerHTML = drawerLoadingCard('Reading your account');
@@ -3149,22 +3170,29 @@ function seedDrawerLoadingState() {
     const bakerBrief = document.getElementById('drawer-baker-brief');
     if (bakerBrief && !bakerBrief.children.length) {
         bakerBrief.hidden = false;
-        bakerBrief.innerHTML = drawerLoadingCard('Checking baker status', 'baker') + renderBakerGrade({}, true);
+        bakerBrief.innerHTML = drawerLoadingCard('Checking baker status', 'baker') + renderBakerGrade({}, true)
+            + '<div class="brief-section brief-section-governance drawer-loading-card"><h4 class="brief-section-title">Vote Check</h4><span class="drawer-loading-line"></span></div>';
+    }
+
+    const history = document.getElementById('drawer-baker-history');
+    if (history && !history.children.length) {
+        history.hidden = false;
+        history.innerHTML = `<div class="rt-calendar" aria-busy="true"><div class="rt-cal-title">📅 30-Cycle Baker History</div><div class="rt-cal-grid">${Array.from({ length: 30 }, () => '<span class="rt-cal-block drawer-loading-line"></span>').join('')}</div></div>`;
     }
 
     const story = document.getElementById('my-tezos-story-content');
     if (story && !story.querySelector('.tezos-story-dossier')) {
-        story.innerHTML = drawerLoadingCard('Building your Tezos story', 'story');
+        story.innerHTML = storyLoadingCard();
     }
 
     const rewards = document.getElementById('drawer-rewards');
     if (rewards && !rewards.children.length) {
-        rewards.innerHTML = drawerLoadingCard('Syncing rewards', 'panel');
+        rewards.innerHTML = renderRewardsLoading();
     }
 
     const network = document.getElementById('drawer-network');
     if (network && !network.children.length) {
-        network.innerHTML = drawerLoadingCard('Reading network context', 'panel');
+        renderNetworkLoading();
     }
 }
 
@@ -3211,15 +3239,22 @@ function activeMyTezosView() {
 
 function placeJourneySection(view = activeMyTezosView()) {
     const section = document.getElementById('drawer-more-section');
+    const guide = document.querySelector('.my-tezos-reading');
     if (!section) return;
-    if (view === 'overview') {
-        const connected = document.getElementById('drawer-connected');
-        const share = connected?.querySelector('.drawer-share-section');
-        if (connected && section.parentElement !== connected) connected.insertBefore(section, share || null);
+    const tails = { collection: '#collection-grid', transactions: '#portfolio-activity-list', 'baker-signal': '#drawer-baker-activity', 'tezos-x': '#tezosx-details', overview: '#drawer-network' };
+    const tail = tails[view] ? document.querySelector(tails[view]) : null;
+    if (tail?.parentElement) {
+        if (view === 'overview') {
+            const connected = document.getElementById('drawer-connected');
+            for (const control of connected.querySelectorAll('.drawer-share-section, .drawer-footer')) tail.before(control);
+        }
+        tail.before(section);
+        if (guide) tail.before(guide);
         return;
     }
     const panel = document.querySelector(`[data-my-tezos-panel="${view}"]`);
     if (panel && section.parentElement !== panel) panel.appendChild(section);
+    if (panel && guide) panel.appendChild(guide);
 }
 
 function updateJourneyCard(link, journey, slot, view) {

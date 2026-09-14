@@ -1250,7 +1250,8 @@ inline modal styles in `js/core/app.js`.
   explanation, and access to the separate broader shareable report. Missing or zero
   expected power stays ungraded; the explanation remains open through refresh.
   Both cards occupy their final columns while loading, and share equal row heights
-  on desktop; governance follows the pair on its own row.
+  on desktop; governance follows the pair on its own row. The schedule uses a shared
+  outage toolbar, aligned compact card headings, and shortened same-day time ranges.
   Address-switching QA checks the three upcoming rights separately from the four
   compact status pills, including their desktop row layout.
 - My Tezos adaptive personal room with Overview, Baker Signal, Portfolio, Transactions,
@@ -1261,7 +1262,15 @@ inline modal styles in `js/core/app.js`.
   Overview and Portfolio. Collection uses two artwork columns on phones at least
   360px wide; source links retain 44px touch targets. The `my-tezos-layout`
   browser suite covers 320px, 390px, desktop, and landscape geometry plus
-  keyboard navigation and tab-scroll preservation. Direct-route checks also
+  keyboard navigation and tab-scroll preservation. The `my-tezos-layout-states`
+  suite holds external reads before first paint, then compares card positions and
+  sizes after completion, checks equal peer heights and clipping, and proves that
+  missing grade placeholders and unequal status cards fail the guard. Rewards,
+  the baker schedule, statistics, Story, and Network Context render their actual
+  card structure during loading. Variable receipt lists grow only at the bottom;
+  controls, shared guidance, and adjacent-room cards stay above them. Story badges
+  occupy a horizontal rail. Etherlink transactions, tokens, and NFTs have separate
+  receipt selectors so one growing list cannot push another section down. Direct-route checks also
   enforce 44px touch targets and intact, unclipped words on compact Portfolio buttons.
   Its empty state separates two
   read-only setup paths: Octez.Connect opens the compatible Temple/Kukai wallet
@@ -1282,7 +1291,7 @@ inline modal styles in `js/core/app.js`.
   Baker Signal has its own `/my/?view=baker-signal` tab immediately after
   Overview. It owns live rights, Octez, attestation, DAL, grade and report card,
   capacity and participation stats, governance status, delegation guidance,
-  30-cycle baker history, and recent delegator/staker activity. Its live signal retains the 15-second refresh;
+  30-cycle reward history, and recent delegator/staker activity. Its live signal retains the 15-second refresh;
   supporting baker stats refresh with the existing 30-second drawer loop.
   Overview keeps personal earnings and rewards beside its account and network context.
   Transactions also exposes loaded receipt, transfer/call, NFT-interaction, and
@@ -1301,11 +1310,12 @@ inline modal styles in `js/core/app.js`.
   on desktop, then stacks them on narrow screens. The wallet panel selects the
   account's most distinctive capital, staking, reward, baker, identity,
   collection, creator, and on-chain-history facts. When saved evidence exists,
-  the Tezos panel leads with one quietly reconciled `While you were away` card:
+  the Tezos panel appends one quietly reconciled `While you were away` card
+  below its stable live signals:
   up to three changes from the existing account snapshot plus the two
   highest-scoring daily network deltas, retaining the daily snapshot's honest
   `since yesterday` or named-weekday wording. Either half can stand alone, and
-  no empty card renders when both are absent. The panel then ranks up to four
+  no empty card renders when both are absent. The panel ranks up to four
   live signals from the shared network pulse in two tiers: signals with a proven
   connection to the loaded account lead, followed by general network context.
   Price, stake, baker, governance, collection, identity, creator,

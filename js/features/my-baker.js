@@ -295,9 +295,11 @@ function createMatrixLoader() {
     wrapper.setAttribute('role', 'status');
     wrapper.setAttribute('aria-label', 'Reading account statistics');
     wrapper.innerHTML = `
-        <span class="drawer-loading-kicker">Reading account statistics</span>
-        <div class="my-baker-loading-grid" aria-hidden="true">
-            ${Array.from({ length: 8 }, () => '<span class="my-baker-loading-stat"></span>').join('')}
+        <div class="capacity-bars" aria-hidden="true">
+            ${['Staking Capacity', 'Delegation Capacity'].map(label => `<div class="capacity-bar-card"><div class="capacity-bar-header"><span class="capacity-bar-label">${label}</span><span class="capacity-bar-pct">—</span></div><div class="capacity-bar-track"></div><div class="capacity-bar-details"><span>Reading capacity…</span><span>—</span></div><div class="capacity-bar-note">Checking baker limits</div></div>`).join('')}
+        </div>
+        <div class="my-baker-grid my-baker-loading-grid" aria-hidden="true">
+            ${Array.from({ length: 17 }, () => '<div class="my-baker-stat my-baker-loading-stat"><span class="drawer-loading-line"></span><span class="drawer-loading-line drawer-loading-line-strong"></span></div>').join('')}
         </div>
     `;
 

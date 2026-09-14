@@ -39,6 +39,7 @@ let generation = 0;
 let selectedAddress = '';
 let accountRows = [];
 let currentDetails = null;
+let detailView = 'transactions';
 let refreshController = null;
 
 function readLinkedAccounts() {
@@ -244,7 +245,10 @@ function renderDetails() {
                 <article><span>Transactions</span><strong>${Number(row.transactions || 0).toLocaleString()}</strong><small>${row.lastActivity ? `Last ${escapeHtml(new Date(row.lastActivity).toLocaleString())}` : 'Last activity unavailable'}</small></article>
             </div>
         </section>
-        <section class="tezosx-detail-section">
+        <div class="my-tezos-pill-group tezosx-detail-tabs" role="group" aria-label="Etherlink receipts">
+            ${[['transactions', 'Transactions'], ['tokens', 'ERC-20 assets'], ['nfts', 'NFT holdings']].map(([key, label]) => `<button class="my-tezos-pill" type="button" data-tezosx-detail-tab="${key}" data-quiet-key="l2-tab-${key}" aria-pressed="${detailView === key}">${label}</button>`).join('')}
+        </div>
+        <section class="tezosx-detail-section" data-tezosx-detail-view="tokens" ${detailView === 'tokens' ? '' : 'hidden'}>
             <h4>ERC-20 assets</h4>
             <div class="tezosx-token-list">
                 ${tokens.length ? tokens.map((token) => `
@@ -252,7 +256,7 @@ function renderDetails() {
                 `).join('') : '<span>No ERC-20 balances returned for the selected account.</span>'}
             </div>
         </section>
-        <section class="tezosx-detail-section">
+        <section class="tezosx-detail-section" data-tezosx-detail-view="transactions" ${detailView === 'transactions' ? '' : 'hidden'}>
             <h4>Recent transactions and transfers</h4>
             <div class="tezosx-transaction-list">
                 ${transactions.length ? transactions.map((tx) => `
@@ -264,13 +268,17 @@ function renderDetails() {
                 `).join('') : '<span>No recent transactions returned for the selected account.</span>'}
             </div>
         </section>
-        <section class="tezosx-detail-section">
+        <section class="tezosx-detail-section" data-tezosx-detail-view="nfts" ${detailView === 'nfts' ? '' : 'hidden'}>
             <h4>NFT holdings</h4>
             <div class="tezosx-nft-list">
                 ${nfts.length ? nfts.slice(0, 24).map((nft) => `<article><strong>${escapeHtml(nft.name)}</strong><span>${escapeHtml(nft.collection?.name || 'Etherlink NFT')}</span><small>#${escapeHtml(nft.tokenId)}</small></article>`).join('') : '<span>No NFT holdings returned for the selected account.</span>'}
             </div>
         </section>
     `);
+    for (const button of target.querySelectorAll('[data-tezosx-detail-tab]')) button.onclick = () => {
+        detailView = button.dataset.tezosxDetailTab;
+        renderDetails();
+    };
 }
 
 async function readCachedTezosX(address) {

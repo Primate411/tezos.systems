@@ -31,6 +31,7 @@ import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
 import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
 import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
+import { smokeMyTezosLayoutStates } from './lib/my-tezos-layout-states-smoke.mjs';
 import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
 import { checkInspectorKeyboardReceipt } from './lib/network-health-harness-check.mjs';
 import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
@@ -11277,8 +11278,8 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   await page.locator('#drawer-connect-btn').click();
   await page.waitForFunction(() => {
     return document.querySelectorAll('#drawer-brief .drawer-loading-card').length === 1
-      && document.querySelectorAll('#drawer-baker-brief .drawer-loading-card').length === 2
-      && document.querySelectorAll('#my-baker-results .my-baker-loading-stat').length === 8;
+      && document.querySelectorAll('#drawer-baker-brief .drawer-loading-card').length === 3
+      && document.querySelectorAll('#my-baker-results .my-baker-loading-stat').length === 17;
   }, null, { timeout: 5000 });
   const loadingLayout = await page.evaluate(() => {
     const brief = document.querySelector('#drawer-brief')?.getBoundingClientRect();
@@ -11299,7 +11300,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
       && loadingLayout.rewardsHeight >= 300
       && loadingLayout.bakerHeight === 0
       && loadingLayout.loadingCards >= 4
-      && loadingLayout.loadingStats === 8,
+      && loadingLayout.loadingStats === 17,
     `my tezos baker activity: first account read did not hold a shape-correct two-column frame ${JSON.stringify(loadingLayout)}`
   );
   await page.locator('#my-tezos-tab-baker-signal').click();
@@ -11328,7 +11329,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
     accountBullets: document.querySelectorAll('#drawer-network [data-away-section="account"] .overnight-bullet').length,
     networkBullets: document.querySelectorAll('#drawer-network [data-away-section="network"] .overnight-bullet').length,
     text: document.querySelector('#drawer-network .network-away-card')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-    isFirst: document.querySelector('#drawer-network .network-live-column')?.firstElementChild?.matches('[data-network-away-slot]') === true,
+    isLast: document.querySelector('#drawer-network .network-live-column')?.lastElementChild?.matches('[data-network-away-slot]') === true,
     briefCards: document.querySelectorAll('#drawer-brief .brief-section-overnight').length,
     fullAddress: window._myTezosData?.fullAddress || '',
     snapshot: localStorage.getItem('tezos-systems-overnight-snapshot') || ''
@@ -11340,7 +11341,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
       && overnightState.accountBullets <= 3
       && overnightState.networkBullets >= 1
       && overnightState.networkBullets <= 2
-      && overnightState.isFirst
+      && overnightState.isLast
       && overnightState.briefCards === 0
       && /while you were away/i.test(overnightState.text)
       && /your account/i.test(overnightState.text)
@@ -11374,7 +11375,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
 
   await page.locator('#my-tezos-tab-overview').click();
   const settledLayout = await page.evaluate(() => {
-    const columns = document.querySelector('.drawer-live-columns')?.getBoundingClientRect();
+    const network = document.querySelector('#drawer-network')?.getBoundingClientRect();
     const more = document.getElementById('drawer-more-section')?.getBoundingClientRect();
     return {
       rewardsColumn: document.querySelector('#drawer-rewards')?.parentElement?.className || '',
@@ -11383,8 +11384,8 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
       activityPanel: document.querySelector('#drawer-baker-activity')?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel,
       overviewBakerCards: document.querySelectorAll('#my-tezos-panel-overview .brief-section-baker, #my-tezos-panel-overview .brief-section-governance, #my-tezos-panel-overview .capacity-bars, #my-tezos-panel-overview .my-baker-grid').length,
       personalBriefColumn: document.querySelector('#drawer-brief')?.parentElement?.className || '',
-      journeyGap: columns && more ? Math.round(more.top - columns.bottom) : null,
-      moreDirect: document.getElementById('drawer-more-section')?.parentElement?.id === 'drawer-connected',
+      journeyBeforeNetwork: network && more ? more.bottom <= network.top : false,
+      moreInOverview: document.getElementById('drawer-more-section')?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel === 'overview',
       journeyCards: document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card').length,
       secondaryContainers: document.querySelectorAll('#drawer-more-section-secondary').length,
       reportCards: document.querySelectorAll('#drawer-baker .report-card-btn').length,
@@ -11398,9 +11399,8 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
       && settledLayout.bakerBriefPanel === 'baker-signal'
       && settledLayout.activityPanel === 'baker-signal'
       && settledLayout.overviewBakerCards === 0
-      && settledLayout.journeyGap >= 0
-      && settledLayout.journeyGap <= 24
-      && settledLayout.moreDirect
+      && settledLayout.journeyBeforeNetwork
+      && settledLayout.moreInOverview
       && settledLayout.journeyCards === 2
       && settledLayout.secondaryContainers === 0
       && settledLayout.reportCards === 1
@@ -13122,7 +13122,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     assert(nextStyle[0].background !== nextStyle[1].background, 'The immediate next R0 needs a distinct highlight');
     assert(nextStyle.every(tile => tile.height - tile.contentHeight < 85), 'Upcoming rights must not stretch into tall empty boxes');
     const rewardNotice = await page.locator('.drawer-schedule-reward-note').innerText();
-    assert(rewardNotice.includes('2/3') && rewardNotice.includes('64%') && rewardNotice.includes('cycle rewards'), 'Reward notice must use the separate current consensus and DAL thresholds');
+    assert(rewardNotice.includes('2/3') && rewardNotice.includes('64%') && rewardNotice.toLowerCase().includes('cycle rewards'), 'Reward notice must use the separate current consensus and DAL thresholds');
     assert((await page.locator('.drawer-maintenance-result').innerText()).includes('After level 12,345,858'), 'Earliest 15-minute fit is after the first assignment, with buffers');
     await page.locator('#baker-maintenance-duration').selectOption('30');
     await page.locator('[data-quiet-key="schedule-method"] summary').click();
@@ -13131,7 +13131,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       const body = document.getElementById('drawer-body');
       select.focus({ preventScroll: true });
       const range = document.createRange();
-      range.selectNodeContents(document.querySelector('.drawer-maintenance-heading h4'));
+      range.selectNodeContents(document.querySelector('.drawer-maintenance h4'));
       document.getSelection().removeAllRanges();
       document.getSelection().addRange(range);
       body.scrollTop = 100;
@@ -13233,7 +13233,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     await page.waitForFunction(() => document.getElementById('my-tezos-baker-signal-message')?.textContent.includes('This account has no baker'), null, { timeout: 15000 });
     assert(await page.locator('#drawer-operator-status').isHidden(), 'An undelegated wallet must not retain the previous wallet’s signal');
     await page.locator('#my-tezos-wallet-scope').selectOption(SAMPLE_DELEGATOR_ADDRESS);
-    await page.locator('#drawer-operator-status .drawer-operator-panel').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('#drawer-operator-status .drawer-operator-panel[aria-busy="false"]').waitFor({ state: 'visible', timeout: 15000 });
     assert(await page.locator('#my-tezos-tab-baker-signal').getAttribute('aria-selected') === 'true', 'Switching wallets must keep Baker Signal selected');
     assert((await page.locator('#drawer-operator-status h3').textContent()).includes('QA Baker'), 'Switching wallets must restore the selected wallet’s baker');
     await page.locator('#my-tezos-tab-overview').click();
@@ -13369,7 +13369,7 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
     `my tezos drawer live refresh: standardized freshness stamp missing ${JSON.stringify(state)}`
   );
 
-  await page.waitForFunction(() => document.querySelector('#drawer-baker-history .rt-cal-block'), null, { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector('#drawer-baker-history .rt-calendar[data-reward-kind="baker"] .rt-cal-block[data-tip]'), null, { timeout: 15000 });
   assert(await page.locator('#my-tezos-panel-overview .rt-calendar').count() === 0, 'Baker history must be absent from Overview');
   assert(await page.locator('#my-tezos-panel-baker-signal .rt-calendar').count() === 1, 'Baker Signal must own the single baker calendar');
   for (const view of ['overview', 'baker-signal']) {
@@ -14026,7 +14026,7 @@ async function smokeMyTezosStakerRewards(browser, baseUrl) {
     assert(state.rewardsText.includes(rewardCase.expectedCurrent), `${rewardCase.label}: this-cycle card should use current staker reward: ${state.rewardsText}`);
     assert(Math.abs(Number(state.rewardsLastCycle) - rewardCase.expectedLastCycle) < 0.00001, `${rewardCase.label}: Morning Brief reward amount wrong: ${state.rewardsLastCycle}`);
     assert(state.isStaker === true, `${rewardCase.label}: Morning Brief should mark account as a staker`);
-    assert(state.rewardHistoryPanel === 'overview', `${rewardCase.label}: personal staking history belongs with personal rewards`);
+    assert(state.rewardHistoryPanel === 'baker-signal', `${rewardCase.label}: cycle history must keep its stable shared location without changing the personal staking receipts`);
     assert(Number(state.staked) / Number(state.totalXTZ) >= rewardCase.minStakeRatio, `${rewardCase.label}: stake ratio should match a mostly-staked account: ${state.staked}/${state.totalXTZ}`);
     assert(state.statsLabels.includes('Missed rights (10 cycles)'), `${rewardCase.label}: baker missed-right window should be explicit, saw ${state.statsLabels.join(', ')}`);
     assert(state.statsLabels.includes('APY (External staker)'), `${rewardCase.label}: APY label should identify the external-staker reward split, saw ${state.statsLabels.join(', ')}`);
@@ -16635,8 +16635,9 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
       viewportHeight: window.innerHeight
     };
   });
-  const personalHeightLimit = visibleNetworkLayout.viewportHeight * 0.56;
-  const liveHeightLimit = visibleNetworkLayout.viewportHeight * (visibleNetworkLayout.hasAwayCard ? 0.68 : 0.56);
+  // Equal-height panels reserve their stable signal rows before receipts arrive.
+  const personalHeightLimit = visibleNetworkLayout.viewportHeight * 0.70;
+  const liveHeightLimit = visibleNetworkLayout.viewportHeight * (visibleNetworkLayout.hasAwayCard ? 0.82 : 0.70);
   assert(
     visibleNetworkLayout.siblingColumns
       && visibleNetworkLayout.personalHeight > 0
@@ -37538,6 +37539,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'lazy-drawer-charts', description: 'Drawer styling and real chart libraries load on intent, cancel safely, retry locally, and remain shared', run: () => smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'my-tezos-cold-start', description: 'My Tezos remains off-screen while its lazy styles are delayed, then preserves normal desktop and mobile open/close behavior', run: () => smokeMyTezosColdStart(browser, baseUrl) },
     { name: 'my-tezos-empty-state', description: 'My Tezos clearly separates Octez.Connect wallet pairing from watch-only tracking and explains all seven responsive views', run: () => smokeMyTezosEmptyState(browser, baseUrl) },
+    { name: 'my-tezos-layout-states', description: 'Loading and loaded card positions, sizes, equal row heights, and terminal-list growth across all seven My Tezos views', run: () => smokeMyTezosLayoutStates(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, etherlinkAddress: SAMPLE_ETHERLINK_ADDRESS, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'my-tezos-layout', description: 'All seven tabs retain readable desktop, phone and landscape layouts, exact balances, disclosures, touch targets, and per-tab scroll', run: () => smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, secondAddress: SAMPLE_ADDRESS_2, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'live-pulse-ticker', description: 'Live Pulse drifts continuously above Live Head, opens its explainer, preserves phase, and uses accessible hold/static behavior', run: () => smokeLivePulseTicker(browser, baseUrl) },
     { name: 'release-radar-pulse', description: 'Compact Tezos X and Octez release forecast leads Live Pulse and opens every gate, release lane, dependency boundary, receipt, and history row without disturbing the reader', run: () => smokeReleaseRadarPulse(browser, baseUrl) },
