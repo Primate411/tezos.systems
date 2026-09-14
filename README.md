@@ -1249,6 +1249,8 @@ inline modal styles in `js/core/app.js`.
   participation score, missed and expected attestation power, an expandable scoring
   explanation, and access to the separate broader shareable report. Missing or zero
   expected power stays ungraded; the explanation remains open through refresh.
+  Both cards occupy their final columns while loading, and share equal row heights
+  on desktop; governance follows the pair on its own row.
   Address-switching QA checks the three upcoming rights separately from the four
   compact status pills, including their desktop row layout.
 - My Tezos adaptive personal room with Overview, Baker Signal, Portfolio, Transactions,

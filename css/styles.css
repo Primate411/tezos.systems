@@ -25027,8 +25027,11 @@ body[data-theme="nerv"]::after {
     grid-column: 1 / -1;
     min-width: 0;
 }
-#drawer-baker-brief { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-#drawer-baker .drawer-baker-grade { display: grid; gap: 0.7rem; }
+#drawer-baker-brief { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+#drawer-baker-brief > .drawer-loading-card { padding: 20px; align-content: start; }
+#drawer-baker-brief .drawer-loading-line { background: var(--my-edge, rgba(128, 128, 128, 0.16)); }
+#drawer-baker-brief > .brief-section-governance { grid-column: 1 / -1; }
+#drawer-baker .drawer-baker-grade { display: grid; align-content: start; gap: 0.7rem; }
 .drawer-baker-grade .brief-section-title { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.35rem 0.75rem; margin: 0; }
 .drawer-grade-basis { color: var(--text-secondary); font-size: 0.68rem; font-weight: 500; text-transform: none; letter-spacing: normal; }
 .drawer-grade-heading { display: flex; align-items: center; gap: 1rem; }

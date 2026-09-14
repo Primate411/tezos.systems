@@ -2575,19 +2575,19 @@ function bakerParticipationSnapshot(participation, bakerAddr) {
     return { participation: null, participationStale: false, participationObservedAt: null };
 }
 
-function renderBakerGrade(data) {
-    if (!data?.bakerAddr) return '';
+function renderBakerGrade(data, loading = false) {
+    if (!loading && !data?.bakerAddr) return '';
     const score = calcBakerHealth(data.participation);
     const grade = score === null ? null : letterGrade(score);
     const expected = data.participation?.expected_cycle_activity;
     const missed = data.participation?.missed_slots;
     const retained = grade ? ((1 - missed / expected) * 100).toFixed(1) : '—';
-    return `<section class="brief-section drawer-baker-grade" data-quiet-key="baker-grade" data-grade-state="${data.participationStale ? 'stale' : grade ? 'current' : 'unavailable'}">
+    return `<section class="brief-section drawer-baker-grade${loading ? ' drawer-loading-card' : ''}" ${loading ? 'aria-busy="true"' : ''} data-quiet-key="baker-grade" data-grade-state="${loading ? 'loading' : data.participationStale ? 'stale' : grade ? 'current' : 'unavailable'}">
         <h4 class="brief-section-title">Baker Grade <span class="drawer-grade-basis" title="${data.participationObservedAt ? escapeHtml(new Date(data.participationObservedAt).toLocaleString()) : 'No participation receipt'}">${data.participationStale ? 'Last confirmed' : 'Cycle participation'}</span></h4>
         <div class="drawer-grade-heading">
             <strong class="grade-letter" style="color:${grade ? healthLabel(score).color : 'var(--text-secondary)'}">${grade?.grade || '—'}</strong>
-            <div><strong class="grade-score">${grade ? `${score}<small>/100</small>` : 'Unavailable'}</strong>
-                <span class="drawer-grade-summary">${grade ? `${retained}% cycle power retained` : 'Waiting for usable participation data'}</span></div>
+            <div><strong class="grade-score">${grade ? `${score}<small>/100</small>` : loading ? 'Checking…' : 'Unavailable'}</strong>
+                <span class="drawer-grade-summary">${grade ? `${retained}% cycle power retained` : loading ? 'Reading cycle participation' : 'Waiting for usable participation data'}</span></div>
         </div>
         <dl class="drawer-grade-facts">
             <div><dt>Missed power so far</dt><dd>${grade ? fmtCount(missed) : '—'}</dd></div>
@@ -2599,7 +2599,7 @@ function renderBakerGrade(data) {
             <p>Retained power → score: ≥99% → 100; ≥97% → 95; ≥95% → 90; ≥90% → 75; ≥67% → 50; below 67% → 25. No grade without usable expected power.</p>
             <p>The full report separately scores completed-cycle participation, community, capacity, and consensus-key readiness.</p>
         </details>
-        <button type="button" class="report-card-btn glass-button" title="Open the broader, shareable baker report">📋 Full Baker Report <span aria-hidden="true">↗</span></button>
+        <button type="button" class="report-card-btn glass-button" ${loading ? 'disabled' : ''} title="Open the broader, shareable baker report">📋 Full Baker Report <span aria-hidden="true">↗</span></button>
     </section>`;
 }
 
@@ -2607,7 +2607,9 @@ function renderBakerBrief(cards, data) {
     const bakerBrief = document.getElementById('drawer-baker-brief');
     if (!bakerBrief) return;
     const bakerCards = cards.filter(card => card.accent === 'baker' || card.accent === 'governance');
-    quietlySyncHtml(bakerBrief, renderBriefCards(bakerCards) + renderBakerGrade(data));
+    quietlySyncHtml(bakerBrief, renderBriefCards(bakerCards.filter(card => card.accent === 'baker'))
+        + renderBakerGrade(data)
+        + renderBriefCards(bakerCards.filter(card => card.accent === 'governance')));
     const reportButton = bakerBrief.querySelector('.report-card-btn');
     if (reportButton) reportButton.onclick = () => showBakerReportCard(data.bakerAddr);
     quietlyMutate(bakerBrief, () => { bakerBrief.hidden = bakerCards.length === 0; });
@@ -3123,7 +3125,7 @@ function initDrawerLiveRefresh() {
 // ─── Init & Export ───────────────────────────────────
 
 function drawerLoadingCard(label, size = '') {
-    const sizeClass = size ? ` drawer-loading-card-${size}` : '';
+    const sizeClass = size ? ` drawer-loading-card-${size}${size === 'baker' ? ' brief-section' : ''}` : '';
     return `
         <div class="drawer-loading-card${sizeClass}" role="status" aria-label="${escapeHtml(label)}">
             <span class="drawer-loading-kicker">${escapeHtml(label)}</span>
@@ -3147,7 +3149,7 @@ function seedDrawerLoadingState() {
     const bakerBrief = document.getElementById('drawer-baker-brief');
     if (bakerBrief && !bakerBrief.children.length) {
         bakerBrief.hidden = false;
-        bakerBrief.innerHTML = drawerLoadingCard('Checking baker status');
+        bakerBrief.innerHTML = drawerLoadingCard('Checking baker status', 'baker') + renderBakerGrade({}, true);
     }
 
     const story = document.getElementById('my-tezos-story-content');

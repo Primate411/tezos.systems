@@ -11277,7 +11277,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   await page.locator('#drawer-connect-btn').click();
   await page.waitForFunction(() => {
     return document.querySelectorAll('#drawer-brief .drawer-loading-card').length === 1
-      && document.querySelectorAll('#drawer-baker-brief .drawer-loading-card').length === 1
+      && document.querySelectorAll('#drawer-baker-brief .drawer-loading-card').length === 2
       && document.querySelectorAll('#my-baker-results .my-baker-loading-stat').length === 8;
   }, null, { timeout: 5000 });
   const loadingLayout = await page.evaluate(() => {
@@ -12940,7 +12940,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
     assert(softwareTooltip.includes(new Date(softwareUpdateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))
       && !softwareTooltip.includes('Jun 16'), `Baker Signal ${label}: tooltip used the global software date: ${softwareTooltip}`);
 
-    await page.locator('.drawer-baker-grade .grade-score').waitFor({ state: 'visible' });
+    await page.locator('.drawer-baker-grade[data-grade-state="current"] .grade-score').waitFor({ state: 'visible' });
     await page.locator('.drawer-grade-method summary').click();
     const gradeLayout = await page.evaluate(() => {
       const grade = document.querySelector('.drawer-baker-grade');

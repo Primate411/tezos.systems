@@ -313,7 +313,7 @@ async function renderBakerData(address, container, { quiet = false } = {}) {
     if (!quiet) container.innerHTML = '';
     // Remove stale report card button so MutationObserver recreates with fresh address
     const section = container.closest('#drawer-baker') || container.closest('#my-baker-section');
-    if (!quiet && section) { const oldBtn = section.querySelector('.report-card-btn'); if (oldBtn) oldBtn.remove(); }
+    if (!quiet && section) { const oldBtn = section.querySelector(':scope > .report-card-btn'); if (oldBtn) oldBtn.remove(); }
     if (!quiet) {
         const loadingEl = createMatrixLoader();
         container.appendChild(loadingEl);

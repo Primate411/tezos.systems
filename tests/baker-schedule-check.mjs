@@ -57,7 +57,7 @@ const gradeScore = new Function(`${healthSource}; return calcBakerHealth;`)();
 for (const participation of [null, {}, { expected_cycle_activity: 0, missed_slots: 0 }, { expected_cycle_activity: 100 }, { expected_cycle_activity: 100, missed_slots: -1 }, { expected_cycle_activity: 100, missed_slots: 101 }]) assert.equal(gradeScore(participation), null);
 for (const [missed, score] of [[0, 100], [1, 100], [3, 95], [5, 90], [10, 75], [33, 50], [34, 25]]) assert.equal(gradeScore({ expected_cycle_activity: 100, missed_slots: missed }), score);
 assert.match(source, /data-chamber-disclosure data-quiet-key="baker-grade-method"/);
-assert.match(source, /quietlySyncHtml\(bakerBrief, renderBriefCards\(bakerCards\) \+ renderBakerGrade\(data\)\)/);
+assert.match(source, /quietlySyncHtml\(bakerBrief, renderBriefCards\(bakerCards\.filter\(card => card\.accent === 'baker'\)\)\s*\+ renderBakerGrade\(data\)/);
 console.log('ok - evidence-based cycle grade and quiet disclosure');
 
 const snapshotSource = source.slice(source.indexOf('function bakerParticipationSnapshot('), source.indexOf('function renderBakerGrade('));
