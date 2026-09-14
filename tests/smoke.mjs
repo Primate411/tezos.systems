@@ -14201,21 +14201,23 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
     throw new Error(`my tezos address switch: external delegation stat did not settle (${error.message}); debug=${JSON.stringify(debug)}; issues=${issues.join(' | ')}`);
   }
 
-  await page.waitForFunction(() => document.querySelectorAll('#drawer-operator-status .drawer-operator-tile').length === 5, null, { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelectorAll('#drawer-operator-status .drawer-operator-tile').length === 7, null, { timeout: 15000 });
   await page.locator('#my-tezos-tab-baker-signal').click();
   const operatorGeometry = await page.evaluate(() => {
     const grid = document.querySelector('.drawer-operator-grid');
-    const children = Array.from(grid?.children || []).map((child) => child.getBoundingClientRect());
+    const tiles = Array.from(grid?.querySelectorAll(':scope > .drawer-operator-tile') || []);
+    const children = tiles.map((child) => child.getBoundingClientRect());
     const drawer = document.querySelector('#my-tezos-drawer')?.getBoundingClientRect();
     return {
       drawerWidth: drawer?.width || 0,
-      labels: Array.from(grid?.querySelectorAll('.drawer-operator-label') || []).map((node) => node.textContent.trim()),
+      labels: tiles.map(tile => tile.querySelector('.drawer-operator-label')?.textContent.trim()),
+      upcomingRights: grid.querySelectorAll('.drawer-schedule-right').length,
       children: children.map((rect) => ({ top: Math.round(rect.top), width: Math.round(rect.width) }))
     };
   });
   assert(operatorGeometry.drawerWidth >= 879 && operatorGeometry.drawerWidth <= 1081, `my tezos address switch: adaptive desktop width failed ${JSON.stringify(operatorGeometry)}`);
-  assert(operatorGeometry.labels.join('|') === 'Baker working?|Attestation|DAL|Next round 0|Octez', `my tezos address switch: operator tile contract drifted ${JSON.stringify(operatorGeometry)}`);
-  assert(operatorGeometry.children.length === 2 && operatorGeometry.children[0].top === operatorGeometry.children[1].top, `my tezos address switch: recent consensus and next right/software groups must share one desktop row ${JSON.stringify(operatorGeometry)}`);
+  assert(operatorGeometry.labels.join('|') === 'Octez|Baker working?|Attestation|DAL' && operatorGeometry.upcomingRights === 3, `my tezos address switch: operator tile contract drifted ${JSON.stringify(operatorGeometry)}`);
+  assert(operatorGeometry.children.length === 4 && operatorGeometry.children.every(child => child.top === operatorGeometry.children[0].top), `my tezos address switch: the four compact status pills must share one desktop row below the three-right schedule ${JSON.stringify(operatorGeometry)}`);
 
   await page.locator('#my-tezos-tab-portfolio').click();
   await page.waitForFunction(() => {

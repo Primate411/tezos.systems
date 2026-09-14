@@ -1249,6 +1249,8 @@ inline modal styles in `js/core/app.js`.
   participation score, missed and expected attestation power, an expandable scoring
   explanation, and access to the separate broader shareable report. Missing or zero
   expected power stays ungraded; the explanation remains open through refresh.
+  Address-switching QA checks the three upcoming rights separately from the four
+  compact status pills, including their desktop row layout.
 - My Tezos adaptive personal room with Overview, Baker Signal, Portfolio, Transactions,
   Collection, Your Story, and Tezos X tabs. The drawer keeps all seven tabs
   visible on phones, remembers each tab's
