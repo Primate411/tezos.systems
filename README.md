@@ -1268,7 +1268,8 @@ inline modal styles in `js/core/app.js`.
   missing grade placeholders and unequal status cards fail the guard. Rewards,
   the baker schedule, statistics, Story, and Network Context render their actual
   card structure during loading. Variable receipt lists grow only at the bottom;
-  controls, shared guidance, and adjacent-room cards stay above them. Story badges
+  controls, shared guidance, and adjacent-room cards stay above them. Journey handoff
+  tests verify this placement while preserving the canonical return route. Story badges
   occupy a horizontal rail. Etherlink transactions, tokens, and NFTs have separate
   receipt selectors so one growing list cannot push another section down. Direct-route checks also
   enforce 44px touch targets and intact, unclipped words on compact Portfolio buttons.

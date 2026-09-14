@@ -16199,7 +16199,8 @@ async function smokeMyTezosLedgerFlowHandoff(browser, baseUrl) {
     });
     return {
       cards,
-      sectionParent: section?.parentElement?.id || '',
+      sectionPanel: section?.closest('[data-my-tezos-panel]')?.id || '',
+      beforeReceipts: section.getBoundingClientRect().bottom <= document.querySelector('#portfolio-activity-list').getBoundingClientRect().top + 1,
       secondaryContainers: document.querySelectorAll('#drawer-more-section-secondary').length
     };
   });
@@ -16208,7 +16209,8 @@ async function smokeMyTezosLedgerFlowHandoff(browser, baseUrl) {
       && mobileJourneyGeometry.cards[0].top < mobileJourneyGeometry.cards[1].top
       && Math.abs(mobileJourneyGeometry.cards[0].width - mobileJourneyGeometry.cards[1].width) <= 1
       && mobileJourneyGeometry.cards.every((card) => card.descriptionVisible)
-      && mobileJourneyGeometry.sectionParent === 'my-tezos-panel-transactions'
+      && mobileJourneyGeometry.sectionPanel === 'my-tezos-panel-transactions'
+      && mobileJourneyGeometry.beforeReceipts
       && mobileJourneyGeometry.secondaryContainers === 0,
     `my tezos Ledger Flow handoff: account journeys are not one readable mobile stack ${JSON.stringify(mobileJourneyGeometry)}`
   );
@@ -16335,7 +16337,8 @@ async function smokeMyTezosCircularReturn(browser, baseUrl) {
       href: card.getAttribute('href') || '',
       isReturn: card.dataset.journeyReturn === 'true'
     })),
-    sectionParent: document.querySelector('#drawer-more-section')?.parentElement?.id || ''
+    sectionPanel: document.querySelector('#drawer-more-section')?.closest('[data-my-tezos-panel]')?.id || '',
+    beforeReceipts: document.querySelector('#drawer-more-section').getBoundingClientRect().bottom <= document.querySelector('#collection-grid').getBoundingClientRect().top + 1
   }));
   assert(
     JSON.stringify(myTezosState.origin) === JSON.stringify({ entryId: 'capital', intentId: 'capital-art' }),
@@ -16353,7 +16356,8 @@ async function smokeMyTezosCircularReturn(browser, baseUrl) {
       && myTezosState.cards[0].title === 'Return to Art Economy'
       && myTezosState.cards[0].href === '/capital/?view=art'
       && !myTezosState.cards[1].isReturn
-      && myTezosState.sectionParent === 'my-tezos-panel-collection',
+      && myTezosState.sectionPanel === 'my-tezos-panel-collection'
+      && myTezosState.beforeReceipts,
     `my tezos circular return: Collection did not reuse the two-card workflow ${JSON.stringify(myTezosState)}`
   );
 
