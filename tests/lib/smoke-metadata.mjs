@@ -1,5 +1,10 @@
 const RULES = [
   {
+    suites: /^community-funding$/,
+    files: ['js/features/community-funding.js', 'js/core/community-funding.mjs', 'css/community-funding*', 'data/community-funding-*', 'funding/**', 'scripts/refresh-community-funding.mjs', 'scripts/lib/community-funding.mjs', 'tests/lib/community-funding-smoke.mjs'],
+    tags: ['chamber', 'quiet-refresh', 'funding'], risk: 'high'
+  },
+  {
     suites: /^lazy-drawer-charts$/,
     files: ['js/core/app.js', 'js/ui/chamber-styles.js', 'js/ui/chart-loader.js', 'js/features/my-tezos*.js', 'js/features/history.js', 'js/features/upgrade-effect.js', 'tests/lib/lazy-drawer-charts-smoke.mjs'],
     tags: ['startup', 'my-tezos', 'navigation'],

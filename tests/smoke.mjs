@@ -27,6 +27,9 @@ import { smokeTallScreen } from './tall-screen-smoke.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
 import { smokeChamberUx } from './lib/chamber-ux-smoke.mjs';
+import { fundingFixtures } from './fixtures/community-funding.mjs';
+import { buildFundingPreview } from '../js/core/community-funding.mjs';
+import { smokeCommunityFunding } from './lib/community-funding-smoke.mjs';
 import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
 import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
@@ -151,6 +154,7 @@ const browserRoutes = [
   '/history/',
   '/maxis/',
   '/tezoscrp/',
+  '/funding/',
   '/health/',
   '/tezosx/',
   '/tezlink/',
@@ -190,6 +194,7 @@ const DEFERRED_CHAMBER_MODULE_PATHS = [
   '/js/features/capital-chamber.js',
   '/js/features/chamber.js',
   '/js/features/ctez.js',
+  '/js/features/community-funding.js',
   '/js/features/ecosystem-chamber.js',
   '/js/features/etherlink-governance.js',
   '/js/features/ledger-flow.js',
@@ -218,6 +223,7 @@ const DEFERRED_CHAMBER_PROJECTION_PATHS = [
 ];
 const DEFERRED_CHAMBER_STYLE_PATHS = [
   '/css/capital.min.css',
+  '/css/community-funding.min.css',
   '/css/ecosystem.min.css',
   '/css/ledger-flow.min.css',
   '/css/leaderboard.min.css',
@@ -234,6 +240,8 @@ const DEFERRED_CHAMBER_STYLE_PATHS = [
 ];
 const DEFERRED_CHAMBER_HEAVY_DATA_PATHS = [
   '/data/capital-snapshot.json',
+  '/data/community-funding-teztree.json',
+  '/data/community-funding-hacktez.json',
   '/data/ecosystem-stats.json',
   '/data/maxis-leaders.json',
   '/data/maxis-careers.json',
@@ -352,8 +360,8 @@ const EXPECTED_CHAMBER_CATEGORIES = [
     key: 'people',
     label: 'People & Accounts',
     question: 'Who is here, and what have they done?',
-    cards: ['ledger-flow-entry-card', 'tezos-domains-entry-card', 'maxis-entry-card', 'tezoscrp-entry-card'],
-    layouts: ['featured', 'featured', 'featured', 'featured']
+    cards: ['ledger-flow-entry-card', 'tezos-domains-entry-card', 'maxis-entry-card', 'tezoscrp-entry-card', 'funding-entry-card'],
+    layouts: ['featured', 'featured', 'featured', 'featured', 'featured']
   },
   {
     key: 'history',
@@ -1670,6 +1678,11 @@ async function installStakingChamberMocks(page, requestLog) {
 }
 
 async function installFeatureMocks(context, options = {}) {
+  const funding = fundingFixtures();
+  await context.route(/\/data\/community-funding-(teztree|hacktez)(?:-preview)?\.json/, route => {
+    const source = route.request().url().includes('teztree') ? 'teztree' : 'hacktez';
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(route.request().url().includes('-preview.json') ? buildFundingPreview(funding[source]) : funding[source]) });
+  });
   const cycleMilestone = options.cycleMilestone && typeof options.cycleMilestone === 'object'
     ? options.cycleMilestone
     : null;
@@ -23106,7 +23119,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
   let preferenceResponse = await preferencePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(preferenceResponse?.ok(), `Chamber category preferences failed with HTTP ${preferenceResponse?.status()}`);
   await preferencePage.waitForFunction(() => Boolean(window.tezosSystemsChamberCategories), null, { timeout: 15000 });
-  await preferencePage.waitForFunction(() => document.querySelectorAll('[data-chamber-room-hide]').length === 21, null, { timeout: 15000 });
+  await preferencePage.waitForFunction(() => document.querySelectorAll('[data-chamber-room-hide]').length === 22, null, { timeout: 15000 });
   const defaultPreferenceState = await preferencePage.evaluate(() => ({
     categoryRoot: document.documentElement.getAttribute('data-chamber-categories-hidden'),
     roomRoot: document.documentElement.getAttribute('data-chamber-rooms-hidden'),
@@ -23130,10 +23143,10 @@ async function smokeUraniumChamber(browser, baseUrl) {
     && defaultPreferenceState.roomRoot === ''
     && defaultPreferenceState.stored === null
     && defaultPreferenceState.shownCategories === 7
-    && defaultPreferenceState.shownRooms === 21
+    && defaultPreferenceState.shownRooms === 22
     && defaultPreferenceState.categoryHideButtons === 7
-    && defaultPreferenceState.roomHideButtons === 21
-    && defaultPreferenceState.roomSwitches === 21
+    && defaultPreferenceState.roomHideButtons === 22
+    && defaultPreferenceState.roomSwitches === 22
     && defaultPreferenceState.expandedCategories === 1
     && defaultPreferenceState.expandedCategoryKeys.join(',') === DEFAULT_EXPANDED_CHAMBER_CATEGORY
     && defaultPreferenceState.independentControls,
@@ -23199,8 +23212,8 @@ async function smokeUraniumChamber(browser, baseUrl) {
   assert(topicPanelState.homeRows === 6
     && topicPanelState.topicGroups === 7
     && topicPanelState.categoryRows === 7
-    && topicPanelState.roomRows === 21
-    && topicPanelState.roomCount === '21 shown'
+    && topicPanelState.roomRows === 22
+    && topicPanelState.roomCount === '22 shown'
     && topicPanelState.categoryCount === '7 topics'
     && topicPanelState.controls.every((height) => height >= 44)
     && topicPanelState.showAllText === 'Show all Chambers',
@@ -23263,7 +23276,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
     setup: getComputedStyle(document.getElementById('settings-gear')).display,
     footer: getComputedStyle(document.getElementById('site-footer')).display
   }));
-  assert(!allTopicsHidden.explore && allTopicsHidden.categoryRoot === 7 && allTopicsHidden.roomRoot === 21 && allTopicsHidden.setup !== 'none' && allTopicsHidden.footer !== 'none',
+  assert(!allTopicsHidden.explore && allTopicsHidden.categoryRoot === 7 && allTopicsHidden.roomRoot === 22 && allTopicsHidden.setup !== 'none' && allTopicsHidden.footer !== 'none',
     `Hiding every Chamber left an empty Explore block or lost recovery ${JSON.stringify(allTopicsHidden)}`);
   await preferencePage.evaluate(() => window.tezosSystemsChamberCategories.setChamberRoomVisible('pulse', true, 'single-room-recovery'));
   await preferencePage.waitForFunction(() => window.tezosSystemsHomeLayout.isHomeBlockVisible('explore'));
@@ -28559,7 +28572,7 @@ async function smokeHomeLayout(browser, baseUrl) {
       && mobileGeometry.overflow <= 1
       && mobileGeometry.rows.length === 6
       && mobileGeometry.rows.every((height) => height >= 44)
-      && mobileGeometry.topicRows.length === 28
+      && mobileGeometry.topicRows.length === 29
       && mobileGeometry.topicRows.filter((height) => height > 0).length === 4
       && mobileGeometry.topicRows.every((height) => height === 0 || height >= 44)
       && mobileGeometry.topicGroups.length === 7
@@ -36169,7 +36182,7 @@ async function smokeLazyChamberLoading(browser, baseUrl) {
   };
   const waitForLauncherShell = (page) => page.waitForFunction(() => (
     document.querySelectorAll('#chambers-grid > .chamber-category').length === 7
-    && document.querySelectorAll('#chambers-grid .stat-card').length === 21
+    && document.querySelectorAll('#chambers-grid .stat-card').length === 22
     && document.querySelectorAll('#chambers-grid [data-chamber-skeleton]').length >= 15
   ), null, { timeout: 15000 });
 
@@ -36764,7 +36777,7 @@ async function smokeChamberCategories(browser, baseUrl) {
   }
 
   assert(issues.length === 0, `Chamber categories browser issues:\n${issues.join('\n')}`);
-  log('ok - responsive Chamber topics and 21 room preferences, Hide/Undo, recovery, route, tour, and first-paint smoke');
+  log('ok - responsive Chamber topics and 22 room preferences, Hide/Undo, recovery, route, tour, and first-paint smoke');
 }
 
 async function smokeOverlayFeatureIntegrations(browser, baseUrl) {
@@ -37531,12 +37544,13 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tzkt-throttle', description: 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second', run: () => smokeTzktThrottle(browser, baseUrl) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
-    { name: 'chamber-categories', description: 'Seven responsive topics and 21 individually hideable Chambers with persistent Hide/Undo, recovery, sync, route reveal, and first-paint state', run: () => smokeChamberCategories(browser, baseUrl) },
+    { name: 'chamber-categories', description: 'Seven responsive topics and 22 individually hideable Chambers with persistent Hide/Undo, recovery, sync, route reveal, and first-paint state', run: () => smokeChamberCategories(browser, baseUrl) },
     { name: 'lazy-chamber-loading', description: 'Chamber code, projections, and CSS remain deferred until intent; hydration preserves focus; failed modules and styles retry without unstyled rooms', run: () => smokeLazyChamberLoading(browser, baseUrl) },
     { name: 'network-pulse-launcher', description: 'Network Pulse lower launcher row hydrates from collected history without opening the modal or enabling legacy full stats', run: () => smokeNetworkPulseLauncher(browser, baseUrl) },
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
     { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'chamber-ux', description: 'Chambers keep one scroller, a reachable exit, retained disclosures and view positions, and primary controls near the entrance', run: () => smokeChamberUx(browser, baseUrl, { installFeatureMocks }) },
+    { name: 'community-funding', description: 'Campaign and project semantics, safe source links, responsive routing, isolated failures and quiet source refresh', run: () => smokeCommunityFunding(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'chamber-reading', description: 'Room summaries and source clocks stay contained, truthful, visible-only, and quiet across desktop/mobile reader updates', run: () => smokeChamberReading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-expansion', description: 'Five independent rooms defer dashboard startup, preserve direct state and failed-exit readers, and hand off once across desktop/mobile navigation and cancelled loads', run: () => smokeStandaloneChamberExpansion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-completion', description: 'Every generated room and alias boots without home telemetry and retains direct desktop/mobile navigation through the dashboard handoff', run: () => smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, ledgerFlowAddress: SAMPLE_ADDRESS }) },

@@ -3,6 +3,7 @@ export const CSS_THEMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember'
 
 export const LAZY_SURFACE_STYLES = [
   'capital.css',
+  'community-funding.css',
   'ecosystem.css',
   'history-chamber.css',
   'leaderboard.css',

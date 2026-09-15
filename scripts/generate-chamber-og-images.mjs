@@ -80,6 +80,11 @@ export function routeDetails(route, report) {
       chips: ['consensus', 'economy', 'activity'],
       body: 'Scan Tezos bakers, staking, governance, transactions, contracts, supply, and adjacent chambers in one live operations room.'
     },
+    funding: {
+      kicker: 'Community Funding', value: 'Keep good ideas going.',
+      chips: ['TezTree campaigns', 'HackTez projects', 'support at the source'],
+      body: 'Discover community campaigns and projects accepting support. Browse platform snapshots and open the original page to contribute.'
+    },
     capital: {
       kicker: 'Public-Source Capital',
       value: 'One system. Four lenses.',

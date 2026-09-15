@@ -28,6 +28,7 @@ const OVERLAY_ENTRY_IDS = Object.freeze({
     'ecosystem-activity-modal': 'ecosystem',
     'whale-watch-modal': 'whales',
     'baker-directory-modal': 'leaderboard',
+    'funding-modal': 'funding',
     'tezoscrp-modal': 'tezoscrp'
 });
 

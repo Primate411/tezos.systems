@@ -13,7 +13,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Baker Status and Grade now reserve both card positions while loading and align their bottom edges when displayed side by side' },
             { type: '🎨', text: 'Baker Grade now sits beside Baker Status in its own card, with cycle participation evidence, an explained scoring scale, and the full shareable report' },
             { type: '🎨', text: 'Baker Signal restores compact status pills for the next baking right, Octez version, baker health, attestations, and DAL' },
-            { type: '✨', text: 'Baker Signal highlights the next of three round-0 rights and finds buffered maintenance gaps across up to 100 assignments, with selectable outage lengths, current reward thresholds, and details that stay open during refresh' }
+            { type: '✨', text: 'Baker Signal highlights the next of three round-0 rights and finds buffered maintenance gaps across up to 100 assignments, with selectable outage lengths, current reward thresholds, and details that stay open during refresh' },
+            { type: '✨', text: 'Community Funding brings TezTree campaigns and HackTez project support into one room, with project previews, prominent platform credits, direct support links, source timestamps, and campaign history' }
         ]
     },
     {

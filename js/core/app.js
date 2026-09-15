@@ -1669,6 +1669,7 @@ const CHAMBER_CARD_TARGETS = Object.freeze({
     domains: { selector: '#tezos-domains-entry-card', layout: 'featured' },
     maxis: { selector: '#maxis-entry-card', layout: 'featured' },
     tezoscrp: { selector: '#tezoscrp-entry-card', layout: 'featured' },
+    funding: { selector: '#funding-entry-card', layout: 'featured' },
     anthology: { selector: '#protocol-history-entry-card', layout: 'standard' },
     history: { selector: '#cycle-history-entry-card', layout: 'standard' }
 });
@@ -2040,6 +2041,11 @@ const CHAMBER_INFO_COPY = {
         body: 'Spot the enduring Tezos Maxis across honestly labeled all-time, live, and rolling crowns, then enter the current protocol season for movement, Honors, and wallet progression.',
         href: '/maxis/',
         link: 'Open Tezos Maxis ->'
+    },
+    'funding-entry-card': {
+        title: 'Community Funding',
+        body: 'TezTree campaigns and HackTez project support, with separate platform snapshots and links to support them directly.',
+        href: '/funding/', link: 'Open Community Funding ->'
     },
     'tezoscrp-entry-card': {
         title: 'TezosCRP Recognition Hall',
@@ -7719,6 +7725,10 @@ function applyDeepLink() {
         );
     }
 
+    if (['funding', 'community-funding', 'support-builders'].some(key => params.has(key) || hash === key)) {
+        openHashModal(() => openChamberFeature('funding'), 'Failed to open Community Funding');
+    }
+
     // #tezoscrp / #community-rewards / #crp
     if (params.has('tezoscrp') || hash === 'tezoscrp'
         || params.has('community-rewards') || hash === 'community-rewards'
@@ -7955,6 +7965,7 @@ const ROUTED_OVERLAY_ENTRIES = Object.freeze({
     'staking-chamber-modal': { entryIds: ['staking-chamber'], hashes: ['staking', 'stake'] },
     'baker-directory-modal': { entryIds: ['leaderboard'], hashes: ['leaderboard', 'baker'] },
     'maxis-modal': { entryIds: ['maxis'], hashes: ['maxis', 'tezos-maxis'] },
+    'funding-modal': { entryIds: ['funding'], hashes: ['funding', 'community-funding', 'support-builders'] },
     'tezoscrp-modal': { entryIds: ['tezoscrp'], hashes: ['tezoscrp', 'community-rewards', 'crp'] },
     'network-health-modal': { entryIds: ['health'], hashes: ['health', 'network-health'] },
     'tezlink-modal': { entryIds: ['tezosx'], hashes: ['tezosx', 'tezlink'] },

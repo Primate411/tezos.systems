@@ -237,6 +237,22 @@ export const SITE_MAP = [
         sitemap: { changefreq: 'hourly', priority: '0.8' }
     },
     {
+        id: 'funding',
+        question: 'How can I support community projects?',
+        title: 'Community Funding', href: '/funding/', hash: '#funding',
+        hashAliases: ['#community-funding', '#support-builders'],
+        group: 'Culture & Feeds',
+        chamberCategory: 'people',
+        detail: 'Discover TezTree campaigns and HackTez projects accepting support, with platform snapshots and direct funding links',
+        keywords: ['community funding', 'teztree', 'hacktez', 'crowdfunding', 'support builders', 'donate', 'donations', 'tip jars', 'campaigns', 'fund projects', 'project support'],
+        searchIntents: [
+            { id: 'funding-support', title: 'Support Tezos Builders', href: '/funding/?view=support', detail: 'Browse HackTez projects with tips explicitly enabled', keywords: ['hacktez projects', 'support builders', 'tip jar'], directory: true },
+            { id: 'funding-campaigns', title: 'TezTree Open Campaigns', href: '/funding/?view=campaigns', detail: 'Find campaigns with active deadlines and reported funding goals', keywords: ['teztree funding', 'open campaigns', 'crowdfunding'], directory: true },
+            { id: 'funding-history', title: 'Ended Community Campaigns', href: '/funding/?view=history', detail: 'Read past TezTree campaigns and reported results', keywords: ['ended campaigns', 'funding history'], directory: true }
+        ],
+        fresh: true, sitemap: { changefreq: 'daily', priority: '0.8' }
+    },
+    {
         id: 'tezoscrp',
         question: 'Who did Tezos Commons recognize?',
         title: 'TezosCRP Recognition Hall',
@@ -575,7 +591,7 @@ export const CHAMBER_CATEGORY_META = Object.freeze([
         key: 'people',
         label: 'People & Accounts',
         question: 'Who is here, and what have they done?',
-        entryIds: Object.freeze(['ledger-flow', 'domains', 'maxis', 'tezoscrp'])
+        entryIds: Object.freeze(['ledger-flow', 'domains', 'maxis', 'tezoscrp', 'funding'])
     }),
     Object.freeze({
         key: 'history',
@@ -607,17 +623,18 @@ export const SITE_MAP_RELATIONS = {
     minerals: ['uranium', 'metals', 'capital', 'tezosx'],
     uranium: ['minerals', 'metals', 'tezosx', 'price'],
     metals: ['minerals', 'uranium', 'tezosx', 'price'],
-    ecosystem: ['capital', 'tezosx', 'history', 'maxis'],
+    ecosystem: ['funding', 'capital', 'tezosx', 'history'],
     'staking-chamber': ['leaderboard', 'ledger-flow', 'calculator', 'my-tezos'],
-    maxis: ['tezoscrp', 'ledger-flow', 'domains', 'hen'],
-    tezoscrp: ['maxis', 'anthology', 'hen', 'feed'],
+    maxis: ['tezoscrp', 'funding', 'ledger-flow', 'domains'],
+    tezoscrp: ['funding', 'maxis', 'anthology', 'hen'],
+    funding: ['ecosystem', 'tezoscrp', 'maxis', 'domains'],
     health: ['pulse', 'tz4', 'leaderboard', 'staking-chamber'],
     'liquidity-baking': ['chamber', 'pulse', 'staking-chamber', 'health'],
     tezosx: ['minerals', 'uranium', 'l2-governance', 'pulse'],
     'l2-governance': ['tezosx', 'chamber', 'anthology', 'pulse'],
     tz4: ['health', 'bakers-guide', 'pulse', 'staking-chamber'],
     'ledger-flow': ['my-tezos', 'whales', 'domains', 'ctez'],
-    domains: ['my-tezos', 'ledger-flow', 'maxis', 'hen'],
+    domains: ['my-tezos', 'funding', 'ledger-flow', 'maxis'],
     ctez: ['my-tezos', 'ledger-flow', 'staking-chamber', 'pulse'],
     price: ['metals', 'uranium', 'live-compare', 'snapshot'],
     whales: ['uranium', 'ledger-flow', 'capital', 'history'],

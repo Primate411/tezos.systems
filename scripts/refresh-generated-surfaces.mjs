@@ -37,6 +37,7 @@ const CAPITAL_TARGETS = ['data/capital-snapshot.json'];
 const MINERALS_TARGETS = ['data/minerals-snapshot.json', 'data/minerals-entry-summary.json'];
 const URANIUM_TARGETS = ['data/uranium-snapshot.json', 'data/uranium-entry-summary.json'];
 const METALS_TARGETS = ['data/metals-snapshot.json', 'data/metals-entry-summary.json'];
+const FUNDING_TARGETS = ['teztree', 'hacktez'].flatMap(source => [`data/community-funding-${source}.json`, `data/community-funding-${source}-preview.json`]);
 const ECOSYSTEM_TARGETS = ['data/ecosystem-stats.json'];
 const LAUNCHER_PROJECTION_TARGETS = [
   'data/maxis/entry-summary.json',
@@ -68,6 +69,7 @@ const GENERATED_TARGETS = unique([
   ...MINERALS_TARGETS,
   ...URANIUM_TARGETS,
   ...METALS_TARGETS,
+  ...FUNDING_TARGETS,
   ...ECOSYSTEM_TARGETS,
   ...LAUNCHER_PROJECTION_TARGETS,
   ...WHALE_WATCH_TARGETS,
@@ -267,6 +269,8 @@ async function main() {
     ran.push('uranium-check');
     nodeScript('scripts/refresh-metals-data.mjs', ['--check']);
     ran.push('metals-check');
+    nodeScript('scripts/refresh-community-funding.mjs', ['--check']);
+    ran.push('community-funding-check');
     nodeScript('scripts/refresh-ecosystem-stats.mjs', ['--check']);
     ran.push('ecosystem-check');
     nodeScript('scripts/generate-launcher-projections.mjs', ['--check']);
@@ -299,6 +303,9 @@ async function main() {
     nodeScript('scripts/refresh-metals-data.mjs');
     ran.push('metals');
     if (shouldStage) stageTargets(METALS_TARGETS);
+    nodeScript('scripts/refresh-community-funding.mjs');
+    ran.push('community-funding');
+    if (shouldStage) stageTargets(FUNDING_TARGETS);
     nodeScript('scripts/refresh-ecosystem-stats.mjs');
     ran.push('ecosystem');
     if (shouldStage) stageTargets(ECOSYSTEM_TARGETS);

@@ -14,6 +14,42 @@ Artifact validation describes the generated file, not independent verification o
 issuer claims. The complete Chamber directory derives its count from the canonical
 site map.
 
+## Community Funding
+
+`/funding/` brings together TezTree goal-based campaigns and HackTez projects with
+explicitly enabled tips. Support builders is the default view; Open campaigns and
+Ended campaigns are independently addressable with `?view=campaigns` and
+`?view=history`. Browse without a wallet and open the original platform to support.
+Search, the People & Accounts directory, site maps, shared footers, and related
+Ecosystem Activity, Maxis, TezosCRP, and Domains rooms link to Community Funding.
+
+The launcher gives three compact “Worth a look” previews with artwork, descriptions,
+builder names, and source links. Open campaigns get the first slot; projects marked
+live appear before projects in development, alphabetically within each status.
+This is a discovery sample, not a popularity ranking. Two bounded preview files
+keep full catalogs deferred until the room opens, preserve source clocks, and
+refresh quietly only while the launcher is visible. Each preview is generated and
+checked with its own platform snapshot in the same scheduled lane.
+Both the launcher and chamber header prominently link to TezTree and HackTez under
+“Powered by,” crediting the source platforms for listings, artwork, and reported figures.
+
+The two same-origin `data/community-funding-*.json` receipts refresh in separate
+six-hour scheduled lanes. Each lane validates its full source response before
+replacing its last-good file. TezTree closure/deadline overrides its generic live
+status; mutez amounts stay exact. HackTez pagination must reconcile; only exact
+member-and-project counters are used, and asset totals stay separate. Missing
+project totals are unavailable, never inferred from member totals. The room
+checks for new snapshots every five minutes while open and visible, preserves
+reading state, and marks 18-hour-old snapshots stale. Browser fetch failures retain
+the original timestamp and cards. Images use TezTree and the same Fileship IPFS gateway as HackTez, with exact
+`img-src` allowances; neither platform needs a browser `connect-src` permission.
+
+Run `npm run refresh:funding`, `npm run check:funding`, `npm run test:funding`, and
+`node tests/smoke.mjs --only community-funding --hermetic`. The static gate and
+standard smoke catalog include the new contracts. TezTree's website feed is an
+undocumented integration dependency; external-use expectations still need
+confirmation with Flex before treating it as a supported long-term API.
+
 ## What This Is
 
 Tezos Systems is a static, client-side dashboard for understanding what is
@@ -203,7 +239,7 @@ tezos.systems/
 
 1. `index.html` loads `css/styles.min.css` and `js/core/app.js` as an ES
    module.
-   All 25 generated Chamber routes and the 22 Protocol Anthology chapters use
+   All 26 generated Chamber routes and the 22 Protocol Anthology chapters use
    `js/core/standalone-chamber.js` instead: no hidden home DOM or dashboard
    refresh starts until the visitor leaves or searches. My Tezos, Anthology,
    and the directory reuse deferred app controllers without initializing home.
@@ -408,7 +444,7 @@ inline modal styles in `js/core/app.js`.
   missed baker; missing identities remain unavailable. These pills are not
   activity-filtered, and the inspector preserves the full per-round identities,
   TzKT/My Tezos links, and the same reading lock as the rest of the receipt.
-- Explore's seven topics and all 21 individual Chamber launchers are independently
+- Explore's seven topics and all 22 individual Chamber launchers are independently
   hideable. Topic headers and Chamber cards provide quick eye-off actions with
   Undo, while **Choose Explore Chambers** in Customize home keeps a compact
   topic-first manager with individual room switches and one Show all recovery.
@@ -426,7 +462,7 @@ inline modal styles in `js/core/app.js`.
   and recovery open only when requested. Its mobile corner gift launcher owns a
   dedicated in-flow slot beside the top price rail and scrolls away with that
   rail instead of painting over telemetry or the centered wordmark.
-- Explore Tezos is visible by default and organizes all 21 room launchers into
+- Explore Tezos is visible by default and organizes all 22 room launchers into
   seven question-led topics: Ecosystem, Network, Capital, Bakers, Governance,
   People & Accounts, and History. ctez Oven Exit and KT1 Multisig Recovery stay off the
   default topic grid and open from Explore's collapsed Recovery tools drawer or
@@ -1968,7 +2004,7 @@ data. Mutable transports retain the service worker's network-only policy.
 `npm run measure:chamber-transports` measures both transfer savings and decoding
 cost; the compact representation saves bytes and adds some CPU work.
 
-The standalone `/tezoscrp/` pilot now covers all 25 generated Chamber routes and
+The standalone `/tezoscrp/` pilot now covers all 26 generated Chamber routes and
 22 Anthology chapters. Each boots its own room, shared theme styles, selected
 theme painter, wayfinder, and build/update lifecycle. They do not initialize dashboard
 telemetry on an idle timer. Closing the room or following its dashboard/search

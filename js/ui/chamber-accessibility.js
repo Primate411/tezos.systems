@@ -82,6 +82,7 @@ const WIDE_CHAMBER_DIALOG_SELECTOR = [
     '.uranium-content',
     '.metals-content',
     '.ecosystem-content',
+    '.funding-content',
     '.whale-watch-content',
     '.baker-directory-content'
 ].join(',');

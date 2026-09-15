@@ -518,6 +518,54 @@
           }
         }
       }
+    },
+    "/data/community-funding-teztree.json": {
+      "get": {
+        "operationId": "getCommunityFundingTeztree",
+        "summary": "Get the TezTree campaign snapshot",
+        "description": "Complete returned campaign feed, with exact mutez, closed flags, deadlines and source attribution. Generic live status does not prove a campaign is open.",
+        "x-refresh-cadence": "Every six hours in an independent source lane; last-good snapshot retained on failure; stale after 18 hours",
+        "x-license-boundary": "Third-party project descriptions, images, identities and platform facts retain their source terms. Original arrangement is CC BY 4.0 where owned.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonDocument"
+          }
+        }
+      }
+    },
+    "/data/community-funding-teztree-preview.json": {
+      "get": {
+        "operationId": "getCommunityFundingTeztreePreview",
+        "summary": "Get compact TezTree campaign highlights",
+        "description": "At most three source-validated campaign previews and collection-time counts. Open campaigns appear first by deadline; closed and unavailable campaigns retain their status. Limited to 16 KiB.",
+        "x-refresh-cadence": "Generated with the TezTree snapshot in its independent six-hour lane; source clock retained; stale after 18 hours",
+        "x-license-boundary": "Third-party campaign descriptions, images and facts retain their source terms. Original arrangement is CC BY 4.0 where owned.",
+        "responses": { "200": { "$ref": "#/components/responses/JsonDocument" } }
+      }
+    },
+    "/data/community-funding-hacktez-preview.json": {
+      "get": {
+        "operationId": "getCommunityFundingHacktezPreview",
+        "summary": "Get compact HackTez project highlights",
+        "description": "At most three explicitly tip-enabled projects, with live projects before work in progress and alphabetical ties. A discovery sample, never a popularity ranking; limited to 16 KiB.",
+        "x-refresh-cadence": "Generated with the HackTez snapshot in its independent six-hour lane; collection and upstream clocks retained; stale after 18 hours",
+        "x-license-boundary": "Third-party project descriptions, images and facts retain their source terms. Original arrangement is CC BY 4.0 where owned.",
+        "responses": { "200": { "$ref": "#/components/responses/JsonDocument" } }
+      }
+    },
+    "/data/community-funding-hacktez.json": {
+      "get": {
+        "operationId": "getCommunityFundingHacktez",
+        "summary": "Get the HackTez project support snapshot",
+        "description": "Complete paginated project feed filtered to explicitly enabled project tips. Project counters join exact member and slug, remain separate by asset, and never reuse member totals.",
+        "x-refresh-cadence": "Every six hours in an independent source lane; last-good snapshot retained on failure; stale after 18 hours",
+        "x-license-boundary": "Third-party project descriptions, images, identities and platform facts retain their source terms. Original arrangement is CC BY 4.0 where owned.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonDocument"
+          }
+        }
+      }
     }
   },
   "components": {

@@ -81,6 +81,13 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
       command('tests/metals-check.mjs')
     ]
   },
+  ...['teztree', 'hacktez'].map(source => ({
+    id: `community-funding-${source}`,
+    label: `Community Funding: ${source}`,
+    targets: [`data/community-funding-${source}.json`, `data/community-funding-${source}-preview.json`],
+    refresh: [command('scripts/refresh-community-funding.mjs', [`--source=${source}`])],
+    validate: [command('scripts/refresh-community-funding.mjs', [`--source=${source}`, '--check'])]
+  })),
   {
     id: 'ecosystem',
     label: 'Ecosystem Activity',

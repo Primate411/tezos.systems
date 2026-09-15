@@ -406,6 +406,23 @@ Stamping gotchas:
   progress, and Champions is the finalized archive. Passport career reads one
   verified address shard from every manifest season; it must preserve repeated
   season-scoped badge receipts and keep historical shard failures local.
+- Community Funding: `js/features/community-funding.js`; `/funding/` separates
+  TezTree campaigns (`?view=campaigns`, `?view=history`) from HackTez project support
+  (`?view=support`, default). Fetch only the same-origin per-platform snapshots in
+  the browser. `scripts/refresh-community-funding.mjs` validates full, bounded
+  responses in two independent scheduled lanes; retain last-good bytes on failure.
+  Closed flags/deadlines override TezTree's generic live status; keep exact mutez,
+  missing amounts, and unknown status honest. HackTez must explicitly enable project
+  tips; join counters only by exact member plus project slug, never member totals,
+  and never combine assets. Preserve both collection and upstream clocks; stale
+  after 18 hours. Browse without a wallet and support only on canonical source
+  pages. The launcher reads only per-platform `-preview.json` projections (16 KiB
+  each, three highlights), validated against its source in the same scheduled lane.
+  It offers an open campaign first, then projects marked live before work in progress
+  with alphabetical ties; this is discovery, never an inferred popularity ranking.
+  Preserve launcher geometry, source clocks, visibility gating, and quiet refresh.
+  TezTree external-use expectations remain an undocumented dependency to
+  confirm with Flex. Crosslinks belong in `site-map.js`, its relations and footer.
 - TezosCRP: `js/features/tezoscrp.js`; this is a separate human-identity
   recognition archive, not a Maxis lane. Count official category listings and
   distinct recognized months separately, never infer missing per-person XTZ

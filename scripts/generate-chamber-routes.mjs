@@ -37,6 +37,7 @@ const CHAMBER_CATEGORY_BY_ROUTE_HASH = Object.freeze({
   '#domains': 'people',
   '#maxis': 'people',
   '#tezoscrp': 'people',
+  '#funding': 'people',
   '#protocol-history': 'history',
   '#history': 'history'
 });

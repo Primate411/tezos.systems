@@ -1888,7 +1888,8 @@ async function checkSiteMapGraphContracts() {
 
   const directoryIntentIds = new Set(SITE_MAP.flatMap((entry) => siteMapDirectoryChildren(entry).map((intent) => intent.id)));
   const browseIntentIds = siteMapBrowseIntents().map((intent) => intent.id);
-  if (JSON.stringify(browseIntentIds) !== JSON.stringify([...directoryIntentIds])) {
+  if (new Set(browseIntentIds).size !== browseIntentIds.length
+    || JSON.stringify([...browseIntentIds].sort()) !== JSON.stringify([...directoryIntentIds].sort())) {
     fail('empty search browse must expose every nested directory view exactly once');
   }
   for (const entry of siteMapSitemapEntries()) {
@@ -10517,7 +10518,7 @@ async function checkChamberCategoryContracts() {
       key: 'people',
       label: 'People & Accounts',
       question: 'Who is here, and what have they done?',
-      entryIds: ['ledger-flow', 'domains', 'maxis', 'tezoscrp']
+      entryIds: ['ledger-flow', 'domains', 'maxis', 'tezoscrp', 'funding']
     },
     {
       key: 'history',
@@ -10549,6 +10550,7 @@ async function checkChamberCategoryContracts() {
     domains: 'featured',
     maxis: 'featured',
     tezoscrp: 'featured',
+    funding: 'featured',
     anthology: 'standard',
     history: 'standard'
   };
@@ -10563,9 +10565,9 @@ async function checkChamberCategoryContracts() {
   assert.deepEqual(
     categorizedEntries.toSorted((left, right) => left.id.localeCompare(right.id)),
     expectedEntries.toSorted((left, right) => left.id.localeCompare(right.id)),
-    'site-map Chamber facets must define exactly one category for each of the 21 entry points'
+    'site-map Chamber facets must define exactly one category for each of the 22 entry points'
   );
-  assert.equal(new Set(categorizedEntries.map(({ id }) => id)).size, 21);
+  assert.equal(new Set(categorizedEntries.map(({ id }) => id)).size, 22);
 
   const metadataSource = siteMapSource
     .split('export const CHAMBER_CATEGORY_META = Object.freeze([')[1]
@@ -10745,7 +10747,7 @@ async function checkChamberCategoryContracts() {
     'infinite Chamber perimeter animation must be reserved for explicit risk/watch state'
   );
 
-  pass('seven persistent Chamber categories, 21 individually hideable entry facets, progressive recovery, and risk-only attention checked');
+  pass('seven persistent Chamber categories, 22 individually hideable entry facets, progressive recovery, and risk-only attention checked');
 }
 
 async function checkPromotedChamberContracts() {

@@ -140,6 +140,11 @@ export const CHAMBER_FEATURES = Object.freeze({
         close: 'closeMaxisChamber',
         standalone: { route: 'maxis', overlayId: 'maxis-modal', dialogSelector: '.maxis-content', launcher: '#maxis-entry-card', queryKeys: ['view', 'season', 'lane', 'address'] }
     },
+    funding: {
+        modulePath: '../features/community-funding.js',
+        init: 'initCommunityFunding', open: 'openCommunityFunding', close: 'closeCommunityFunding',
+        standalone: { route: 'funding', overlayId: 'funding-modal', dialogSelector: '.funding-content', launcher: '#funding-entry-card', queryKeys: ['view'] }
+    },
     tezoscrp: {
         modulePath: '../features/tezoscrp.js',
         init: 'initTezosCrpChamber',

@@ -109,6 +109,7 @@ const DESTINATION_PRESENTATION = Object.freeze({
     price: { kicker: 'Market context', icon: '$' },
     whales: { kicker: 'Large movements', icon: '≈' },
     ecosystem: { kicker: 'App activity', icon: '⌁' },
+    funding: { kicker: 'Support the community', icon: '✳' },
     anthology: { kicker: 'Protocol memory', icon: '◫' },
     tezosx: { kicker: 'Explicitly linked L2', icon: 'X' },
     'ecosystem-l2': { kicker: 'Etherlink activity', icon: '⌁' },
