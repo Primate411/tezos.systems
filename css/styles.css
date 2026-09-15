@@ -27332,4 +27332,35 @@ body[data-theme="hen"]::after {
 @media (max-width: 360px) {
     #my-tezos-drawer .drawer-schedule-right:not(:first-child) .drawer-operator-value { font-size: 1.1rem; }
 }
+#my-tezos-drawer #drawer-baker-brief > .brief-section-baker { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
+#my-tezos-drawer .brief-section-baker > .brief-section-title { margin: 0; }
+.drawer-status-summary { display: grid; gap: 3px; min-width: 0; font: 600 .85rem/1.5 var(--font-ui); }
+.drawer-status-summary > :is(strong, span) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer-status-summary strong { color: var(--accent-cyan); }
+.drawer-status-summary [data-state="issue"] { color: var(--color-error, #ef4444); }
+.drawer-status-summary [data-state="ok"] { color: var(--color-success, #10b981); }
+.drawer-status-summary [data-state="watch"] { color: var(--chamber-watch-color, #f5d65b); }
+.drawer-baker-incidents { min-width: 0; }
+.drawer-incidents-heading { display: flex; justify-content: space-between; gap: 8px; min-height: 22px; color: var(--text-secondary); font: 400 .67rem/1.5 var(--font-ui); }
+.drawer-incidents-heading strong { font-weight: 600; color: var(--text-primary); }
+.drawer-incident-list { display: grid; align-content: start; grid-template-rows: repeat(3, 32px); border-block: 1px solid var(--my-edge); }
+.drawer-incident-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; font: 400 .67rem/1.4 var(--font-ui); text-decoration: none; }
+.drawer-incident-row > span:first-child { color: var(--accent-cyan); font-variant-numeric: tabular-nums; }
+.drawer-incident-row time { color: var(--text-secondary); text-align: center; }
+.drawer-incident-row > span:last-child { color: var(--chamber-watch-color, #f5d65b); }
+.drawer-incident-row:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 1px; }
+.drawer-incident-row:hover { background: var(--my-surface); }
+#my-tezos-drawer .drawer-incidents-empty { margin: 0; grid-row: span 3; align-self: center; color: var(--text-secondary); font: 400 .73rem/1.5 var(--font-ui); }
+.drawer-incidents-coverage { padding-top: 5px; color: var(--text-secondary); font: 400 .62rem/1.5 var(--font-ui); }
+.drawer-incidents-coverage > span { display: block; min-height: 1.5em; }
+.drawer-attestation-allowance { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; margin-top: auto; font: 400 .67rem/1.5 var(--font-ui); color: var(--text-secondary); }
+.drawer-attestation-allowance strong { color: var(--text-primary); }
+.drawer-attestation-allowance[data-state="watch"] strong { color: var(--chamber-watch-color, #f5d65b); }
+.drawer-attestation-allowance small { grid-column: 1 / -1; font-size: .62rem; }
+.drawer-attestation-allowance a { color: var(--text-secondary); text-underline-offset: 3px; }
+@media (max-width: 760px) {
+    #my-tezos-drawer #drawer-baker-brief > .brief-section-baker { min-height: 366px; padding: 14px; }
+    .drawer-incident-list { grid-template-rows: repeat(3, 44px); }
+    .drawer-attestation-allowance a { display: inline-flex; min-height: 44px; align-items: center; }
+}
 /* MY_TEZOS_LAZY_END */

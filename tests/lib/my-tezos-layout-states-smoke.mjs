@@ -7,7 +7,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 // card/control still have to stay fixed. Disclosures may grow only on user input.
 const CASES = [
   { view: 'overview', stable: ['.my-tezos-balance-hero', '.drawer-account-details', '.my-tezos-overview-transactions', '#drawer-rewards', '#drawer-brief', '#drawer-more-section', '.drawer-share-section', '.drawer-footer', '.network-context-header', '.network-personal-spotlight-copy', '.network-context-now-heading', '.network-personal-facts', '.network-context-signals'], tail: '#drawer-network' },
-  { view: 'baker-signal', stable: ['#drawer-operator-status', '#drawer-baker-brief', '.brief-section-baker', '.drawer-baker-grade', '.brief-section-governance', '.drawer-baker-schedule', '.drawer-schedule-upcoming', '.drawer-schedule-right:nth-child(1)', '.drawer-schedule-right:nth-child(2)', '.drawer-schedule-right:nth-child(3)', '.drawer-maintenance', '.capacity-bars', '.my-baker-grid:not(.my-baker-loading-grid)', '#drawer-baker-history', '#drawer-more-section'], aliases: { '.my-baker-grid:not(.my-baker-loading-grid)': '.my-baker-grid', '.brief-section-baker': '.drawer-loading-card-baker' }, tail: '#drawer-baker-activity' },
+  { view: 'baker-signal', stable: ['#drawer-operator-status', '#drawer-baker-brief', '.brief-section-baker', '.drawer-baker-incidents', '.drawer-attestation-allowance', '.drawer-baker-grade', '.brief-section-governance', '.drawer-baker-schedule', '.drawer-schedule-upcoming', '.drawer-schedule-right:nth-child(1)', '.drawer-schedule-right:nth-child(2)', '.drawer-schedule-right:nth-child(3)', '.drawer-maintenance', '.capacity-bars', '.my-baker-grid:not(.my-baker-loading-grid)', '#drawer-baker-history', '#drawer-more-section'], aliases: { '.my-baker-grid:not(.my-baker-loading-grid)': '.my-baker-grid', '.brief-section-baker': '.drawer-loading-card-baker' }, tail: '#drawer-baker-activity' },
   { view: 'portfolio', stable: ['#portfolio-summary', '.portfolio-history-panel', '.portfolio-wallets-panel', '#portfolio-freshness', '#drawer-more-section'] },
   { view: 'transactions', stable: ['.my-tezos-feature-summary', '.transactions-mode-pills', '.portfolio-activity-footer', '#drawer-more-section'], tail: '#portfolio-activity-list' },
   { view: 'collection', stable: ['#collection-summary', '.collection-profile-details', '.my-tezos-feature-footer', '#drawer-more-section'], tail: '#collection-grid' },
@@ -135,9 +135,9 @@ export async function smokeMyTezosLayoutStates(browser, baseUrl, { installFeatur
           await page.locator('.drawer-baker-grade').evaluate(node => { node.style.display = 'none'; });
           assert(frameDifferences(after, await snapshot(page, spec), spec).some(message => message.includes('.drawer-baker-grade: missing')), 'Missing grade card must fail geometry coverage');
           await page.locator('.drawer-baker-grade').evaluate(node => { node.style.removeProperty('display'); });
-          await page.locator('.brief-section-baker').evaluate(node => { node.style.minHeight = '0'; node.style.alignSelf = 'start'; });
+          await page.locator('.brief-section-baker').evaluate(node => { node.style.minHeight = '0'; node.style.height = '160px'; node.style.overflow = 'hidden'; node.style.alignSelf = 'start'; });
           assert((await snapshot(page, spec)).unequal.some(row => row.grid === 'drawer-baker-brief'), 'Unequal status/grade heights must fail peer coverage');
-          await page.locator('.brief-section-baker').evaluate(node => { node.style.removeProperty('min-height'); node.style.removeProperty('align-self'); });
+          await page.locator('.brief-section-baker').evaluate(node => { for (const property of ['min-height', 'height', 'overflow', 'align-self']) node.style.removeProperty(property); });
           assert.deepEqual(frameDifferences(after, await snapshot(page, spec), spec), [], 'Regression probes must restore the page');
         }
         if (spec.view === 'tezos-x') {

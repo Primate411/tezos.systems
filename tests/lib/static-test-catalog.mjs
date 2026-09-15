@@ -4,6 +4,8 @@ export const STATIC_CHECKS = Object.freeze([
   { "script": "tests/css-build-check.mjs", "args": [] },
   { "script": "tests/optional-tools-lazy-check.mjs", "args": [] },
   { "script": "tests/baker-schedule-check.mjs", "args": [] },
+  { "script": "tests/baker-incidents-check.mjs", "args": [] },
+  { "script": "tests/chain-comparison-source-check.mjs", "args": [] },
   {
     "script": "tests/static-checks.mjs",
     "args": []

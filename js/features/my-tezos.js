@@ -14,6 +14,7 @@ import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { countsAsProtocolUpgrade } from '../core/protocol-count.js';
 import { fetchProtocolConstants, fetchStakingAPY, fetchWithRetry, getExternalStakerApy } from '../core/api.js';
 import { buildBakerCapacitySnapshot } from '../core/baker-capacity.mjs';
+import { BAKER_INCIDENT_LIMIT, buildBakerIncidents, readAttestationAllowance } from '../core/baker-incidents.mjs';
 import { BAKER_SCHEDULE_LIMIT, MAINTENANCE_BUFFER_MINUTES, MAINTENANCE_DURATIONS, buildBakerSchedule, isBakerScheduleFresh, planBakerMaintenance, readBakerRewardThresholds } from '../core/baker-schedule.mjs';
 import {
     BAKING_BENJAMINS_DELEGATE_ADDRESS,
@@ -77,6 +78,7 @@ const ACTIVE_VIEW_REFRESH_MS = 30000;
 const BAKING_BENJAMINS_NAME = 'Baking Benjamins';
 const _lastGoodOctezSoftware = new Map();
 const _lastGoodBakerSchedules = new Map();
+const _lastGoodBakerIncidents = new Map();
 let _maintenanceDurationMinutes = 15;
 const _tezNameMemoryCache = new Map();
 let _activeOvernightReport = null;
@@ -524,11 +526,12 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             attestation,
             dal,
             octez,
+            incidents: retainedBakerIncidents(bakerAddr),
         };
     }
 
     const enc = bakerAddr;
-    const [nextBlocks, latestBlocks, latestAttestations] = await Promise.all([
+    const [nextBlocks, latestBlocks, latestAttestations, incidents] = await Promise.all([
         fetchJsonWithTimeout(rightsUrl({
             baker: enc,
             type: 'baking',
@@ -556,7 +559,8 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             limit: String(RECENT_OPERATOR_ATTESTATIONS),
             'sort.desc': 'level',
             select: 'level,timestamp,slots,status,type'
-        }), [])
+        }), []),
+        fetchBakerIncidents(bakerAddr, head)
     ]);
 
     const snapshot = buildBakerSchedule({ rights: nextBlocks, head, blockDelaySeconds, rewardThresholds });
@@ -581,7 +585,30 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
         attestation,
         dal,
         octez,
+        incidents,
     };
+}
+
+function retainedBakerIncidents(bakerAddr, cycle = null) {
+    const previous = _lastGoodBakerIncidents.get(bakerAddr);
+    const snapshot = previous && (cycle === null || previous.cycle === cycle) ? previous : null;
+    return { state: snapshot ? 'stale' : 'unavailable', snapshot };
+}
+
+async function fetchBakerIncidents(bakerAddr, head) {
+    if (!Number.isSafeInteger(head?.cycle) || !Number.isSafeInteger(head?.level) || head.level < 3) return retainedBakerIncidents(bakerAddr);
+    const rows = await fetchJsonWithTimeout(rightsUrl({
+        baker: bakerAddr, type: 'attestation', status: 'missed', cycle: String(head.cycle),
+        'level.le': String(head.level - 2), 'sort.desc': 'level', limit: String(BAKER_INCIDENT_LIMIT),
+        select: 'level,timestamp,cycle,slots,status,type,baker'
+    }), null, 8000, { visibleOnly: true });
+    const snapshot = buildBakerIncidents({ rows, head, bakerAddr });
+    const previous = _lastGoodBakerIncidents.get(bakerAddr);
+    if (!snapshot || (previous && snapshot.throughLevel < previous.throughLevel)) return retainedBakerIncidents(bakerAddr, head.cycle);
+    _lastGoodBakerIncidents.delete(bakerAddr);
+    _lastGoodBakerIncidents.set(bakerAddr, snapshot);
+    if (_lastGoodBakerIncidents.size > 8) _lastGoodBakerIncidents.delete(_lastGoodBakerIncidents.keys().next().value);
+    return { state: 'current', snapshot };
 }
 
 function normalizeBallotStatus(status) {
@@ -2595,11 +2622,48 @@ function renderBakerGrade(data, loading = false) {
     </section>`;
 }
 
+function renderBakerStatusCard(data, loading = false) {
+    const receipt = data.operatorStatus?.incidents;
+    const snapshot = receipt?.snapshot;
+    const incidents = snapshot?.incidents || [];
+    const live = data.operatorStatus?.live;
+    const state = loading ? 'loading' : receipt?.state || 'unavailable';
+    const allowance = readAttestationAllowance(data.participation);
+    const status = loading ? 'Reading baker status…' : `${data.bakerName || 'Baker'} — ${data.bakerInactive ? 'Inactive' : live?.value || 'Status unavailable'}`;
+    const freshness = snapshot ? `Cycle ${snapshot.cycle}` : loading ? 'Reading cycle…' : 'Unavailable';
+    const message = loading ? 'Checking finalized attestation rights…' : snapshot
+        ? `No missed attestations in cycle ${snapshot.cycle} through the checked level.` : 'Missed-attestation receipts unavailable.';
+    const rows = incidents.map(incident => {
+        const time = new Date(incident.timestamp);
+        const shortTime = time.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return `<a class="drawer-incident-row" data-quiet-key="missed-${incident.level}" href="https://tzkt.io/${incident.level}" target="_blank" rel="noopener noreferrer" title="Missed attestation at level ${formatLevel(incident.level)} · ${escapeHtml(time.toLocaleString())} · ${incident.power} power">
+            <span>${formatLevel(incident.level)} ↗</span><time datetime="${escapeHtml(incident.timestamp)}">${escapeHtml(shortTime)}</time><span>${fmtCount(incident.power)} power</span>
+        </a>`;
+    }).join('');
+    return `<section class="brief-section brief-section-baker${loading ? ' drawer-loading-card drawer-loading-card-baker' : ''}" data-brief-accent="baker" data-quiet-key="baker-status" aria-busy="${loading}">
+        <h4 class="brief-section-title">🍞 Baker Status</h4>
+        <div class="drawer-status-summary">
+            <strong>${loading ? 'Reading reward history…' : data.rewardStreak > 0 ? `${data.rewardStreak}-cycle streak 🔥` : 'No consecutive rewarded cycles'}</strong>
+            <span title="${escapeHtml(status)}" data-state="${data.bakerInactive ? 'issue' : live?.state || 'unknown'}">${escapeHtml(status)}</span>
+        </div>
+        <div class="drawer-baker-incidents" data-quiet-key="baker-incidents" data-incident-state="${state}">
+            <div class="drawer-incidents-heading"><strong>Latest missed attestations</strong><span>${freshness}</span></div>
+            <div class="drawer-incident-list">${rows || `<p class="drawer-incidents-empty">${message}</p>`}</div>
+            <div class="drawer-incidents-coverage"><span>${snapshot ? `${incidents.length === BAKER_INCIDENT_LIMIT ? 'Latest 3 · ' : ''}Checked through ${formatLevel(snapshot.throughLevel)}` : 'Finalized rights only'}</span><span>${state === 'stale' ? 'Saved receipts · refresh unavailable' : 'TzKT · local time'}</span></div>
+        </div>
+        <div class="drawer-attestation-allowance" data-state="${data.participationStale ? 'unknown' : allowance?.state || 'unknown'}">
+            <span>${data.participationStale ? 'Last confirmed allowance' : 'Attestation allowance left'}</span>
+            <strong>${allowance ? `${fmtCount(allowance.remaining)} power` : 'Unavailable'}</strong>
+            <small>Power, not outage time. <a href="https://octez.tezos.com/docs/active/consensus.html#rewards" target="_blank" rel="noopener noreferrer">Reward conditions ↗</a></small>
+        </div>
+    </section>`;
+}
+
 function renderBakerBrief(cards, data) {
     const bakerBrief = document.getElementById('drawer-baker-brief');
     if (!bakerBrief) return;
     const bakerCards = cards.filter(card => card.accent === 'baker' || card.accent === 'governance');
-    quietlySyncHtml(bakerBrief, renderBriefCards(bakerCards.filter(card => card.accent === 'baker'))
+    quietlySyncHtml(bakerBrief, (bakerCards.some(card => card.accent === 'baker') ? renderBakerStatusCard(data) : '')
         + renderBakerGrade(data)
         + renderBriefCards(bakerCards.filter(card => card.accent === 'governance')));
     const reportButton = bakerBrief.querySelector('.report-card-btn');
@@ -3170,7 +3234,7 @@ function seedDrawerLoadingState() {
     const bakerBrief = document.getElementById('drawer-baker-brief');
     if (bakerBrief && !bakerBrief.children.length) {
         bakerBrief.hidden = false;
-        bakerBrief.innerHTML = drawerLoadingCard('Checking baker status', 'baker') + renderBakerGrade({}, true)
+        bakerBrief.innerHTML = renderBakerStatusCard({}, true) + renderBakerGrade({}, true)
             + '<div class="brief-section brief-section-governance drawer-loading-card"><h4 class="brief-section-title">Vote Check</h4><span class="drawer-loading-line"></span></div>';
     }
 

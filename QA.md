@@ -47,6 +47,8 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 
 ## My Tezos loading geometry
 
+Run `my-tezos-baker-incidents` for receipt identity, finality, cycle rollover,
+source failures, empty history, and retained reader state.
 Run `my-tezos-layout-states` alongside `my-tezos-layout` and the affected live-refresh suites.
 The loading-state smoke holds external reads and compares real rendered x/y/width/height
 before and after completion across all seven tabs at 1440px, 390px, 320px, and 844px landscape. A change over

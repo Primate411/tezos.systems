@@ -1249,6 +1249,11 @@ inline modal styles in `js/core/app.js`.
   participation score, missed and expected attestation power, an expandable scoring
   explanation, and access to the separate broader shareable report. Missing or zero
   expected power stays ungraded; the explanation remains open through refresh.
+  Baker Status adds the latest three finalized missed-attestation rights in the
+  current cycle, with block links, local times, and missed power. A separate RPC
+  allowance reports remaining attestation power, never outage minutes or guaranteed
+  income. Empty reads, failed reads, and retained last-good receipts stay distinct;
+  the log keeps three row slots through loading, refresh, and cycle rollover.
   Both cards occupy their final columns while loading, and share equal row heights
   on desktop; governance follows the pair on its own row. The schedule uses a shared
   outage toolbar, aligned compact card headings, and shortened same-day time ranges.

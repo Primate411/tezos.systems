@@ -31,6 +31,7 @@ import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
 import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
 import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
+import { smokeBakerIncidents } from './lib/baker-incidents-smoke.mjs';
 import { smokeMyTezosLayoutStates } from './lib/my-tezos-layout-states-smoke.mjs';
 import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
 import { checkInspectorKeyboardReceipt } from './lib/network-health-harness-check.mjs';
@@ -2712,7 +2713,7 @@ async function installFeatureMocks(context, options = {}) {
         });
       }
       if (url.includes('/participation')) {
-        return fulfillJson(route, { expected_cycle_activity: 7000, minimal_cycle_activity: 5600, missed_slots: 0, missed_levels: 0 });
+        return fulfillJson(route, { expected_cycle_activity: 7000, minimal_cycle_activity: 5600, missed_slots: 0, missed_levels: 0, remaining_allowed_missed_slots: 1400 });
       }
     }
 
@@ -3075,6 +3076,11 @@ async function installFeatureMocks(context, options = {}) {
         const rights = new URL(url).searchParams;
         const type = rights.get('type');
         if (type === 'attestation' && rights.get('status') === 'missed') {
+            if (rights.has('baker') && rights.has('cycle')) return fulfillJson(route, [3, 10, 30].map((delta, index) => ({
+              level: Number(rights.get('level.le')) - delta, cycle: Number(rights.get('cycle')),
+              timestamp: new Date(Date.now() - (index + 1) * 3600000).toISOString(), slots: 24 - index,
+              status: 'missed', type: 'attestation', baker: { address: rights.get('baker') }
+            })));
           const startLevel = Number(rights.get('level.ge'));
           const endLevel = Number(rights.get('level.le'));
           const blockMisses = [endLevel - 1, endLevel - 2].flatMap((level) => [
@@ -12849,7 +12855,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
       serviceWorkers: 'block'
     });
     await installFeatureMocks(context);
-    let gradeParticipation = { expected_cycle_activity: 7000, minimal_cycle_activity: 5600, missed_slots: 0, missed_levels: 0 };
+    let gradeParticipation = { expected_cycle_activity: 7000, minimal_cycle_activity: 5600, missed_slots: 0, missed_levels: 0, remaining_allowed_missed_slots: 1400 };
     await context.route('**/participation', route => fulfillJson(route, gradeParticipation));
     let softwareVersion = 'v25.0';
     let softwareUpdateTime = new Date(Date.now() - 3 * 86400000).toISOString();
@@ -12874,6 +12880,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
         })));
       }
       if (query.get('type') !== 'attestation') return route.fallback();
+      if (query.get('status') === 'missed' && query.has('cycle')) return route.fallback();
       return fulfillJson(route, attestationStatuses.map((status, index) => ({
         level: attestationHead - index,
         timestamp: new Date(Date.now() - index * 6000).toISOString(),
@@ -12991,7 +12998,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
         const brief = document.querySelector('#drawer-baker-brief');
         const detail = `${10 - successful}/10 recent attestation issues · latest ${successful} OK`;
         return panel?.textContent.includes('Recovering') && panel.textContent.includes(detail)
-          && brief?.textContent.includes('Recovering') && brief.textContent.includes(detail);
+          && brief?.querySelector('.drawer-status-summary [data-state="watch"]')?.textContent.includes('Recovering');
       }, { successful }, { timeout: 15000 }).catch(async (error) => {
         throw new Error(`Baker Signal ${label}: recovery did not settle ${JSON.stringify(await page.evaluate(() => ({
           operator: document.querySelector('#drawer-operator-status')?.textContent,
@@ -13004,7 +13011,7 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
         const tiles = [...panel.querySelectorAll('.drawer-operator-tile')];
         const working = tiles.find((tile) => tile.textContent.includes('Baker working?'));
         const attestation = tiles.find((tile) => tile.querySelector('.drawer-operator-label')?.textContent === 'Attestation');
-        const brief = [...document.querySelectorAll('#drawer-baker-brief strong')].find((node) => node.textContent === 'Recovering');
+        const brief = document.querySelector('#drawer-baker-brief .drawer-status-summary [data-state="watch"]');
         const body = document.getElementById('drawer-body');
         const tab = document.getElementById('my-tezos-tab-baker-signal');
         return {
@@ -37543,6 +37550,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'lazy-drawer-charts', description: 'Drawer styling and real chart libraries load on intent, cancel safely, retry locally, and remain shared', run: () => smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'my-tezos-cold-start', description: 'My Tezos remains off-screen while its lazy styles are delayed, then preserves normal desktop and mobile open/close behavior', run: () => smokeMyTezosColdStart(browser, baseUrl) },
     { name: 'my-tezos-empty-state', description: 'My Tezos clearly separates Octez.Connect wallet pairing from watch-only tracking and explains all seven responsive views', run: () => smokeMyTezosEmptyState(browser, baseUrl) },
+    { name: 'my-tezos-baker-incidents', description: 'Finalized missed-attestation receipts, honest stale and empty states, RPC allowance, and quiet reader preservation', run: () => smokeBakerIncidents(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'my-tezos-layout-states', description: 'Loading and loaded card positions, sizes, equal row heights, and terminal-list growth across all seven My Tezos views', run: () => smokeMyTezosLayoutStates(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, etherlinkAddress: SAMPLE_ETHERLINK_ADDRESS, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'my-tezos-layout', description: 'All seven tabs retain readable desktop, phone and landscape layouts, exact balances, disclosures, touch targets, and per-tab scroll', run: () => smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, secondAddress: SAMPLE_ADDRESS_2, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'live-pulse-ticker', description: 'Live Pulse drifts continuously above Live Head, opens its explainer, preserves phase, and uses accessible hold/static behavior', run: () => smokeLivePulseTicker(browser, baseUrl) },

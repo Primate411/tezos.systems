@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSolanaTowerReceipt } from './lib/solana-comparison-receipt.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG_FILE = path.join(ROOT, 'js', 'core', 'config.js');
@@ -307,25 +308,16 @@ async function buildClaims() {
   );
   assertNear(ethereumFinalityMinutes, ethereumOverviewMinutes, 0, 'Ethereum finality');
 
-  if (!/Under Development/i.test(solanaAlpenglow.text)) {
-    throw new Error('Solana Alpenglow phase is no longer unambiguously under development; review mainnet activation before publishing');
-  }
+  // The source has used both Under Development and In Development badges.
+  const solanaTower = readSolanaTowerReceipt(solanaAlpenglow.text);
   const solanaGuideSlotMs = extractNumber(
     solanaConfirmation.text,
     /configured to last about\s+([\d.]+)ms/i,
     'Solana target slot time'
   );
-  const solanaStatusSlotMs = extractNumber(
-    solanaAlpenglow.text,
-    /current roughly\s+([\d.]+)ms\s+pre-confirmation latency/i,
-    'Solana current pre-confirmation time'
-  );
+  const solanaStatusSlotMs = solanaTower.slotMs;
   assertNear(solanaGuideSlotMs, solanaStatusSlotMs, 0, 'Solana slot time');
-  const solanaFinalitySeconds = extractNumber(
-    solanaAlpenglow.text,
-    /([\d.]+)-second TowerBFT finality/i,
-    'Solana TowerBFT finality'
-  );
+  const solanaFinalitySeconds = solanaTower.finalitySeconds;
   const solanaFinalizedSlots = extractNumber(
     solanaConfirmation.text,
     /at least a\s+([\d.]+)\s+slot difference between the most recent confirmed block and the most recent finalized block/i,

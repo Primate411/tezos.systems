@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-14',
         entries: [
+            { type: '✨', text: 'Baker Status now shows recent missed-attestation blocks, times, and power with direct receipts and remaining participation allowance' },
             { type: '🔧', text: 'My Tezos fills stable loading cards, keeps controls above growing receipt lists, and checks loading geometry and equal card heights in browser smoke tests' },
             { type: '🎨', text: 'Baking rights and maintenance timing now share a compact, aligned schedule with the next round-zero block highlighted' },
             { type: '🔧', text: 'Baker Status and Grade now reserve both card positions while loading and align their bottom edges when displayed side by side' },
