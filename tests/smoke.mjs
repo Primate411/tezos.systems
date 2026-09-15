@@ -21834,7 +21834,8 @@ async function smokeTezosDomainsChamber(browser, baseUrl) {
   assert(state.cardCopyHash === '#domains', `tezos domains chamber: card copy hash mismatch ${state.cardCopyHash}`);
   assert(/Tezos Domains/.test(state.cardText) && /noob\.tez/.test(state.cardText) && /24h names/i.test(state.cardText), `tezos domains chamber: card content missing ${state.cardText}`);
   assert(/Tezos Domains/.test(state.cardUpdatedLabel), `tezos domains chamber: card freshness missing ${state.cardUpdatedLabel}`);
-  assert(state.pairChildren === 4 && state.categoryOrder.join(',') === 'ledger-flow-entry-card,tezos-domains-entry-card,maxis-entry-card,tezoscrp-entry-card', `tezos domains chamber: People & Accounts membership mismatch ${JSON.stringify(state)}`);
+  const expectedPeopleCards = EXPECTED_CHAMBER_CATEGORIES.find(category => category.key === 'people').cards;
+  assert(state.pairChildren === expectedPeopleCards.length && state.categoryOrder.join(',') === expectedPeopleCards.join(','), `tezos domains chamber: People & Accounts membership mismatch ${JSON.stringify(state)}`);
   assert(state.pairRect?.width >= state.gridRect?.width - 4 && state.cardRect?.width >= state.gridRect?.width - 4, `tezos domains chamber: dense categorized launcher must own a full row ${JSON.stringify({ pair: state.pairRect, card: state.cardRect, grid: state.gridRect })}`);
   assert(/Tezos Domains Chamber/.test(state.title), `tezos domains chamber: title mismatch ${state.title}`);
   assert(/Name rush|Market live|Identity pulse/.test(state.badge), `tezos domains chamber: badge mismatch ${state.badge}`);
@@ -23097,7 +23098,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
   const categoryStorageKey = 'tezos-systems-explore-layout-v1';
   const legacyCategoryStorageKey = 'tezos-systems-chamber-categories-v1';
   const categoryIds = ['network', 'capital', 'ecosystem', 'bakers', 'governance', 'people', 'history'];
-  const roomIds = ['pulse', 'health', 'tezosx', 'capital', 'minerals', 'uranium', 'metals', 'whales', 'staking-chamber', 'ecosystem', 'leaderboard', 'tz4', 'chamber', 'l2-governance', 'liquidity-baking', 'ledger-flow', 'domains', 'maxis', 'tezoscrp', 'anthology', 'history'];
+  const roomIds = ['pulse', 'health', 'tezosx', 'capital', 'minerals', 'uranium', 'metals', 'whales', 'staking-chamber', 'ecosystem', 'leaderboard', 'tz4', 'chamber', 'l2-governance', 'liquidity-baking', 'ledger-flow', 'domains', 'maxis', 'tezoscrp', 'funding', 'anthology', 'history'];
   const preferenceContext = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'

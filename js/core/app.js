@@ -7088,6 +7088,7 @@ window.TezosStats = { refresh };
 //   #ctez              → open ctez Oven Guide
 //   #maxis             → open Tezos Maxis Chamber
 //   #tezoscrp          → open TezosCRP Recognition Hall
+//   #funding           → open Community Funding
 //   #protocol-history  → open Protocol History Chamber
 //   #protocol=Ushuaia  → open protocol lore/history
 //   #theme=dark        → switch to theme
@@ -7105,6 +7106,7 @@ window.TezosStats = { refresh };
 //   /whales/           -> open Whale Watch Chamber
 //   /stake/            -> open Staking Chamber
 //   /leaderboard/      -> open Baker Directory Chamber
+//   /funding/          -> open Community Funding
 //   /history/          -> open Cycle History Chamber
 //   /anthology/        → open Protocol History Chamber
 //   /health/           → open Network Health Chamber
@@ -7532,6 +7534,12 @@ function applyDeepLink() {
                 openHashModal(
                     () => openChamberFeature('maxis'),
                     'Failed to open Tezos Maxis Chamber'
+                );
+                break;
+            case 'funding':
+                openHashModal(
+                    () => openChamberFeature('funding'),
+                    'Failed to open Community Funding'
                 );
                 break;
             case 'tezoscrp':

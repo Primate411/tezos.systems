@@ -151,6 +151,12 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             await page.locator('.funding-empty').waitFor();
             assert.match(await page.locator('.funding-empty').innerText(), /No open campaigns/);
             if (width === 1440) {
+                const returnUrl = page.url();
+                await page.locator('#funding-modal .chamber-close').click();
+                await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/');
+                await page.goBack();
+                await page.waitForFunction(url => location.href === url && document.getElementById('funding-modal')?.classList.contains('active'), returnUrl);
+                assert.equal(await page.locator('#funding-tab-campaigns').getAttribute('aria-selected'), 'true', 'Back restores the funding view in its canonical route');
                 await page.locator('#funding-modal .chamber-close').click();
                 await page.waitForFunction(() => !document.getElementById('funding-modal')?.classList.contains('active'));
                 const launcher = page.locator('#funding-entry-card');
@@ -159,6 +165,7 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
                 await launcher.locator('.chamber-expand-cue').scrollIntoViewIfNeeded();
                 await launcher.locator('.chamber-expand-cue').click();
                 await page.locator('#funding-modal.active').waitFor();
+                assert.equal(await page.locator('#funding-tab-support').getAttribute('aria-selected'), 'true', 'Home launcher uses the default view rather than unrelated Home query state');
                 await page.locator('.funding-project').first().waitFor();
                 assert.equal(await page.locator('.funding-project').first().evaluate(node => getComputedStyle(node).opacity), '1', 'reopened room stays visible');
                 assert.equal(await page.locator('#funding-modal a[href="/ecosystem/"]').count() > 0, true, 'room has related chamber crosslinks');

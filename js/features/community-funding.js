@@ -4,7 +4,7 @@ import { quietlySyncHtml } from '../core/quiet-refresh.js';
 import { FUNDING_MAX_BYTES, FUNDING_PREVIEW_MAX_BYTES, FUNDING_SOURCES, campaignState, campaignProgress, fundingStale, formatFundingAmount, validateFundingSnapshot, validateFundingPreview, fundingPreviewPath } from '../core/community-funding.mjs';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher, requestChamberClose, bindChamberVisibility, getChamberScrollContainer } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
-import { renderChamberStamp } from '../ui/chamber-reading.js';
+import { renderChamberStamp, renderChamberVerdict } from '../ui/chamber-reading.js';
 
 const VIEWS = { support: 'Support builders', campaigns: 'Open campaigns', history: 'Ended campaigns' };
 const REFRESH_MS = 5 * 60 * 1000;
@@ -241,6 +241,7 @@ function ensureOverlay() {
         <button class="modal-close chamber-close" type="button" aria-label="Close Community Funding">&times;</button>
         <div class="chamber-body funding-body">
             <header class="funding-hero"><div class="funding-kicker">Made by the community · Kept going by you</div><h1 id="funding-title">Community <span>Funding</span></h1><p>Back an idea. Keep a good project going.</p><div class="funding-powered-by">Powered by the community’s funding platforms</div><div class="funding-platforms" aria-label="Funding platform credits">${platformCredits('Campaigns & reported funding', 'Projects & builder support')}</div><p class="funding-attribution-note">Listings, artwork and reported figures supplied by TezTree and HackTez. Browse here; support on the original platform.</p><div class="funding-hero-symbol" aria-hidden="true">✳</div></header>
+            ${renderChamberVerdict({ key: 'funding', state: 'guide', sentence: 'TezTree campaigns have funding goals and deadlines. HackTez projects accept ongoing tips. Support opens on the original platform.' })}
             <div class="funding-toolbar"><div class="funding-tabs" role="tablist" aria-label="Funding opportunities">${Object.entries(VIEWS).map(([key, label]) => `<button id="funding-tab-${key}" type="button" role="tab" aria-controls="funding-panel" aria-selected="${key === view}" tabindex="${key === view ? 0 : -1}" data-funding-view="${key}">${label}</button>`).join('')}</div>
             <label class="funding-search"><input id="funding-search" aria-label="Find a project or builder" type="search" placeholder="Find a project or builder…" autocomplete="off"></label></div>
             <div class="funding-source-row"><div id="funding-source-status"></div><button id="funding-refresh" type="button" aria-label="Check funding snapshots again">↻ Refresh</button></div>
@@ -274,7 +275,8 @@ export async function openCommunityFunding({ isCurrent = () => true, view: reque
     await ensureChamberStylesheet('funding-css', versionedAsset('/css/community-funding.min.css'));
     if (!isCurrent()) return;
     const overlay = ensureOverlay();
-    const requested = requestedView || new URLSearchParams(window.location.search).get('view');
+    const ownsRoute = window.location.pathname === '/funding/' || ['#funding', '#community-funding', '#support-builders'].includes(window.location.hash);
+    const requested = requestedView || (ownsRoute ? new URLSearchParams(window.location.search).get('view') : null);
     if (!active() || (requested && VIEWS[requested])) {
         view = VIEWS[requested] ? requested : 'support';
         query = '';

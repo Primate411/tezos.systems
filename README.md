@@ -32,6 +32,8 @@ refresh quietly only while the launcher is visible. Each preview is generated an
 checked with its own platform snapshot in the same scheduled lane.
 Both the launcher and chamber header prominently link to TezTree and HackTez under
 “Powered by,” crediting the source platforms for listings, artwork, and reported figures.
+The shared room summary explains campaigns versus ongoing project support before the listings.
+Browser Back reopens the room and its selected view after returning to Home.
 
 The two same-origin `data/community-funding-*.json` receipts refresh in separate
 six-hour scheduled lanes. Each lane validates its full source response before

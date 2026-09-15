@@ -11201,7 +11201,7 @@ async function checkChamberReadingContracts() {
   for (const contract of ['renderChamberVerdict', 'renderChamberGuide', 'renderAgeingLabel', 'relativeChamberAge', 'quietlyMutate(root,', 'quietlySyncHtml(root, html)', "document.visibilityState !== 'visible'", 'visibilitychange', 'clearInterval(stampTimer)', 'prefers-reduced-motion: reduce', '!first || !chamberArrivalAllowed']) {
     assert(source.includes(contract), `Chamber reading helper missing ${contract}`);
   }
-  for (const name of ['capital-chamber', 'minerals-chamber', 'metals-chamber', 'uranium-chamber', 'ecosystem-chamber', 'whale-chamber', 'tezoscrp', 'maxis', 'history', 'leaderboard', 'ctez', 'chamber', 'etherlink-governance', 'liquidity-baking', 'ledger-flow', 'network-pulse', 'staking-chamber', 'tezlink', 'tezos-domains', 'tz4-adoption', 'my-tezos']) {
+  for (const name of ['capital-chamber', 'minerals-chamber', 'metals-chamber', 'uranium-chamber', 'ecosystem-chamber', 'whale-chamber', 'community-funding', 'tezoscrp', 'maxis', 'history', 'leaderboard', 'ctez', 'chamber', 'etherlink-governance', 'liquidity-baking', 'ledger-flow', 'network-pulse', 'staking-chamber', 'tezlink', 'tezos-domains', 'tz4-adoption', 'my-tezos']) {
     const feature = await fs.readFile(path.join(ROOT, `js/features/${name}.js`), 'utf8');
     assert(feature.includes('renderChamberVerdict('), `${name}: missing room summary`);
   }
