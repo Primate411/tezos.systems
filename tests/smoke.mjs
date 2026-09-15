@@ -37,7 +37,7 @@ import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecy
 import { smokeBakerIncidents } from './lib/baker-incidents-smoke.mjs';
 import { smokeMyTezosLayoutStates } from './lib/my-tezos-layout-states-smoke.mjs';
 import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
-import { checkInspectorKeyboardReceipt } from './lib/network-health-harness-check.mjs';
+import { checkInspectorKeyboardReceipt, checkInspectorTriggerRefresh } from './lib/network-health-harness-check.mjs';
 import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
 import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
@@ -37600,6 +37600,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'my-tezos-block-monitor', description: 'Setup keeps one persisted saved-address-only block monitor synchronized across Home and Network Health', run: () => smokeMyTezosBlockMonitor(browser, baseUrl) },
     { name: 'tall-screen', description: 'Tall Chambers use available height and health lines and pills remain crisp at 1x/2x pixel density across desktop/mobile', run: () => smokeTallScreen(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'network-health-inspector-refresh', description: 'Supplemental block receipts preserve the exact inspector button while its accessible description updates', run: () => checkInspectorTriggerRefresh(browser, baseUrl, { installFeatureMocks }) },
     { name: 'network-health', description: 'Live Head stories and Network Health expose block cadence, missed rights, live 33/66 Nakamoto coefficients, reports, and saved-baker context', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
     { name: 'maxis-domain-passport', description: 'Maxi Passport resolves .tez names and subdomains without mutating My Tezos or assigning KT1 activity to an owner', run: () => smokeMaxisDomainPassport(browser, baseUrl) },

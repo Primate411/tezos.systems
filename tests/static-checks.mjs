@@ -3485,6 +3485,7 @@ async function checkSelectorContracts() {
     ['Live Head renderer', 'function updateBlockTicker', health],
     ['Live Head fixed age formatter', 'function formatTickerAge', health],
     ['Live Head keyed block rows', 'data-quiet-key="live-head-block-${block.level}"', health],
+    ['Live Head inspector identity survives accessible-label updates', 'data-quiet-key="live-head-info-${block.level}"', health],
     ['Live Head search floor', 'class="hero-slot" id="hero-slot"', index],
     ['Live Head search usage help', 'id="hero-search-help">Wallets · .tez names · bakers · KT1 contracts · operations · blocks · protocols · Chambers — press / anywhere', index],
     ['Live Head countdown stays outside its announcer', 'data-magic="off"', health],

@@ -2369,7 +2369,7 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
                     ${activityStatus}
                 </span>
                 <span class="live-head-recency">
-                    <button class="live-head-info" type="button" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false"><span aria-hidden="true">i</span></button>
+                    <button class="live-head-info" data-quiet-key="live-head-info-${block.level}" type="button" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false"><span aria-hidden="true">i</span></button>
                     <span class="live-head-age" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker" data-magic="off">${escapeHtml(formatTickerAge(block.timestamp))}</span>
                 </span>
             </span>

@@ -92,13 +92,14 @@ const RULES = [
     risk: 'high'
   },
   {
-    suites: /^(network-health|my-tezos-block-monitor|quiet-refresh)$/,
+    suites: /^(network-health(?:-inspector-refresh)?|my-tezos-block-monitor|quiet-refresh)$/,
     files: [
       'js/features/network-health.js',
       'js/core/octez-versions.js',
       'js/core/block-story.mjs',
       'tests/live-head-readability-smoke.mjs',
       'tests/live-head-depth-smoke.mjs',
+      'tests/lib/network-health-harness-check.mjs',
       'css/network-health*'
     ],
     tags: ['live-data', 'network-health'],

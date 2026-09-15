@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-15',
+        entries: [
+            { type: '🔧', text: 'Live Head keeps each block’s inspector button in place as fresh gas and attestation details arrive' }
+        ]
+    },
+    {
         date: '2026-09-14',
         entries: [
             { type: '✨', text: 'Baker Status now shows recent missed-attestation blocks, times, and power with direct receipts and remaining participation allowance' },

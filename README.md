@@ -1850,6 +1850,10 @@ Live Head inspector checks use a real pointer move to a hit-tested, keyed trigge
 and then verify the opened receipt. This avoids repeating a hover action after
 the inspector has opened over its own trigger, while retaining reading-lock,
 receipt-link, focus, geometry, and pointer-exit assertions.
+The `network-health-inspector-refresh` suite holds a supplemental gas receipt,
+then releases it on desktop and mobile. The accessible block description must
+update while the exact block row and inspector button remain attached. Inspector
+buttons use a block-level key so changing receipt text cannot replace the control.
 Cycle milestone checks hold unrelated mock block progression steady and wait
 for the exact cycle-start RPC receipt before the bounded render assertion,
 including cached reloads, peer tabs, and expired milestones. Desktop startup
