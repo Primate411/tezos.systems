@@ -4,12 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { FUNDING_MAX_BYTES, FUNDING_PREVIEW_MAX_BYTES, FUNDING_SOURCES, FUNDING_STALE_MS, validateFundingSnapshot, buildFundingPreview, validateFundingPreview, fundingPreviewPath } from '../js/core/community-funding.mjs';
-import { normalizeTeztree, normalizeHacktez, fetchHacktezCatalog } from './lib/community-funding.mjs';
+import { normalizeTeztree, normalizeHacktez, fetchHacktezCatalog, fetchTtcrowdCatalog } from './lib/community-funding.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
 const sourceArg = args.find(arg => arg.startsWith('--source='))?.split('=')[1];
-if (args.some(arg => !['--check', '--previews-only'].includes(arg) && !/^--source=(teztree|hacktez)$/.test(arg))) throw new Error('Usage: refresh-community-funding.mjs [--check|--previews-only] [--source=teztree|hacktez]');
+if (args.some(arg => !['--check', '--previews-only'].includes(arg) && !/^--source=(teztree|ttcrowd|hacktez)$/.test(arg))) throw new Error('Usage: refresh-community-funding.mjs [--check|--previews-only] [--source=teztree|ttcrowd|hacktez]');
 
 async function fetchJson(url) {
     const response = await fetch(url, { signal: AbortSignal.timeout(25_000), redirect: 'error',
@@ -45,9 +45,10 @@ for (const source of sourceArg ? [sourceArg] : Object.keys(FUNDING_SOURCES)) {
             const now = new Date().toISOString();
             const snapshot = args.includes('--previews-only') ? validateFundingSnapshot(JSON.parse(await fs.readFile(file, 'utf8')), source) : source === 'teztree'
                 ? normalizeTeztree(await fetchJson(FUNDING_SOURCES[source].url), now)
+                : source === 'ttcrowd' ? await fetchTtcrowdCatalog(fetchJson, now)
                 : normalizeHacktez(await fetchHacktezCatalog(FUNDING_SOURCES[source].url, fetchJson),
                     await fetchHacktezCatalog('https://hacktez.com/api/v1/members?tips=1', fetchJson), now);
-            if (!args.includes('--previews-only') && snapshot.sourceGeneratedAt && Date.parse(now) - Date.parse(snapshot.sourceGeneratedAt) > FUNDING_STALE_MS) throw new Error('HackTez upstream catalog is stale');
+            if (!args.includes('--previews-only') && snapshot.sourceGeneratedAt && Date.parse(now) - Date.parse(snapshot.sourceGeneratedAt) > FUNDING_STALE_MS) throw new Error(`${FUNDING_SOURCES[source].name} upstream catalog is stale`);
             const raw = JSON.stringify(snapshot, null, 2) + '\n';
             if (Buffer.byteLength(raw) > FUNDING_MAX_BYTES) throw new Error('Funding snapshot exceeds byte budget');
             const preview = JSON.stringify(validateFundingPreview(buildFundingPreview(snapshot), source), null, 2) + '\n';

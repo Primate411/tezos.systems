@@ -37,6 +37,57 @@ export function normalizeTeztree(payload, generatedAt) {
         sourceGeneratedAt: null, complete: true, sourceCount: items.length, items }, 'teztree', Date.parse(generatedAt));
 }
 
+const TTCROWD_MAX_CAMPAIGNS = 100;
+
+function validateTtcrowdCatalog(catalog) {
+    if (!Array.isArray(catalog) || catalog.length > TTCROWD_MAX_CAMPAIGNS) throw new Error('Incomplete or oversized TTCrowd catalog');
+    const slugs = new Set();
+    for (const row of catalog) {
+        if (!row || typeof row.slug !== 'string' || row.slug.length > 220 || slugs.has(row.slug)
+            || !fundingUrl(`https://crowd.thetezos.com/c/${row.slug}`, 'ttcrowd')
+            || !['active', 'paused', 'completed'].includes(row.status)) throw new Error('Invalid public TTCrowd campaign');
+        slugs.add(row.slug);
+    }
+}
+
+export function normalizeTtcrowd(catalog, summaries, generatedAt) {
+    validateTtcrowdCatalog(catalog);
+    if (!Array.isArray(summaries) || summaries.length !== catalog.length) throw new Error('Incomplete TTCrowd summaries');
+    const items = catalog.map((row, index) => {
+        const summary = summaries[index];
+        if (!summary || summary.slug !== row.slug || summary.preview !== false
+            || summary.valuation_currency !== row.valuation_currency
+            || typeof summary.is_closed !== 'boolean' || typeof summary.is_capped !== 'boolean' || typeof summary.include_staked !== 'boolean'
+            || !(summary.not_taking === null || typeof summary.not_taking === 'string' || typeof summary.not_taking === 'boolean')) throw new Error('Invalid TTCrowd campaign summary');
+        return {
+            source: 'ttcrowd', id: row.slug, title: bounded(row.title, 240),
+            summary: bounded(summary.description || row.tagline, 2000).replace(/^#{1,6}\s+/gm, '').replace(/\*\*([^*]+)\*\*/g, '$1'),
+            builder: bounded(summary.steward?.tzdomain || summary.steward?.alias || summary.steward?.name || summary.steward?.address, 160),
+            url: `https://crowd.thetezos.com/c/${row.slug}`, image: fundingImage(row.banner_url || row.logo_url),
+            // Catalog values already use valuation_currency. The summary's legacy
+            // *_xtz field names also hold fiat values; never relabel those as tez.
+            reportedAmount: amount(row.raised), targetAmount: amount(row.target), reportedPercent: amount(row.percent),
+            currency: row.valuation_currency, progressBasis: summary.progress_basis, includeStaked: summary.include_staked,
+            status: row.status, closed: summary.is_closed, capped: summary.is_capped, notTaking: Boolean(summary.not_taking),
+            deadline: date(row.end_date || summary.campaign_end_date), createdAt: date(row.start_date || summary.campaign_start_date)
+        };
+    }).sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0) || a.id.localeCompare(b.id));
+    return validateFundingSnapshot({ schemaVersion: 1, source: 'ttcrowd', sourceUrl: FUNDING_SOURCES.ttcrowd.url,
+        generatedAt, sourceGeneratedAt: null, complete: true, sourceCount: catalog.length, items }, 'ttcrowd', Date.parse(generatedAt));
+}
+
+export async function fetchTtcrowdCatalog(fetchJson, generatedAt) {
+    const catalog = await fetchJson(FUNDING_SOURCES.ttcrowd.url);
+    validateTtcrowdCatalog(catalog);
+    const summaries = [];
+    // Limit upstream concurrency and reject the whole lane if any summary fails.
+    for (let offset = 0; offset < catalog.length; offset += 4) {
+        summaries.push(...await Promise.all(catalog.slice(offset, offset + 4).map(row =>
+            fetchJson(`https://crowd.thetezos.com/api/public/c/${row.slug}/summary`))));
+    }
+    return normalizeTtcrowd(catalog, summaries, generatedAt);
+}
+
 export function normalizeHacktez(projects, members, generatedAt) {
     if (!Array.isArray(projects?.data) || projects.data.length !== projects.total || projects.total > FUNDING_MAX_ITEMS
         || projects.network !== 'mainnet' || !Array.isArray(members?.data) || members.data.length !== members.total

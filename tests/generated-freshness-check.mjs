@@ -26,6 +26,8 @@ function fixtures(now, overrides = {}) {
     metals: { generatedAt: recent },
     metalsEntry: { generatedAt: recent },
     fundingTeztree: { generatedAt: recent },
+    fundingTtcrowd: { generatedAt: recent },
+    fundingTtcrowdPreview: { generatedAt: recent },
     fundingHacktez: { generatedAt: recent, sourceGeneratedAt: recent },
     fundingTeztreePreview: { generatedAt: recent },
     fundingHacktezPreview: { generatedAt: recent, sourceGeneratedAt: recent },

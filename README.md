@@ -16,35 +16,46 @@ site map.
 
 ## Community Funding
 
-`/funding/` brings together TezTree goal-based campaigns and HackTez projects with
+`/funding/` brings together TezTree and TTCrowd campaigns and HackTez projects with
 explicitly enabled tips. Support builders is the default view; Open campaigns and
-Ended campaigns are independently addressable with `?view=campaigns` and
+Campaign history are independently addressable with `?view=campaigns` and
 `?view=history`. Browse without a wallet and open the original platform to support.
 Search, the People & Accounts directory, site maps, shared footers, and related
 Ecosystem Activity, Maxis, TezosCRP, and Domains rooms link to Community Funding.
 
 The launcher gives three compact “Worth a look” previews with artwork, descriptions,
-builder names, and source links. Open campaigns get the first slot; projects marked
-live appear before projects in development, alphabetically within each status.
-This is a discovery sample, not a popularity ranking. Two bounded preview files
+builder names, and source links. Open campaigns from each platform get a slot
+alongside builder support; projects marked live appear before projects in
+development, alphabetically within each status.
+This is a discovery sample, not a popularity ranking. Three bounded preview files
 keep full catalogs deferred until the room opens, preserve source clocks, and
 refresh quietly only while the launcher is visible. Each preview is generated and
 checked with its own platform snapshot in the same scheduled lane.
-Both the launcher and chamber header prominently link to TezTree and HackTez under
-“Powered by,” crediting the source platforms for listings, artwork, and reported figures.
+Both the launcher and chamber header prominently link to TezTree, TTCrowd (by
+TheTezos), and HackTez under “Powered by,” crediting the source platforms for
+listings, artwork, and reported figures.
 The shared room summary explains campaigns versus ongoing project support before the listings.
 Browser Back reopens the room and its selected view after returning to Home.
 
-The two same-origin `data/community-funding-*.json` receipts refresh in separate
+The three same-origin `data/community-funding-*.json` receipts refresh in separate
 six-hour scheduled lanes. Each lane validates its full source response before
 replacing its last-good file. TezTree closure/deadline overrides its generic live
-status; mutez amounts stay exact. HackTez pagination must reconcile; only exact
+status; mutez amounts stay exact. TTCrowd preserves the catalog’s USD, EUR or XTZ
+valuation and reported progress, with steward identity and accounting basis from
+each campaign summary. Its contribution and treasury accounting remain distinct;
+initial funds and rewards are disclosed for treasury accounting. Closed, capped,
+paused or non-accepting campaigns appear in history. A missing deadline is allowed,
+and reaching a goal alone does not close a campaign. The full public catalog (at
+most 100 campaigns) and every summary must validate before publication. Neither
+TTCrowd nor TezTree supplies a catalog generation clock, so only collection time
+is claimed for those feeds. HackTez pagination must reconcile; only exact
 member-and-project counters are used, and asset totals stay separate. Missing
 project totals are unavailable, never inferred from member totals. The room
 checks for new snapshots every five minutes while open and visible, preserves
 reading state, and marks 18-hour-old snapshots stale. Browser fetch failures retain
-the original timestamp and cards. Images use TezTree and the same Fileship IPFS gateway as HackTez, with exact
-`img-src` allowances; neither platform needs a browser `connect-src` permission.
+the original timestamp and cards. Artwork uses explicitly allowed public image
+hosts and the Fileship IPFS gateway. All three platforms use same-origin snapshots
+without browser `connect-src` permissions.
 
 Run `npm run refresh:funding`, `npm run check:funding`, `npm run test:funding`, and
 `node tests/smoke.mjs --only community-funding --hermetic`. The static gate and

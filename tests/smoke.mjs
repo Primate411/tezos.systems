@@ -241,6 +241,7 @@ const DEFERRED_CHAMBER_STYLE_PATHS = [
 const DEFERRED_CHAMBER_HEAVY_DATA_PATHS = [
   '/data/capital-snapshot.json',
   '/data/community-funding-teztree.json',
+  '/data/community-funding-ttcrowd.json',
   '/data/community-funding-hacktez.json',
   '/data/ecosystem-stats.json',
   '/data/maxis-leaders.json',
@@ -1679,8 +1680,8 @@ async function installStakingChamberMocks(page, requestLog) {
 
 async function installFeatureMocks(context, options = {}) {
   const funding = fundingFixtures();
-  await context.route(/\/data\/community-funding-(teztree|hacktez)(?:-preview)?\.json/, route => {
-    const source = route.request().url().includes('teztree') ? 'teztree' : 'hacktez';
+  await context.route(/\/data\/community-funding-(teztree|ttcrowd|hacktez)(?:-preview)?\.json/, route => {
+    const source = route.request().url().match(/community-funding-(teztree|ttcrowd|hacktez)/)[1];
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify(route.request().url().includes('-preview.json') ? buildFundingPreview(funding[source]) : funding[source]) });
   });
   const cycleMilestone = options.cycleMilestone && typeof options.cycleMilestone === 'object'

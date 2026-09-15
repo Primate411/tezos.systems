@@ -4,22 +4,25 @@ export const FUNDING_MAX_ITEMS = 1000;
 export const FUNDING_PREVIEW_MAX_BYTES = 16 * 1024;
 export const FUNDING_STALE_MS = 18 * 60 * 60 * 1000;
 export const FUNDING_SOURCES = Object.freeze({
-    teztree: { name: 'TezTree', url: 'https://funding.teztree.com/api/campaigns', home: 'https://funding.teztree.com/', path: '/data/community-funding-teztree.json' },
-    hacktez: { name: 'HackTez', url: 'https://hacktez.com/api/v1/projects', home: 'https://hacktez.com/', path: '/data/community-funding-hacktez.json' }
+    teztree: { name: 'TezTree', kind: 'campaign', url: 'https://funding.teztree.com/api/campaigns', home: 'https://funding.teztree.com/', path: '/data/community-funding-teztree.json' },
+    ttcrowd: { name: 'TTCrowd', kind: 'campaign', url: 'https://crowd.thetezos.com/api/public/campaigns', home: 'https://crowd.thetezos.com/', path: '/data/community-funding-ttcrowd.json' },
+    hacktez: { name: 'HackTez', kind: 'project', url: 'https://hacktez.com/api/v1/projects', home: 'https://hacktez.com/', path: '/data/community-funding-hacktez.json' }
 });
 
 export const fundingPreviewPath = source => `/data/community-funding-${source}-preview.json`;
+export const isFundingCampaign = source => FUNDING_SOURCES[source]?.kind === 'campaign';
 
 // A stable discovery sample, not a popularity or donation ranking.
 export function buildFundingPreview(snapshot) {
     validateFundingSnapshot(snapshot, snapshot.source);
     const now = Date.parse(snapshot.generatedAt);
-    const campaigns = snapshot.source === 'teztree';
+    const campaigns = isFundingCampaign(snapshot.source);
     const liveOrder = item => ({ live: 0, wip: 1 }[item.status] ?? 2);
     const open = campaigns ? snapshot.items.filter(item => campaignState(item, now) === 'open') : [];
     const highlights = [...snapshot.items].sort((a, b) => campaigns
         ? Number(campaignState(b, now) === 'open') - Number(campaignState(a, now) === 'open')
-            || (campaignState(a, now) === 'open' ? Date.parse(a.deadline) - Date.parse(b.deadline) : Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
+            || (campaignState(a, now) === 'open' ? (Date.parse(a.deadline) || Infinity) - (Date.parse(b.deadline) || Infinity) : 0)
+            || Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0)
             || a.id.localeCompare(b.id)
         : liveOrder(a) - liveOrder(b) || a.title.localeCompare(b.title, 'en') || a.id.localeCompare(b.id)
     ).slice(0, 3).map(item => ({ ...item, summary: item.summary.slice(0, 160), ...(campaigns ? {} : { supportNote: '', tipCounters: null, payTo: null, suggestedAmounts: item.suggestedAmounts.slice(0, 3) }) }));
@@ -27,7 +30,7 @@ export function buildFundingPreview(snapshot) {
         schemaVersion: 1, kind: 'funding-preview', source: snapshot.source, sourceUrl: snapshot.sourceUrl,
         generatedAt: snapshot.generatedAt, sourceGeneratedAt: snapshot.sourceGeneratedAt, sourceCount: snapshot.sourceCount,
         availableCount: snapshot.items.length, openCount: campaigns ? open.length : null,
-        nextDeadline: open.length ? open.map(item => item.deadline).sort()[0] : null, highlights
+        nextDeadline: open.map(item => item.deadline).filter(Boolean).sort()[0] || null, highlights
     };
 }
 
@@ -35,8 +38,9 @@ export function validateFundingPreview(preview, source, now = Date.now()) {
     if (preview?.kind !== 'funding-preview' || !Array.isArray(preview.highlights) || preview.highlights.length > 3
         || !Number.isSafeInteger(preview.availableCount) || preview.availableCount < preview.highlights.length
         || preview.availableCount > preview.sourceCount || preview.availableCount > FUNDING_MAX_ITEMS
-        || (source === 'teztree' ? !Number.isSafeInteger(preview.openCount) || preview.openCount < 0 || preview.openCount > preview.availableCount
-            || (preview.openCount > 0 ? !Number.isFinite(Date.parse(preview.nextDeadline)) : preview.nextDeadline !== null)
+        || (isFundingCampaign(source) ? !Number.isSafeInteger(preview.openCount) || preview.openCount < 0 || preview.openCount > preview.availableCount
+            || (preview.nextDeadline !== null && (!preview.openCount || !Number.isFinite(Date.parse(preview.nextDeadline))))
+            || (source === 'teztree' && preview.openCount > 0 && preview.nextDeadline === null)
             : preview.openCount !== null || preview.nextDeadline !== null)) throw new Error(`Invalid ${source} funding preview`);
     validateFundingSnapshot({ ...preview, complete: true, items: preview.highlights }, source, now);
     return preview;
@@ -45,9 +49,11 @@ export function validateFundingPreview(preview, source, now = Date.now()) {
 export function fundingUrl(value, source) {
     try {
         const url = new URL(value);
-        const host = source === 'teztree' ? 'funding.teztree.com' : 'hacktez.com';
+        if (!FUNDING_SOURCES[source]) return '';
+        const host = new URL(FUNDING_SOURCES[source].home).host;
         if (url.protocol !== 'https:' || url.host !== host || url.username || url.password) return '';
-        if (source === 'teztree' ? !/^\/c\/\d+$/.test(url.pathname) : !/^\/u\/[a-z0-9-]+\/p\/[a-z0-9-]+$/.test(url.pathname)) return '';
+        const pattern = source === 'teztree' ? /^\/c\/\d+$/ : source === 'ttcrowd' ? /^\/c\/[a-z0-9]+(?:-[a-z0-9]+)*$/ : /^\/u\/[a-z0-9-]+\/p\/[a-z0-9-]+$/;
+        if (!pattern.test(url.pathname)) return '';
         return url.origin + url.pathname;
     } catch { return ''; }
 }
@@ -58,11 +64,19 @@ export function fundingImage(value) {
     try {
         const url = new URL(raw);
         return url.protocol === 'https:' && !url.username && !url.password
-            && ['funding.teztree.com', 'ipfs.fileship.xyz', 'ipfs.io', 'dweb.link', 'gateway.pinata.cloud'].includes(url.host) ? url.href : '';
+            && ['funding.teztree.com', 'ipfs.fileship.xyz', 'ipfs.io', 'dweb.link', 'gateway.pinata.cloud', 'crowd.thetezos.com', 'pbs.twimg.com', 'raw.githubusercontent.com', 'purplematter.com', 'www.teztree.com'].includes(url.host) ? url.href : '';
     } catch { return ''; }
 }
 
 export function campaignState(item, now = Date.now()) {
+    if (item.source === 'ttcrowd') {
+        if (item.closed || item.status === 'completed' || (item.deadline && Date.parse(item.deadline) <= now)) return 'ended';
+        if (item.status === 'paused') return 'paused';
+        if (item.capped || item.notTaking) return 'not-accepting';
+        if (item.status === 'active' && item.closed === false && item.notTaking === false
+            && (!item.createdAt || Date.parse(item.createdAt) <= now)) return 'open';
+        return 'unavailable';
+    }
     if (item.moderation === 'suspended') return 'suspended';
     if (item.closed || (item.deadline && Date.parse(item.deadline) <= now)) return 'ended';
     if (item.status === 'live' && item.closed === false && Number.isFinite(Date.parse(item.deadline))) return 'open';
@@ -88,6 +102,8 @@ export function formatFundingAmount(value, decimals = 0) {
 }
 
 export function campaignProgress(item) {
+    if (item.source === 'ttcrowd') return item.reportedPercent === null || item.reportedAmount === null
+        || item.targetAmount === null || Number(item.targetAmount) <= 0 ? null : Math.round(Number(item.reportedPercent) * 10) / 10;
     if (item.goalMutez === null || item.raisedMutez === null || BigInt(item.goalMutez) <= 0n) return null;
     // Round only the visual percentage, never the source amounts.
     return Number(BigInt(item.raisedMutez) * 1000n / BigInt(item.goalMutez)) / 10;
@@ -120,7 +136,15 @@ export function validateFundingSnapshot(snapshot, source, now = Date.now()) {
                 || !integer(item.goalMutez) || !integer(item.raisedMutez) || !count(item.backers)
                 || typeof item.closed !== 'boolean' || !text(item.status, 40) || !text(item.moderation, 40, true)
                 || !(item.deadline === null || timestamp(item.deadline)) || !(item.createdAt === null || timestamp(item.createdAt))) fail();
-        } else {
+        } else if (source === 'ttcrowd') {
+            if (item.source !== 'ttcrowd' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.id)
+                || item.url !== `https://crowd.thetezos.com/c/${item.id}`
+                || !decimal(item.reportedAmount) || !decimal(item.targetAmount) || !decimal(item.reportedPercent)
+                || !['USD', 'EUR', 'XTZ'].includes(item.currency) || !['balance', 'contributions'].includes(item.progressBasis)
+                || typeof item.closed !== 'boolean' || typeof item.capped !== 'boolean' || typeof item.notTaking !== 'boolean' || typeof item.includeStaked !== 'boolean'
+                || !text(item.status, 40) || !(item.deadline === null || timestamp(item.deadline))
+                || !(item.createdAt === null || timestamp(item.createdAt))) fail();
+        } else if (source === 'hacktez') {
             if (item.tipsEnabled !== true || !text(item.status, 40) || !text(item.supportNote, 2000)
                 || !Array.isArray(item.suggestedAmounts) || item.suggestedAmounts.length > 12
                 || item.suggestedAmounts.some(amount => amount === null || !decimal(amount))

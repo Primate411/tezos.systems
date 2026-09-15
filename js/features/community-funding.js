@@ -1,23 +1,24 @@
 import { escapeHtml } from '../core/utils.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
-import { FUNDING_MAX_BYTES, FUNDING_PREVIEW_MAX_BYTES, FUNDING_SOURCES, campaignState, campaignProgress, fundingStale, formatFundingAmount, validateFundingSnapshot, validateFundingPreview, fundingPreviewPath } from '../core/community-funding.mjs';
+import { FUNDING_MAX_BYTES, FUNDING_PREVIEW_MAX_BYTES, FUNDING_SOURCES, isFundingCampaign, campaignState, campaignProgress, fundingStale, formatFundingAmount, validateFundingSnapshot, validateFundingPreview, fundingPreviewPath } from '../core/community-funding.mjs';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher, requestChamberClose, bindChamberVisibility, getChamberScrollContainer } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { renderChamberStamp, renderChamberVerdict } from '../ui/chamber-reading.js';
 
-const VIEWS = { support: 'Support builders', campaigns: 'Open campaigns', history: 'Ended campaigns' };
+const VIEWS = { support: 'Support builders', campaigns: 'Open campaigns', history: 'Campaign history' };
 const REFRESH_MS = 5 * 60 * 1000;
-const receipts = { teztree: null, hacktez: null };
-const errors = { teztree: false, hacktez: false };
+const sourceMap = value => Object.fromEntries(Object.keys(FUNDING_SOURCES).map(source => [source, value]));
+const receipts = sourceMap(null);
+const errors = sourceMap(false);
 let view = 'support';
 let query = '';
 let refreshWork = null;
 let pending = null;
 let timer = null;
 let initialized = false;
-const previews = { teztree: null, hacktez: null };
-const previewErrors = { teztree: false, hacktez: false };
+const previews = sourceMap(null);
+const previewErrors = sourceMap(false);
 let previewWork = null;
 let pendingPreview = null;
 let entryInView = false;
@@ -32,9 +33,14 @@ const projectStatus = item => ({ live: 'Live project', wip: 'In development', id
 const mayPreview = () => document.visibilityState === 'visible' && entryInView && !active()
     && !document.getElementById('funding-entry-card')?.closest('[inert]');
 
-function platformCredits(treeLabel = 'Campaign data', projectLabel = 'Project listings') {
-    return `<span class="funding-platform-credit">${external(FUNDING_SOURCES.teztree.home, '<strong>TezTree</strong>')}<small>${e(treeLabel)}</small></span><span class="funding-platform-credit">${external(FUNDING_SOURCES.hacktez.home, '<strong>HackTez</strong>')}<small>${e(projectLabel)}</small></span>`;
+function platformCredits(labels = {}) {
+    return Object.entries(FUNDING_SOURCES).map(([source, platform]) => `<span class="funding-platform-credit">${external(platform.home, `<strong>${platform.name}</strong>`)}<small>${e(labels[source] || (isFundingCampaign(source) ? 'Campaign data' : 'Project listings'))}</small></span>`).join('');
 }
+
+// These are platform valuations, not raw token amounts. Keep full receipt precision
+// in the tooltip while rounding the compact display to two fractional digits.
+const crowdAmount = (value, currency) => value === null ? 'Unavailable' : `${Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })} ${currency}`;
+const crowdBasis = item => item.progressBasis === 'contributions' ? 'Contributions' : 'Treasury accounting';
 
 function wireArtworkFallback(surface) {
     surface.addEventListener('error', event => { if (event.target.tagName === 'IMG') event.target.dataset.quietImageFailed = 'true'; }, true);
@@ -42,23 +48,27 @@ function wireArtworkFallback(surface) {
 }
 
 function previewItem(item, source) {
-    const campaign = source === 'teztree';
+    const campaign = isFundingCampaign(source);
     const progress = campaign ? campaignProgress(item) : null;
     const state = campaign ? campaignState(item) : null;
     const stale = previewErrors[source] || fundingStale(previews[source]);
     const status = campaign ? state === 'open' ? (stale ? 'Open at check' : 'Open campaign') : state === 'ended' ? 'Ended campaign' : 'Check status' : projectStatus(item);
-    return external(item.url, `${imageMarkup(item)}<span class="funding-preview-copy"><strong>${e(item.title)}</strong><span class="funding-preview-description">${e(item.summary)}</span><small>${FUNDING_SOURCES[source].name} · ${e(shortAddress(item.builder))}</small></span><span class="funding-preview-fact"><span>${status}</span>${campaign ? `<strong>${item.raisedMutez === null ? 'Amount unavailable' : `${formatFundingAmount(item.raisedMutez, 6)} ꜩ raised`}</strong>${progress !== null ? `<progress max="100" value="${Math.min(100, progress)}" aria-label="${e(item.title)}: ${progress}% of goal"></progress>` : ''}` : `<strong>${item.suggestedAmounts.length ? `${formatFundingAmount(item.suggestedAmounts[0])} ꜩ suggested` : 'Support project'}</strong>`}</span>`, `funding-preview-item ${campaign ? 'is-campaign' : 'is-project'}`)
+    const amount = source === 'ttcrowd' ? `${crowdAmount(item.reportedAmount, item.currency)} · ${crowdBasis(item).toLowerCase()}`
+        : source === 'teztree' ? item.raisedMutez === null ? 'Amount unavailable' : `${formatFundingAmount(item.raisedMutez, 6)} ꜩ raised`
+            : item.suggestedAmounts.length ? `${formatFundingAmount(item.suggestedAmounts[0])} ꜩ suggested` : 'Support project';
+    return external(item.url, `${imageMarkup(item)}<span class="funding-preview-copy"><strong>${e(item.title)}</strong><span class="funding-preview-description">${e(item.summary)}</span><small>${FUNDING_SOURCES[source].name} · ${e(shortAddress(item.builder))}</small></span><span class="funding-preview-fact"><span>${status}</span><strong>${e(amount)}</strong>${campaign && progress !== null ? `<progress max="100" value="${Math.min(100, progress)}" aria-label="${e(item.title)}: ${progress}% of goal"></progress>` : ''}</span>`, `funding-preview-item ${campaign ? 'is-campaign' : 'is-project'}`)
         .replace('<a ', `<a data-quiet-key="preview-${source}-${e(item.id)}" `);
 }
 
 function renderFundingPreview() {
     if (!mayPreview()) return;
     const card = document.getElementById('funding-entry-card');
-    const projects = previews.hacktez?.highlights || [];
-    const campaigns = previews.teztree?.highlights || [];
-    const open = campaigns.find(item => campaignState(item) === 'open');
-    const picks = [...(open ? [{ item: open, source: 'teztree' }] : []), ...projects.map(item => ({ item, source: 'hacktez' }))].slice(0, 3);
-    if (!picks.length && campaigns.length) picks.push({ item: campaigns[0], source: 'teztree' });
+    const campaigns = Object.keys(FUNDING_SOURCES).filter(isFundingCampaign).flatMap(source => (previews[source]?.highlights || []).map(item => ({ item, source })));
+    const open = campaigns.filter(({ item }) => campaignState(item) === 'open');
+    const projects = (previews.hacktez?.highlights || []).map(item => ({ item, source: 'hacktez' }));
+    const firstByPlatform = Object.keys(FUNDING_SOURCES).map(source => [...open, ...projects].find(pick => pick.source === source)).filter(Boolean);
+    const picks = [...firstByPlatform, ...open, ...projects].filter((pick, index, all) => all.findIndex(other => other.item === pick.item) === index).slice(0, 3);
+    if (!picks.length && campaigns.length) picks.push(campaigns[0]);
     const rows = picks.length ? picks.map(({ item, source }) => previewItem(item, source)).join('')
         : `<div class="funding-preview-empty">${Object.values(previewErrors).some(Boolean) ? 'Project previews are unavailable. Open the chamber to check the platforms.' : Object.values(previews).some(Boolean) ? 'No support opportunities in the latest snapshots.' : 'Checking community projects…'}</div>`;
     const clocks = Object.keys(FUNDING_SOURCES).map(source => {
@@ -68,9 +78,12 @@ function renderFundingPreview() {
         return `<span data-quiet-key="preview-clock-${source}">${FUNDING_SOURCES[source].name}: ${receipt ? renderChamberStamp(receipt.generatedAt, 'checked') : 'checking'}${label ? ` · ${label}` : ''}</span>`;
     }).join('');
     quietlySyncHtml(card.querySelector('.funding-entry-preview'), `<div class="funding-preview-heading"><h3>Worth a look</h3><span>Support on the original platform ↗</span></div><div class="funding-preview-list">${rows}</div><div class="funding-preview-clocks">${clocks}</div>`);
-    const tree = previews.teztree;
-    const countCurrent = tree && (!tree.nextDeadline || Date.parse(tree.nextDeadline) > Date.now());
-    quietlySyncHtml(card.querySelector('.funding-entry-platforms'), platformCredits(tree ? countCurrent ? `${tree.openCount} open · ${tree.availableCount - tree.openCount} in history` : `${tree.availableCount} campaigns · check status` : 'Campaign data', previews.hacktez ? `${previews.hacktez.availableCount} projects accepting tips` : 'Project listings'));
+    const labels = Object.fromEntries(Object.keys(FUNDING_SOURCES).map(source => {
+        const receipt = previews[source];
+        const current = receipt && !previewErrors[source] && !fundingStale(receipt) && (!receipt.nextDeadline || Date.parse(receipt.nextDeadline) > Date.now());
+        return [source, !receipt ? '' : isFundingCampaign(source) ? current ? `${receipt.openCount} open · ${receipt.availableCount - receipt.openCount} in history` : `${receipt.availableCount} campaigns · check status` : `${receipt.availableCount} projects accepting tips`];
+    }));
+    quietlySyncHtml(card.querySelector('.funding-entry-platforms'), platformCredits(labels));
 }
 
 async function refreshFundingPreview() {
@@ -95,7 +108,8 @@ function imageMarkup(item) {
     return `<div class="funding-art" aria-hidden="true"><span>${e(item.title.slice(0, 1))}</span>${item.image ? `<img src="${e(item.image)}" alt="" width="400" height="200" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}</div>`;
 }
 
-function campaignCard(item) {
+function campaignCard(item, source = 'teztree') {
+    if (source === 'ttcrowd') return crowdCard(item);
     const status = campaignState(item);
     const progress = campaignProgress(item);
     const stale = fundingStale(receipts.teztree) || errors.teztree;
@@ -110,6 +124,26 @@ function campaignCard(item) {
         <div class="funding-card-meta"><span>${item.backers === null ? 'Backers unavailable' : `${item.backers} backer${item.backers === 1 ? '' : 's'}`}</span><span>${progress === null ? '' : `${progress.toLocaleString('en-US')}% of goal`}</span></div></div>
         <p class="funding-deadline">${status === 'ended' && item.closed ? 'Closed by platform · ' : ''}Deadline: ${e(dateLabel(item.deadline))} UTC</p>
         ${external(item.url, status === 'open' && !stale ? 'Support on TezTree' : 'View on TezTree', 'funding-action')}
+        </div></article>`;
+}
+
+function crowdCard(item) {
+    const status = campaignState(item);
+    const progress = campaignProgress(item);
+    const stale = fundingStale(receipts.ttcrowd) || errors.ttcrowd;
+    const label = status === 'open' ? stale ? 'Open at last check' : 'Open' : status === 'ended' ? 'Ended' : status === 'paused' ? 'Paused' : status === 'not-accepting' ? 'Not accepting' : 'Check status';
+    return `<article class="funding-card funding-campaign funding-crowd" data-quiet-key="campaign-ttcrowd-${e(item.id)}">
+        ${imageMarkup(item)}<div class="funding-card-main">
+        <div class="funding-card-eyebrow"><span>TTCrowd · Campaign</span><span class="funding-tag" data-state="${status}">${label}</span></div>
+        <h3>${e(item.title)}</h3><p class="funding-builder">Steward: ${e(shortAddress(item.builder) || 'Not listed')}</p>
+        <p class="funding-description">${e(item.summary || 'Read the campaign details on TTCrowd.')}</p>
+        <div class="funding-progress"><p class="funding-value-basis">${crowdBasis(item)} · valued in ${item.currency}</p>
+        <div><strong title="${e(item.reportedAmount === null ? 'Unavailable' : `${item.reportedAmount} ${item.currency}`)}">${crowdAmount(item.reportedAmount, item.currency)}</strong><span title="${e(item.targetAmount === null ? 'Unavailable' : `${item.targetAmount} ${item.currency}`)}">${item.targetAmount === null ? 'Goal unavailable' : `of ${crowdAmount(item.targetAmount, item.currency)}`}</span></div>
+        ${progress === null ? '<p>Progress unavailable</p>' : `<progress max="100" value="${Math.min(100, progress)}" aria-label="${e(item.title)}: ${progress}% of goal">${progress}%</progress>`}
+        <div class="funding-card-meta"><span>Reported by TTCrowd</span><span>${progress === null ? '' : `${progress.toLocaleString('en-US')}% of goal`}</span></div></div>
+        ${item.progressBasis === 'balance' ? '<p class="funding-accounting-note">Includes initial funds and rewards under TTCrowd’s accounting.</p>' : ''}
+        <p class="funding-deadline">${item.deadline ? `Deadline: ${e(dateLabel(item.deadline))} UTC` : 'No campaign deadline listed'}</p>
+        ${external(item.url, status === 'open' && !stale ? 'Support on TTCrowd' : 'View on TTCrowd', 'funding-action')}
         </div></article>`;
 }
 
@@ -141,11 +175,13 @@ function sourceStatus(source) {
 function render() {
     if (!mayRefresh()) return;
     const overlay = document.getElementById('funding-modal');
-    const source = view === 'support' ? 'hacktez' : 'teztree';
-    const receipt = receipts[source];
-    const rows = (receipt?.items || []).filter(item => source === 'hacktez' || (view === 'campaigns' ? campaignState(item) === 'open' : campaignState(item) !== 'open'));
-    const shown = rows.filter(item => `${item.title} ${item.summary} ${item.builder}`.toLowerCase().includes(query.trim().toLowerCase()));
-    quietlySyncHtml(overlay.querySelector('#funding-source-status'), sourceStatus('teztree') + sourceStatus('hacktez'));
+    const sources = view === 'support' ? ['hacktez'] : Object.keys(FUNDING_SOURCES).filter(isFundingCampaign);
+    const available = sources.some(source => receipts[source]);
+    const rows = sources.flatMap(source => (receipts[source]?.items || [])
+        .filter(item => source === 'hacktez' || (view === 'campaigns' ? campaignState(item) === 'open' : campaignState(item) !== 'open'))
+        .map(item => ({ item, source })));
+    const shown = rows.filter(({ item, source }) => `${item.title} ${item.summary} ${item.builder} ${FUNDING_SOURCES[source].name}`.toLowerCase().includes(query.trim().toLowerCase()));
+    quietlySyncHtml(overlay.querySelector('#funding-source-status'), Object.keys(FUNDING_SOURCES).map(sourceStatus).join(''));
     for (const [key] of Object.entries(VIEWS)) {
         const button = overlay.querySelector(`[data-funding-view="${key}"]`);
         button.setAttribute('aria-selected', String(view === key));
@@ -154,17 +190,17 @@ function render() {
     const panel = overlay.querySelector('#funding-panel');
     panel.setAttribute('aria-labelledby', `funding-tab-${view}`);
     let markup;
-    if (!receipt) {
-        markup = errors[source]
-            ? `<div class="funding-empty"><span class="funding-empty-mark">↻</span><h3>${FUNDING_SOURCES[source].name} is unavailable</h3><p>We couldn’t load a funding snapshot. Try again, or browse the platform directly.</p>${external(FUNDING_SOURCES[source].home, `Open ${FUNDING_SOURCES[source].name}`, 'funding-action')}</div>`
+    if (!available) {
+        markup = sources.some(source => errors[source])
+            ? `<div class="funding-empty"><span class="funding-empty-mark">↻</span><h3>Funding snapshots are unavailable</h3><p>We couldn’t load a funding snapshot. Try again, or browse the platforms directly.</p>${sources.map(source => external(FUNDING_SOURCES[source].home, `Open ${FUNDING_SOURCES[source].name}`, 'funding-action')).join('')}</div>`
             : '<div class="funding-grid" aria-busy="true" aria-label="Loading opportunities">' + [0, 1, 2].map(i => `<div class="funding-card funding-skeleton" data-quiet-key="skeleton-${i}"><div></div><span></span><span></span><span></span></div>`).join('') + '</div>';
     } else if (shown.length) {
-        markup = `<div class="funding-panel-heading"><div><h2>${VIEWS[view]}</h2><p>${source === 'hacktez' ? 'Ongoing support, directly to the people building on Tezos.' : view === 'history' ? 'Past and unavailable campaigns, with the platform’s reported amounts.' : 'Time-bound campaigns with goals reported by TezTree.'}</p></div><span>${shown.length} ${source === 'hacktez' ? 'projects' : 'campaigns'}</span></div>
-            <div class="funding-grid">${shown.map(source === 'hacktez' ? projectCard : campaignCard).join('')}</div>`;
+        markup = `<div class="funding-panel-heading"><div><h2>${VIEWS[view]}</h2><p>${view === 'support' ? 'Ongoing support, directly to the people building on Tezos.' : view === 'history' ? 'Ended, paused and unavailable campaigns, with each platform’s reported figures.' : 'TezTree and TTCrowd campaigns, with each platform’s goals and currencies.'}</p></div><span>${shown.length} ${view === 'support' ? 'projects' : 'campaigns'}</span></div>
+            <div class="funding-grid">${shown.map(({ item, source }) => source === 'hacktez' ? projectCard(item) : campaignCard(item, source)).join('')}</div>`;
     } else {
-        const heading = query ? 'No matching opportunities' : view === 'campaigns' ? 'No open campaigns at the last check' : view === 'support' ? 'No projects with tips enabled at the last check' : 'No ended campaigns in this feed';
-        markup = `<div class="funding-empty"><span class="funding-empty-mark">${query ? '⌕' : '✳'}</span><h3>${heading}</h3><p>${query ? 'Try another project name or builder.' : view === 'campaigns' ? 'Explore previous TezTree campaigns or support a builder on HackTez.' : 'New opportunities will appear after the next platform check.'}</p>
-            ${!query && view === 'campaigns' ? '<div class="funding-empty-actions"><button type="button" data-funding-switch="history">View ended campaigns</button><button type="button" data-funding-switch="support">Support a builder</button></div>' : ''}</div>`;
+        const heading = query ? 'No matching opportunities' : view === 'campaigns' ? 'No open campaigns in the available snapshots' : view === 'support' ? 'No projects with tips enabled at the last check' : 'No campaign history in the available snapshots';
+        markup = `<div class="funding-empty"><span class="funding-empty-mark">${query ? '⌕' : '✳'}</span><h3>${heading}</h3><p>${query ? 'Try another project, builder or platform name.' : view === 'campaigns' ? 'Explore campaign history or support a builder on HackTez. Check each platform’s availability above.' : 'New opportunities will appear after the next platform check.'}</p>
+            ${!query && view === 'campaigns' ? '<div class="funding-empty-actions"><button type="button" data-funding-switch="history">View campaign history</button><button type="button" data-funding-switch="support">Support a builder</button></div>' : ''}</div>`;
     }
     // A changed card above the reading position must not displace the card
     // being read. Compensation is synchronous; the next user scroll owns itself.
@@ -240,13 +276,13 @@ function ensureOverlay() {
     overlay.innerHTML = `<div class="modal-content modal-large chamber-content funding-content" role="dialog" aria-modal="true" aria-labelledby="funding-title" tabindex="-1">
         <button class="modal-close chamber-close" type="button" aria-label="Close Community Funding">&times;</button>
         <div class="chamber-body funding-body">
-            <header class="funding-hero"><div class="funding-kicker">Made by the community · Kept going by you</div><h1 id="funding-title">Community <span>Funding</span></h1><p>Back an idea. Keep a good project going.</p><div class="funding-powered-by">Powered by the community’s funding platforms</div><div class="funding-platforms" aria-label="Funding platform credits">${platformCredits('Campaigns & reported funding', 'Projects & builder support')}</div><p class="funding-attribution-note">Listings, artwork and reported figures supplied by TezTree and HackTez. Browse here; support on the original platform.</p><div class="funding-hero-symbol" aria-hidden="true">✳</div></header>
-            ${renderChamberVerdict({ key: 'funding', state: 'guide', sentence: 'TezTree campaigns have funding goals and deadlines. HackTez projects accept ongoing tips. Support opens on the original platform.' })}
+            <header class="funding-hero"><div class="funding-kicker">Made by the community · Kept going by you</div><h1 id="funding-title">Community <span>Funding</span></h1><p>Back an idea. Keep a good project going.</p><div class="funding-powered-by">Powered by the community’s funding platforms</div><div class="funding-platforms" aria-label="Funding platform credits">${platformCredits({ teztree: 'Campaigns & reported funding', ttcrowd: 'Platform by TheTezos', hacktez: 'Projects & builder support' })}</div><p class="funding-attribution-note">Listings, artwork and reported figures supplied by TezTree, TTCrowd (TheTezos) and HackTez. Browse here; support on the original platform.</p><div class="funding-hero-symbol" aria-hidden="true">✳</div></header>
+            ${renderChamberVerdict({ key: 'funding', state: 'guide', sentence: 'TezTree and TTCrowd campaigns track funding goals. HackTez projects accept ongoing tips. Support opens on the original platform.' })}
             <div class="funding-toolbar"><div class="funding-tabs" role="tablist" aria-label="Funding opportunities">${Object.entries(VIEWS).map(([key, label]) => `<button id="funding-tab-${key}" type="button" role="tab" aria-controls="funding-panel" aria-selected="${key === view}" tabindex="${key === view ? 0 : -1}" data-funding-view="${key}">${label}</button>`).join('')}</div>
             <label class="funding-search"><input id="funding-search" aria-label="Find a project or builder" type="search" placeholder="Find a project or builder…" autocomplete="off"></label></div>
             <div class="funding-source-row"><div id="funding-source-status"></div><button id="funding-refresh" type="button" aria-label="Check funding snapshots again">↻ Refresh</button></div>
             <div id="funding-panel" role="tabpanel" aria-labelledby="funding-tab-${view}"></div>
-            <details class="funding-method" data-chamber-disclosure><summary>How this room works</summary><div><p>TezTree campaigns have funding goals and deadlines. HackTez projects appear only when project tips are explicitly enabled. Project descriptions and statuses are provided by their creators.</p><p>Support opens the original campaign or project page. You can browse here without connecting a wallet. Availability and amounts may change between checks; confirm the details on the platform.</p><p>Snapshots refresh on the site’s scheduled data job. “Checked” is the successful collection time; HackTez’s separate platform clock is preserved. A snapshot becomes stale after 18 hours. A failed refresh keeps the last successful snapshot with its original timestamp.</p><p>TezTree closed flags and deadlines take precedence over its generic status field. Goal progress is calculated from reported mutez. HackTez counters are shown only for an exact project receipt, with totals separate for each asset; missing totals stay unavailable.</p><p>Sources: ${external(FUNDING_SOURCES.teztree.url, 'TezTree campaigns')} · ${external(FUNDING_SOURCES.hacktez.url, 'HackTez projects')} · ${external('https://hacktez.com/api/v1/members?tips=1', 'HackTez project counters')}</p></div></details>
+            <details class="funding-method" data-chamber-disclosure><summary>How this room works</summary><div><p>TezTree campaigns have goals and deadlines. TTCrowd campaigns may run without a deadline and retain their chosen valuation currency. HackTez projects appear only when project tips are explicitly enabled. Project descriptions and statuses are provided by their creators.</p><p>Support opens the original campaign or project page. You can browse here without connecting a wallet. Availability and amounts may change between checks; confirm the details on the platform.</p><p>Snapshots refresh on the site’s scheduled data job. “Checked” is the successful collection time; HackTez’s separate platform clock is preserved; TezTree and TTCrowd do not provide a catalog generation clock. A snapshot becomes stale after 18 hours. A failed refresh keeps the last successful snapshot with its original timestamp.</p><p>TezTree closed flags and deadlines take precedence over its generic status field. TezTree goal progress is calculated from reported mutez. TTCrowd progress and valuations come from its public catalog, with campaign summaries supplying the steward, acceptance state and accounting basis. Its treasury accounting can include initial funds and rewards. Closed, paused or non-accepting campaigns stay in history; reaching a goal alone does not close a campaign. HackTez counters are shown only for an exact project receipt, with totals separate for each asset; missing totals stay unavailable.</p><p>Sources: ${external(FUNDING_SOURCES.teztree.url, 'TezTree campaigns')} · ${external(FUNDING_SOURCES.ttcrowd.url, 'TTCrowd campaigns')} · ${external(FUNDING_SOURCES.hacktez.url, 'HackTez projects')} · ${external('https://hacktez.com/api/v1/members?tips=1', 'HackTez project counters')}</p></div></details>
         </div></div>`;
     document.body.appendChild(overlay);
     overlay.querySelector('.chamber-close').addEventListener('click', closeCommunityFunding);

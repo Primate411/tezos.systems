@@ -24,16 +24,17 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             fixture.hacktez.items[0].image = 'https://funding.teztree.com/unavailable-smoke.png';
             await context.route('https://funding.teztree.com/unavailable-smoke.png', route => route.fulfill({ status: 404, body: '' }));
             await context.route('https://funding.teztree.com/replacement-smoke.svg', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="green"/></svg>' }));
-            let failed = false, revision = 0, requests = 0;
+            let failed = false, crowdFailed = false, revision = 0, requests = 0;
             let holdFetch = false, releaseFetch, markHeld;
-            await context.route(/\/data\/community-funding-(teztree|hacktez)\.json/, async route => {
+            await context.route(/\/data\/community-funding-(teztree|ttcrowd|hacktez)\.json/, async route => {
                 requests++;
-                const source = route.request().url().includes('teztree') ? 'teztree' : 'hacktez';
+                const source = route.request().url().match(/community-funding-(teztree|ttcrowd|hacktez)/)[1];
                 if (holdFetch && source === 'teztree') {
                     holdFetch = false;
                     await new Promise(resolve => { releaseFetch = resolve; markHeld(); });
                 }
                 if (failed && source === 'hacktez') return route.fulfill({ status: 503, body: 'unavailable' });
+                if (crowdFailed && source === 'ttcrowd') return route.fulfill({ status: 503, body: 'unavailable' });
                 const data = structuredClone(fixture[source]);
                 data.generatedAt = new Date(Date.now() + revision * 1000).toISOString();
                 if (revision && source === 'hacktez') data.items[0].tipCounters.totals[0].total = String(12.5 + revision);
@@ -48,7 +49,8 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             await page.evaluate(() => document.fonts.ready);
             assert.equal(await page.locator('.funding-hero a[href="https://funding.teztree.com/"]').isVisible(), true);
             assert.equal(await page.locator('.funding-hero a[href="https://hacktez.com/"]').isVisible(), true);
-            assert.match(await page.locator('.funding-hero').innerText(), /Listings, artwork and reported figures supplied by TezTree and HackTez/);
+            assert.equal(await page.locator('.funding-hero a[href="https://crowd.thetezos.com/"]').isVisible(), true);
+            assert.match(await page.locator('.funding-hero').innerText(), /Listings, artwork and reported figures supplied by TezTree, TTCrowd \(TheTezos\) and HackTez/);
             assert.equal(await page.locator('.funding-project').count(), 8);
             assert.equal(await page.locator('.funding-project progress').count(), 0);
             assert.match(await page.locator('.funding-project').first().innerText(), /12\.5 tez/);
@@ -59,10 +61,25 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             assert.equal(await page.locator('.funding-project').count(), 1);
             await page.locator('#funding-search').fill('');
             await page.locator('#funding-tab-campaigns').click();
-            assert.equal(await page.locator('.funding-campaign').count(), 1);
-            assert.equal(await page.locator('progress').getAttribute('value'), '25');
+            assert.equal(await page.locator('.funding-campaign').count(), 3);
+            assert.equal(await page.locator('.funding-crowd').count(), 2);
+            assert.match(await page.locator('.funding-crowd').first().innerText(), /27.8 USD/);
+            assert.match(await page.locator('.funding-crowd').nth(1).innerText(), /Treasury accounting/);
+            assert.doesNotMatch(await page.locator('.funding-crowd').nth(1).innerText(), /raised/);
+            assert.equal(await page.locator('.funding-crowd .funding-action').first().getAttribute('href'), 'https://crowd.thetezos.com/c/animation');
+            assert.equal(await page.locator('.funding-campaign:not(.funding-crowd) progress').getAttribute('value'), '25');
+            await page.evaluate(() => { window.__crowdCard = document.querySelector('.funding-crowd'); });
+            crowdFailed = true;
+            await page.evaluate(() => window.__fundingTick());
+            assert.equal(await page.locator('.funding-campaign').count(), 3, 'TTCrowd failure retains all last-good campaign cards');
+            assert.match(await page.locator('[data-quiet-key="status-ttcrowd"]').innerText(), /Refresh failed/);
+            assert.equal(await page.evaluate(() => window.__crowdCard === document.querySelector('.funding-crowd')), true);
+            assert.equal((await page.locator('.funding-crowd .funding-action').first().innerText()).replace(/\s+/g, ' '), 'View on TTCrowd ↗');
+            crowdFailed = false;
+            await page.evaluate(() => window.__fundingTick());
             await page.locator('#funding-tab-history').click();
-            assert.equal(await page.locator('.funding-campaign').count(), 2);
+            assert.equal(await page.locator('.funding-campaign').count(), 4);
+            assert.match(await page.locator('#funding-panel').innerText(), /Paused campaign/);
             assert.match(await page.locator('#funding-panel').innerText(), /12\.5 ꜩ/);
             await page.locator('#funding-tab-support').click();
             await page.evaluate(() => {
@@ -83,7 +100,7 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             revision++;
             await page.evaluate(() => { window.__fundingVisibility = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
             await page.waitForFunction(() => document.querySelector('.funding-asset-total strong')?.textContent.includes('13.5'));
-            assert.equal(requests, hiddenRequests + 2, 'one catch-up fetch per source');
+            assert.equal(requests, hiddenRequests + 3, 'one catch-up fetch per source');
             const continuity = await page.evaluate(() => {
                 const before = window.__fundingReader, scroll = document.querySelector('.funding-content.chamber-room-scroll');
                 const result = { identity: before.card === document.querySelector('.funding-project'), scroll: scroll.scrollTop === before.scroll,
@@ -141,11 +158,20 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             assert.deepEqual(geometry, { overflow: false, close: true, targets: true });
             if (artifactsDir) { await mkdir(artifactsDir, { recursive: true }); await page.screenshot({ path: path.join(artifactsDir, `funding-${width}.png`) }); }
             failed = false;
+            // A first-load TTCrowd failure leaves TezTree's available campaigns usable.
+            crowdFailed = true;
+            await page.goto(`${baseUrl}/funding/?view=campaigns`, { waitUntil: 'domcontentloaded' });
+            await page.locator('.funding-campaign').first().waitFor();
+            assert.equal(await page.locator('.funding-campaign').count(), 1);
+            assert.equal(await page.locator('.funding-crowd').count(), 0);
+            assert.match(await page.locator('[data-quiet-key="status-ttcrowd"]').innerText(), /Unavailable/);
+            crowdFailed = false;
             await page.goto(`${baseUrl}/funding/?view=history`, { waitUntil: 'domcontentloaded' });
             await page.locator('.funding-campaign').first().waitFor();
             assert.equal(await page.locator('#funding-tab-history').getAttribute('aria-selected'), 'true');
             // A real empty source is an empty state, distinct from a failed source.
             fixture.teztree.items = []; fixture.teztree.sourceCount = 0;
+            fixture.ttcrowd.items = []; fixture.ttcrowd.sourceCount = 0;
             await page.locator('#funding-tab-campaigns').click();
             await page.locator('#funding-refresh').click();
             await page.locator('.funding-empty').waitFor();
@@ -203,10 +229,10 @@ async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, art
             let heldReady;
             let held = new Promise(resolve => { heldReady = resolve; });
             let holding = true;
-            await context.route(/\/data\/community-funding-(teztree|hacktez)-preview\.json/, async route => {
+            await context.route(/\/data\/community-funding-(teztree|ttcrowd|hacktez)-preview\.json/, async route => {
                 requests++;
-                const source = route.request().url().includes('teztree') ? 'teztree' : 'hacktez';
-                if (holding) await new Promise(resolve => { releases.push(resolve); if (releases.length === 2) heldReady(); });
+                const source = route.request().url().match(/community-funding-(teztree|ttcrowd|hacktez)/)[1];
+                if (holding) await new Promise(resolve => { releases.push(resolve); if (releases.length === 3) heldReady(); });
                 if (failed && source === 'hacktez') return route.fulfill({ status: 503, body: '' });
                 const data = structuredClone(fixture[source]);
                 data.generatedAt = new Date(Date.now() + revision * 1000).toISOString();
@@ -214,8 +240,8 @@ async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, art
                 await route.fulfill({ contentType: 'application/json', body: JSON.stringify(buildFundingPreview(data)) });
             });
             const page = await context.newPage();
-            page.on('request', request => { if (/\/data\/community-funding-(teztree|hacktez)\.json/.test(request.url())) fullRequests++; });
-            const firstRequests = Promise.all(['teztree', 'hacktez'].map(source => page.waitForRequest(request => request.url().includes(`community-funding-${source}-preview.json`))));
+            page.on('request', request => { if (/\/data\/community-funding-(teztree|ttcrowd|hacktez)\.json/.test(request.url())) fullRequests++; });
+            const firstRequests = Promise.all(['teztree', 'ttcrowd', 'hacktez'].map(source => page.waitForRequest(request => request.url().includes(`community-funding-${source}-preview.json`))));
             firstRequests.catch(() => {});
             const errors = []; page.on('pageerror', error => errors.push(error.message));
             await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -237,11 +263,17 @@ async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, art
             assert.equal(fullRequests, 0, 'home preview must not fetch full funding catalogs');
             assert.equal(await card.locator('.funding-entry-platforms a[href="https://funding.teztree.com/"]').isVisible(), true);
             assert.equal(await card.locator('.funding-entry-platforms a[href="https://hacktez.com/"]').isVisible(), true);
+            assert.equal(await card.locator('.funding-entry-platforms a[href="https://crowd.thetezos.com/"]').isVisible(), true);
+            assert.equal(await card.locator('.funding-preview-item[href="https://crowd.thetezos.com/c/animation"]').isVisible(), true);
             assert.match(await card.locator('.funding-entry-copy').innerText(), /Listings, artwork & reported figures from the source platforms/);
             assert.equal(await card.locator('.funding-preview-item').count(), 3);
             assert.match(await card.locator('.funding-preview-fact').first().textContent(), /25 ꜩ raised/);
             assert.match(await card.locator('.funding-entry-platforms').innerText(), /8 projects accepting tips/);
             assert.equal(await card.locator('.funding-preview-item').first().getAttribute('href'), 'https://funding.teztree.com/c/1');
+            assert.equal(await card.locator('.funding-platform-credit').evaluateAll(nodes => nodes.every(node => {
+                const link = node.querySelector('a').getBoundingClientRect(), bounds = node.getBoundingClientRect();
+                return link.right <= bounds.right + 1 && node.scrollWidth <= node.clientWidth + 1;
+            })), true, 'each platform credit fits its own column without overlapping another');
             const layout = await card.evaluate(node => {
                 const copy = node.querySelector('.funding-entry-copy').getBoundingClientRect();
                 const preview = node.querySelector('.funding-entry-preview').getBoundingClientRect();
@@ -264,7 +296,7 @@ async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, art
             revision++;
             await page.evaluate(() => { window.__previewVisibility = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
             await page.waitForFunction(() => document.querySelector('.funding-preview-fact strong')?.textContent.includes('26 ꜩ'));
-            assert.equal(requests, hiddenRequests + 2, 'one visible catch-up per preview source');
+            assert.equal(requests, hiddenRequests + 3, 'one visible catch-up per preview source');
             assert.deepEqual(await page.evaluate(() => {
                 const before = window.__previewReader, card = document.getElementById('funding-entry-card');
                 return { card: before.card === card, row: before.row === card.querySelector('.funding-preview-item'), focus: document.activeElement === before.row,

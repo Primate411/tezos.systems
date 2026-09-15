@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { FUNDING_SOURCES, FUNDING_MAX_BYTES, FUNDING_PREVIEW_MAX_BYTES, campaignState, campaignProgress, fundingStale, fundingUrl, fundingImage, formatFundingAmount, validateFundingSnapshot, buildFundingPreview, validateFundingPreview, fundingPreviewPath } from '../js/core/community-funding.mjs';
-import { normalizeHacktez, normalizeTeztree, fetchHacktezCatalog } from '../scripts/lib/community-funding.mjs';
+import { normalizeHacktez, normalizeTeztree, normalizeTtcrowd, fetchHacktezCatalog, fetchTtcrowdCatalog } from '../scripts/lib/community-funding.mjs';
 import { SCHEDULED_REFRESH_LANES } from '../scripts/lib/scheduled-refresh-lanes.mjs';
 import { fundingFixtures } from './fixtures/community-funding.mjs';
 
@@ -51,6 +51,49 @@ assert.equal(campaignPreview.openCount, 1);
 assert.equal(campaignState(campaignPreview.highlights[0]), 'open');
 assert.throws(() => validateFundingPreview({ ...preview, highlights: [...preview.highlights, preview.highlights[0]] }, 'hacktez'));
 assert.throws(() => validateFundingPreview({ ...preview, availableCount: 1 }, 'hacktez'));
+
+const crowd = fixtures.ttcrowd.items;
+assert.deepEqual(crowd.map(item => campaignState(item, now)), ['open', 'open', 'paused', 'ended']);
+assert.equal(campaignState(crowd[1], now), 'open', 'funding above goal does not close an accepting campaign');
+assert.equal(campaignState({ ...crowd[0], notTaking: true }, now), 'not-accepting');
+assert.equal(campaignState({ ...crowd[0], deadline: new Date(now - 1).toISOString() }, now), 'ended');
+assert.equal(campaignState({ ...crowd[0], createdAt: new Date(now + 86400000).toISOString() }, now), 'unavailable');
+assert.equal(campaignProgress(crowd[1]), 120.1);
+assert.equal(campaignProgress(crowd[3]), null);
+assert.equal(crowd[0].reportedAmount, '27.802');
+assert.deepEqual(crowd.map(item => item.currency), ['USD', 'XTZ', 'EUR', 'XTZ']);
+assert.equal(crowd[1].progressBasis, 'balance', 'treasury accounting retains its source basis');
+const crowdPreview = buildFundingPreview(fixtures.ttcrowd);
+assert.equal(crowdPreview.openCount, 2);
+assert.equal(crowdPreview.nextDeadline, null, 'open TTCrowd campaigns may have no deadline');
+validateFundingPreview(crowdPreview, 'ttcrowd');
+assert.equal(fundingUrl('https://crowd.thetezos.com/c/animation', 'ttcrowd'), crowd[0].url);
+assert.equal(fundingUrl('https://crowd.thetezos.com.evil.test/c/animation', 'ttcrowd'), '');
+assert.equal(fundingUrl('https://crowd.thetezos.com/admin', 'ttcrowd'), '');
+assert.equal(fundingUrl('https://crowd.thetezos.com/c/a/../../admin', 'ttcrowd'), '');
+assert.equal(fundingImage('https://pbs.twimg.com/media/campaign.jpg'), 'https://pbs.twimg.com/media/campaign.jpg');
+assert.equal(fundingImage('https://pbs.twimg.com.evil.test/media/campaign.jpg'), '');
+const normalizeCrowd = (catalog = fixtures.crowdCatalog, summaries = fixtures.crowdSummaries) => normalizeTtcrowd(catalog, summaries, fixtures.ttcrowd.generatedAt);
+assert.throws(() => normalizeCrowd(fixtures.crowdCatalog, fixtures.crowdSummaries.slice(1)), 'all summaries are required');
+assert.throws(() => normalizeCrowd([...fixtures.crowdCatalog, fixtures.crowdCatalog[0]]), 'duplicate slugs rejected');
+for (const change of [{ slug: 'other' }, { preview: true }, { valuation_currency: 'EUR' }, { progress_basis: 'unknown' }, { is_closed: null }]) {
+    assert.throws(() => normalizeCrowd(fixtures.crowdCatalog, [{ ...fixtures.crowdSummaries[0], ...change }, ...fixtures.crowdSummaries.slice(1)]));
+}
+assert.equal(campaignState(normalizeCrowd(fixtures.crowdCatalog, [{ ...fixtures.crowdSummaries[0], is_capped: true }, ...fixtures.crowdSummaries.slice(1)]).items[0], now), 'not-accepting');
+assert.throws(() => normalizeCrowd([{ ...fixtures.crowdCatalog[0], raised: -1 }], [fixtures.crowdSummaries[0]]));
+let crowdCalls = [];
+const fetchedCrowd = await fetchTtcrowdCatalog(async url => {
+    crowdCalls.push(url);
+    return url === FUNDING_SOURCES.ttcrowd.url ? fixtures.crowdCatalog
+        : fixtures.crowdSummaries.find(summary => url.endsWith(`/c/${summary.slug}/summary`));
+}, fixtures.ttcrowd.generatedAt);
+assert.deepEqual(fetchedCrowd, fixtures.ttcrowd);
+assert.equal(crowdCalls.length, 5);
+await assert.rejects(fetchTtcrowdCatalog(async url => {
+    if (url === FUNDING_SOURCES.ttcrowd.url) return fixtures.crowdCatalog;
+    throw new Error('summary unavailable');
+}, fixtures.ttcrowd.generatedAt), 'one failed summary fails the source lane');
+await assert.rejects(fetchTtcrowdCatalog(async () => Array.from({ length: 101 }, (_, i) => ({ ...fixtures.crowdCatalog[0], slug: `campaign-${i}` })), fixtures.ttcrowd.generatedAt));
 
 let pages = 0;
 const complete = await fetchHacktezCatalog(FUNDING_SOURCES.hacktez.url, async url => {

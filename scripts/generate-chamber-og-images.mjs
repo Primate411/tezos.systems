@@ -82,7 +82,7 @@ export function routeDetails(route, report) {
     },
     funding: {
       kicker: 'Community Funding', value: 'Keep good ideas going.',
-      chips: ['TezTree campaigns', 'HackTez projects', 'support at the source'],
+      chips: ['TezTree', 'TTCrowd', 'HackTez'],
       body: 'Discover community campaigns and projects accepting support. Browse platform snapshots and open the original page to contribute.'
     },
     capital: {

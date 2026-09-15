@@ -243,12 +243,12 @@ export const SITE_MAP = [
         hashAliases: ['#community-funding', '#support-builders'],
         group: 'Culture & Feeds',
         chamberCategory: 'people',
-        detail: 'Discover TezTree campaigns and HackTez projects accepting support, with platform snapshots and direct funding links',
-        keywords: ['community funding', 'teztree', 'hacktez', 'crowdfunding', 'support builders', 'donate', 'donations', 'tip jars', 'campaigns', 'fund projects', 'project support'],
+        detail: 'Discover TezTree and TTCrowd campaigns and HackTez projects accepting support, with platform snapshots and direct funding links',
+        keywords: ['community funding', 'teztree', 'ttcrowd', 'thetezos', 'hacktez', 'crowdfunding', 'support builders', 'donate', 'donations', 'tip jars', 'campaigns', 'fund projects', 'project support'],
         searchIntents: [
             { id: 'funding-support', title: 'Support Tezos Builders', href: '/funding/?view=support', detail: 'Browse HackTez projects with tips explicitly enabled', keywords: ['hacktez projects', 'support builders', 'tip jar'], directory: true },
-            { id: 'funding-campaigns', title: 'TezTree Open Campaigns', href: '/funding/?view=campaigns', detail: 'Find campaigns with active deadlines and reported funding goals', keywords: ['teztree funding', 'open campaigns', 'crowdfunding'], directory: true },
-            { id: 'funding-history', title: 'Ended Community Campaigns', href: '/funding/?view=history', detail: 'Read past TezTree campaigns and reported results', keywords: ['ended campaigns', 'funding history'], directory: true }
+            { id: 'funding-campaigns', title: 'Open Community Campaigns', href: '/funding/?view=campaigns', detail: 'Find open TezTree and TTCrowd campaigns with source-reported goals', keywords: ['teztree funding', 'ttcrowd', 'thetezos', 'open campaigns', 'crowdfunding'], directory: true },
+            { id: 'funding-history', title: 'Community Campaign History', href: '/funding/?view=history', detail: 'Read ended and paused TezTree and TTCrowd campaigns', keywords: ['ended campaigns', 'funding history'], directory: true }
         ],
         fresh: true, sitemap: { changefreq: 'daily', priority: '0.8' }
     },

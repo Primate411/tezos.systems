@@ -6,7 +6,7 @@
  * so installing an update does not download the whole site.
  */
 
-const CACHE_NAME = 'tezos-systems-v642';
+const CACHE_NAME = 'tezos-systems-v643';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 const CURRENT_CACHES = new Set([CACHE_NAME, RUNTIME_CACHE]);
 
@@ -66,6 +66,8 @@ const NETWORK_ONLY_DATA_PATHS = new Set([
     '/data/tezoscrp-awards.json',
     '/data/tezoscrp-awards.compact.json',
     '/data/community-funding-teztree.json',
+    '/data/community-funding-ttcrowd.json',
+    '/data/community-funding-ttcrowd-preview.json',
     '/data/community-funding-hacktez.json',
     '/data/community-funding-teztree-preview.json',
     '/data/community-funding-hacktez-preview.json',

@@ -142,9 +142,9 @@ export const CHAMBER_ROUTES = [
   },
   {
     slug: 'funding', hash: '#funding',
-    title: 'Community Funding - TezTree Campaigns and HackTez Project Support',
+    title: 'Community Funding - TezTree, TTCrowd and HackTez',
     shortTitle: 'Community Funding',
-    description: 'Find TezTree community campaigns and HackTez projects accepting tips. Browse separate platform snapshots, reported campaign progress, and direct support links.',
+    description: 'Find TezTree and TTCrowd campaigns and HackTez projects accepting tips. Browse separate platform snapshots, reported campaign progress, and direct support links.',
     eyebrow: 'Community Support', accent: '#f4b36c', secondaryAccent: '#87d7ba'
   },
   {

@@ -543,6 +543,26 @@
         "responses": { "200": { "$ref": "#/components/responses/JsonDocument" } }
       }
     },
+    "/data/community-funding-ttcrowd.json": {
+      "get": {
+        "operationId": "getCommunityFundingTtcrowd",
+        "summary": "Get the TTCrowd campaign snapshot",
+        "description": "Complete public TTCrowd catalog, bounded to 100 campaigns, with validated campaign summaries. Retains original USD/EUR/XTZ valuation, contribution versus treasury accounting, steward credit, optional deadlines and acceptance status. Treasury accounting may include initial funds and rewards; it is not a donation total.",
+        "x-refresh-cadence": "Every six hours in an independent source lane; collection time only because no upstream catalog clock is supplied; last-good snapshot retained on failure; stale after 18 hours",
+        "x-license-boundary": "Third-party descriptions, artwork, identities and platform facts retain TTCrowd and creator source terms. Original arrangement is CC BY 4.0 where owned.",
+        "responses": { "200": { "$ref": "#/components/responses/JsonDocument" } }
+      }
+    },
+    "/data/community-funding-ttcrowd-preview.json": {
+      "get": {
+        "operationId": "getCommunityFundingTtcrowdPreview",
+        "summary": "Get compact TTCrowd campaign highlights",
+        "description": "At most three source-validated previews. Open campaigns lead by deadline when provided, then newest start date. Original currency and accounting basis retained; a discovery sample rather than a popularity ranking; limited to 16 KiB.",
+        "x-refresh-cadence": "Generated with the TTCrowd snapshot in its independent six-hour lane; collection clock retained; stale after 18 hours",
+        "x-license-boundary": "Third-party campaign descriptions, images and facts retain their source terms. Original arrangement is CC BY 4.0 where owned.",
+        "responses": { "200": { "$ref": "#/components/responses/JsonDocument" } }
+      }
+    },
     "/data/community-funding-hacktez-preview.json": {
       "get": {
         "operationId": "getCommunityFundingHacktezPreview",

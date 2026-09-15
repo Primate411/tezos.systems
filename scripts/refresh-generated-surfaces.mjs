@@ -37,7 +37,7 @@ const CAPITAL_TARGETS = ['data/capital-snapshot.json'];
 const MINERALS_TARGETS = ['data/minerals-snapshot.json', 'data/minerals-entry-summary.json'];
 const URANIUM_TARGETS = ['data/uranium-snapshot.json', 'data/uranium-entry-summary.json'];
 const METALS_TARGETS = ['data/metals-snapshot.json', 'data/metals-entry-summary.json'];
-const FUNDING_TARGETS = ['teztree', 'hacktez'].flatMap(source => [`data/community-funding-${source}.json`, `data/community-funding-${source}-preview.json`]);
+const FUNDING_TARGETS = ['teztree', 'ttcrowd', 'hacktez'].flatMap(source => [`data/community-funding-${source}.json`, `data/community-funding-${source}-preview.json`]);
 const ECOSYSTEM_TARGETS = ['data/ecosystem-stats.json'];
 const LAUNCHER_PROJECTION_TARGETS = [
   'data/maxis/entry-summary.json',
