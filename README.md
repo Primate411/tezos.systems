@@ -2042,7 +2042,9 @@ controls, and theme painters. Fixed Chamber rows never become scroll anchors for
 the dashboard behind them; the shared quiet-refresh test covers that boundary.
 Shared info-tooltip styling lives in the shell, not a lazy room stylesheet;
 open tooltips follow late card layout changes and stay inside the viewport even
-when their opener moves offscreen. History's Clean view keeps a coherent light palette.
+when their opener moves offscreen. Browser checks wait for a settled tooltip
+rectangle within the same strict viewport margins, rather than sampling during
+font or card hydration at a fixed delay. History's Clean view keeps a coherent light palette.
 My Tezos, Anthology, and the directory reuse app-owned controllers without
 starting home; all other rooms import their own feature. Directory room choices
 navigate to the chosen room's scoped shell. History, My Tezos, and Health are in

@@ -4592,12 +4592,13 @@ async function assertChamberInfoTooltipsContained(page, label) {
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'
     ), selector, { timeout: 5000 });
-    await page.waitForTimeout(350);
-
-    const geometry = await page.locator(selector).evaluate((card) => {
+    // Fonts and late card hydration can queue another placement after opening.
+    // Read one settled receipt instead of sampling an arbitrary 350 ms later.
+    const geometryHandle = await page.waitForFunction((cardSelector) => {
+      const card = document.querySelector(cardSelector);
       const tooltip = card.querySelector(':scope > .card-tooltip');
       const box = tooltip?.getBoundingClientRect();
-      return {
+      const geometry = {
         left: box?.left ?? -1,
         right: box?.right ?? -1,
         top: box?.top ?? -1,
@@ -4617,7 +4618,30 @@ async function assertChamberInfoTooltipsContained(page, label) {
         offsetParent: tooltip?.offsetParent?.className,
         stakingStyles: Boolean(document.querySelector('link[href*="staking-chamber.min.css"]')?.sheet)
       };
+      const ready = geometry.visible && getComputedStyle(tooltip).opacity === '1'
+        && geometry.left >= 10 && geometry.top >= 10
+        && geometry.right <= geometry.viewportWidth - 10
+        && geometry.bottom <= geometry.viewportHeight - 10
+        && tooltip.getAnimations().every(animation => animation.playState !== 'running' && animation.playState !== 'pending');
+      if (!ready) {
+        delete tooltip.__smokeSettledGeometry;
+        return false;
+      }
+      const signature = [box.left, box.top, box.right, box.bottom, geometry.cardTop].join(':');
+      const previous = tooltip.__smokeSettledGeometry;
+      if (previous?.signature !== signature) {
+        tooltip.__smokeSettledGeometry = { signature, since: performance.now() };
+        return false;
+      }
+      if (performance.now() - previous.since < 64) return false;
+      delete tooltip.__smokeSettledGeometry;
+      return geometry;
+    }, selector, { timeout: 5000 }).catch(async error => {
+      const box = await page.locator(`${selector} > .card-tooltip`).boundingBox();
+      throw new Error(`${label}: ${selector} info tooltip did not settle inside the viewport: ${JSON.stringify(box)}`, { cause: error });
     });
+    const geometry = await geometryHandle.jsonValue();
+    await geometryHandle.dispose();
     assert(
       geometry.visible
         && geometry.left >= 10
