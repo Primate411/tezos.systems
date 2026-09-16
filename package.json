@@ -33,6 +33,8 @@
     "test:anniversary": "node tests/anniversary-check.mjs",
     "measure:load": "node scripts/measure-initial-load.mjs",
     "measure:load:stable": "node scripts/measure-initial-load.mjs --require-stable",
+    "measure:load:ci": "node scripts/measure-initial-load.mjs --matrix --runs 3 --warmup-runs 1 --budgets tests/fixtures/initial-load-budgets.json --output test-artifacts/initial-load/report.json",
+    "test:initial-load": "node tests/initial-load-check.mjs && node tests/initial-load-cancellation-check.mjs",
     "measure:chamber-boot": "node scripts/measure-chamber-boot.mjs",
     "measure:chamber-data": "node scripts/measure-chamber-data.mjs",
     "serve": "python3 -m http.server 9000",

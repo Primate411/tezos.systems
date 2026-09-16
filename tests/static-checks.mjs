@@ -153,6 +153,17 @@ function readText(file) {
   return sourceReads.get(file);
 }
 
+async function readInitialLoadMeasurementSource() {
+  return (await Promise.all([
+    'scripts/measure-initial-load.mjs',
+    'scripts/lib/initial-load-runner.mjs',
+    'scripts/lib/initial-load-server.mjs',
+    'scripts/lib/initial-load-config.mjs',
+    'scripts/lib/initial-load-report.mjs',
+    'scripts/lib/initial-load-policy.mjs'
+  ].map(readText))).join('\n');
+}
+
 async function checkHomeLayoutContracts() {
   const [index, preload, layout, app, search, briefing, tour, handoff, styles, smoke, readme, changelog] = await Promise.all([
     readText('index.html'),
@@ -5077,12 +5088,18 @@ async function checkPublicDataDiscoveryContracts() {
 }
 
 async function checkInitialLoadMeasurementContracts() {
-  const measurement = await readText('scripts/measure-initial-load.mjs');
-  const baseline = JSON.parse(await readText('tests/fixtures/initial-load-baseline.json'));
+  const measurement = await readInitialLoadMeasurementSource();
+  const baselineText = await readText('tests/fixtures/initial-load-baseline.json');
+  const baseline = JSON.parse(baselineText);
+  if (createHash('sha256').update(baselineText).digest('hex') !== '3ce79dfc474f4490f12c412aac30495e51d80bc2d2f390cac627e0ba4d21f752') {
+    fail('the historical initial-load baseline must remain byte-for-byte unchanged; publish new dated measurements separately');
+  }
   const packageJson = JSON.parse(await readText('package.json'));
   const requiredMeasurementContracts = [
     "require('./lib/playwright-browser.cjs')",
-    "serviceWorkers: options.mode === 'installed-worker' ? 'allow' : 'block'",
+    "serviceWorkers: profile.cache === 'installed-worker' ? 'allow' : 'block'",
+    'Network.setCacheDisabled',
+    'cacheDisabled: false',
     "document.visibilityState",
     "type: 'layout-shift'",
     "type: 'longtask'",
@@ -5096,10 +5113,11 @@ async function checkInitialLoadMeasurementContracts() {
     'readiness',
     'deferredChamberResources',
     'classifyLauncherResources',
+    'assessInitialLoadResources',
+    'validateInitialLoadReadiness',
     'launcherIntersections',
     'visibleLauncherResources',
     'duplicateModuleRequests',
-    'deferredChamberStylePaths',
     'forbiddenHeavyResources',
     "page.on('pageerror'",
     'decodedBytesWithinFivePct',
@@ -5114,6 +5132,9 @@ async function checkInitialLoadMeasurementContracts() {
   ];
   for (const contract of requiredMeasurementContracts) {
     if (!measurement.includes(contract)) fail(`initial-load measurement harness is missing contract: ${contract}`);
+  }
+  if (/\bpage\.clock\./.test(measurement)) {
+    fail('initial-load measurements must preserve native Performance APIs; use Date-only fixture time instead of the Playwright clock');
   }
   if (packageJson.scripts?.['measure:load'] !== 'node scripts/measure-initial-load.mjs') {
     fail('package scripts must expose the repeatable initial-load measurement harness');
@@ -5617,7 +5638,7 @@ async function checkLauncherProjectionContracts() {
     readText('js/features/ecosystem-chamber.js'),
     readText('js/features/maxis.js'),
     readText('js/features/leaderboard.js'),
-    readText('scripts/measure-initial-load.mjs'),
+    readInitialLoadMeasurementSource(),
     readText('package.json'),
     readText('scripts/refresh-generated-surfaces.mjs'),
     readText('scripts/guard-readme-sync.mjs'),

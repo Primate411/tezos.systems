@@ -1,0 +1,2821 @@
+{
+  "schemaVersion": 1,
+  "kind": "initial-load-matrix-reference",
+  "measuredAt": "2026-09-16T21:25:48.702Z",
+  "completedAt": "2026-09-16T21:38:20.067Z",
+  "command": "npm run measure:load:ci",
+  "sourceRevision": "e7a8bf6207fcaae63843492e14c9a742bc4d5d9e",
+  "sourceDirty": true,
+  "environment": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v22.22.3",
+    "chromium": "148.0.7778.96"
+  },
+  "fixtureTime": "2026-09-16T12:00:00.000Z",
+  "profileContract": {
+    "network": "populated",
+    "theme": "aurora",
+    "settleMs": 2500,
+    "fixtureRevision": "3f540d3f303fae49957e0a522509aef4435ad5a0a8e2080a571d9265c7dcb110"
+  },
+  "harness": {
+    "sha256": "22b9e65c79e997c9f41329a105cc6aa27aff100b7cafec0900a6d60d3a9189f5",
+    "files": [
+      "scripts/measure-initial-load.mjs",
+      "scripts/lib/initial-load-config.mjs",
+      "scripts/lib/initial-load-policy.mjs",
+      "scripts/lib/initial-load-report.mjs",
+      "scripts/lib/initial-load-runner.mjs",
+      "scripts/lib/initial-load-server.mjs",
+      "scripts/lib/playwright-browser.cjs",
+      "tests/lib/smoke-lifecycle.mjs",
+      "tests/fixtures/initial-load-network.mjs"
+    ]
+  },
+  "historicalBaseline": {
+    "path": "tests/fixtures/initial-load-baseline.json",
+    "sha256": "3ce79dfc474f4490f12c412aac30495e51d80bc2d2f390cac627e0ba4d21f752"
+  },
+  "reviewedBudget": {
+    "path": "tests/fixtures/initial-load-budgets.json",
+    "sha256": "21a4ab6ba395cf1f5d2d6464a80b01283c4555d693d4c0cc8952a7d8f340139f"
+  },
+  "rawReport": {
+    "path": "test-artifacts/initial-load/report.json",
+    "sha256": "7e9ea7712fb2be8ab302cee24506ff49a48cb78909d0e2b4141e04a417c6b8d4"
+  },
+  "notes": [
+    "Local uncompressed HTTP, max-age=600 for static assets and ETag/no-cache for HTML/JSON. API fixtures are synthetic and use a POST fetch adapter; upstream latency is excluded. External fonts/analytics are blocked by a deny-only proxy, including worker egress. No Playwright routing. Reduced motion and dismissed onboarding. Phone is a viewport, not physical hardware. Timing is diagnostic; budgets cover every run.",
+    "The page clock is fixed to fixtureTime. Same-origin generated snapshots are read from the measured checkout.",
+    "This is a summary of a passing local matrix, not a hosted CI or production performance claim. Cache seeds are validated separately; warm-ups are diagnostic, and every measured run must satisfy its budget.",
+    "The observation ends 2500 ms after readiness, with up to 2000 ms to drain in-flight fixture bodies. Raw reports retain request starts, full resource and fixture ledgers, server response bytes, and seed receipts.",
+    "The July reference remains immutable; this dated reference and its reviewed ceilings are never automatically rewritten."
+  ],
+  "passed": true,
+  "errors": [],
+  "runsPerProfile": 3,
+  "warmupRuns": 1,
+  "expectedReadiness": {
+    "launcherIds": [
+      "ecosystem",
+      "pulse",
+      "health",
+      "tezosx",
+      "capital",
+      "minerals",
+      "uranium",
+      "metals",
+      "whales",
+      "staking-chamber",
+      "leaderboard",
+      "tz4",
+      "chamber",
+      "l2-governance",
+      "liquidity-baking",
+      "ledger-flow",
+      "domains",
+      "maxis",
+      "tezoscrp",
+      "funding",
+      "anthology",
+      "history"
+    ],
+    "categoryIds": [
+      "ecosystem",
+      "network",
+      "capital",
+      "bakers",
+      "governance",
+      "people",
+      "history"
+    ],
+    "launcherCount": 22,
+    "categoryCount": 7,
+    "categories": [
+      {
+        "id": "ecosystem",
+        "launcherIds": [
+          "ecosystem"
+        ]
+      },
+      {
+        "id": "network",
+        "launcherIds": [
+          "pulse",
+          "health",
+          "tezosx"
+        ]
+      },
+      {
+        "id": "capital",
+        "launcherIds": [
+          "capital",
+          "minerals",
+          "uranium",
+          "metals",
+          "whales",
+          "staking-chamber"
+        ]
+      },
+      {
+        "id": "bakers",
+        "launcherIds": [
+          "leaderboard",
+          "tz4"
+        ]
+      },
+      {
+        "id": "governance",
+        "launcherIds": [
+          "chamber",
+          "l2-governance",
+          "liquidity-baking"
+        ]
+      },
+      {
+        "id": "people",
+        "launcherIds": [
+          "ledger-flow",
+          "domains",
+          "maxis",
+          "tezoscrp",
+          "funding"
+        ]
+      },
+      {
+        "id": "history",
+        "launcherIds": [
+          "anthology",
+          "history"
+        ]
+      }
+    ]
+  },
+  "profiles": [
+    {
+      "profile": {
+        "id": "desktop-anonymous-cold",
+        "device": "desktop",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "savedWallet": false,
+        "cache": "cold",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4064,
+        "domContentLoadedMs": 120.1,
+        "domInteractiveMs": 38.6,
+        "loadMs": 120.5,
+        "sameOriginTransferBytes": 3714608,
+        "sameOriginEncodedBytes": 3674708,
+        "jsonTransferBytes": 98097,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.203,
+        "longTaskCount": 2,
+        "longTaskDurationMs": 115,
+        "totalBlockingTimeMs": 15,
+        "longestTaskMs": 63,
+        "networkTransferCount": 133,
+        "zeroTransferCount": 0,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 70,
+        "cachedScriptCount": 0,
+        "fixtureResponseBytes": 306825
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4064
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 118.03,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 200,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4064,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4064,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4064,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/ecosystem-chamber.js?v=646",
+          "medianDecodedBytes": 59643,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "desktop-anonymous-warm",
+        "device": "desktop",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "savedWallet": false,
+        "cache": "warm",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4128,
+        "domContentLoadedMs": 30.1,
+        "domInteractiveMs": 12.7,
+        "loadMs": 101.6,
+        "sameOriginTransferBytes": 2921,
+        "sameOriginEncodedBytes": 3674708,
+        "jsonTransferBytes": 2621,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.0005,
+        "longTaskCount": 0,
+        "longTaskDurationMs": 0,
+        "totalBlockingTimeMs": 0,
+        "longestTaskMs": 0,
+        "networkTransferCount": 9,
+        "zeroTransferCount": 124,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 83,
+        "cachedScriptCount": 114,
+        "fixtureResponseBytes": 81718
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4128
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 0,
+        "rawLongTasksWithinFifteenPct": true,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 0,
+        "totalBlockingTimeWithinFifteenPct": true
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4128,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4128,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4128,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/ecosystem-chamber.js?v=646",
+          "medianDecodedBytes": 59643,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "desktop-anonymous-installed-worker",
+        "device": "desktop",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "savedWallet": false,
+        "cache": "installed-worker",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4128,
+        "domContentLoadedMs": 84,
+        "domInteractiveMs": 42,
+        "loadMs": 84.2,
+        "sameOriginTransferBytes": 264795,
+        "sameOriginEncodedBytes": 3674708,
+        "jsonTransferBytes": 0,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.0032,
+        "longTaskCount": 0,
+        "longTaskDurationMs": 0,
+        "totalBlockingTimeMs": 0,
+        "longestTaskMs": 0,
+        "networkTransferCount": 1,
+        "zeroTransferCount": 132,
+        "serviceWorkerResponseCount": 133,
+        "externalRequestAttempts": 83,
+        "cachedScriptCount": 114,
+        "fixtureResponseBytes": 81718
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4128
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 0,
+        "rawLongTasksWithinFifteenPct": true,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 0,
+        "totalBlockingTimeWithinFifteenPct": true
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4128,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 133,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4128,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 133,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4128,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 133,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/ecosystem-chamber.js?v=646",
+          "medianDecodedBytes": 59643,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "desktop-saved-wallet-cold",
+        "device": "desktop",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "savedWallet": true,
+        "cache": "cold",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4536,
+        "domContentLoadedMs": 151.1,
+        "domInteractiveMs": 48.8,
+        "loadMs": 151.5,
+        "sameOriginTransferBytes": 3714608,
+        "sameOriginEncodedBytes": 3674708,
+        "jsonTransferBytes": 98097,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.2047,
+        "longTaskCount": 2,
+        "longTaskDurationMs": 160,
+        "totalBlockingTimeMs": 60,
+        "longestTaskMs": 98,
+        "networkTransferCount": 133,
+        "zeroTransferCount": 0,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 123,
+        "cachedScriptCount": 0,
+        "fixtureResponseBytes": 324524
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4536
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 21.25,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 87.5,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4536,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4536,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4536,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/ecosystem-chamber.js?v=646",
+          "medianDecodedBytes": 59643,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "desktop-saved-wallet-warm",
+        "device": "desktop",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "savedWallet": true,
+        "cache": "warm",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4532,
+        "domContentLoadedMs": 57.2,
+        "domInteractiveMs": 25,
+        "loadMs": 228.9,
+        "sameOriginTransferBytes": 2921,
+        "sameOriginEncodedBytes": 3674708,
+        "jsonTransferBytes": 2621,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.0022,
+        "longTaskCount": 1,
+        "longTaskDurationMs": 75,
+        "totalBlockingTimeMs": 25,
+        "longestTaskMs": 75,
+        "networkTransferCount": 9,
+        "zeroTransferCount": 124,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 122,
+        "cachedScriptCount": 114,
+        "fixtureResponseBytes": 98164
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4532
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 60.29,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 227.78,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4532,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4532,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4532,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/ecosystem-chamber.js?v=646",
+          "medianDecodedBytes": 59643,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "desktop-saved-wallet-installed-worker",
+        "device": "desktop",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "savedWallet": true,
+        "cache": "installed-worker",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4532,
+        "domContentLoadedMs": 159,
+        "domInteractiveMs": 72.6,
+        "loadMs": 159.5,
+        "sameOriginTransferBytes": 264795,
+        "sameOriginEncodedBytes": 3674708,
+        "jsonTransferBytes": 0,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.0049,
+        "longTaskCount": 1,
+        "longTaskDurationMs": 100,
+        "totalBlockingTimeMs": 50,
+        "longestTaskMs": 100,
+        "networkTransferCount": 1,
+        "zeroTransferCount": 132,
+        "serviceWorkerResponseCount": 133,
+        "externalRequestAttempts": 122,
+        "cachedScriptCount": 114,
+        "fixtureResponseBytes": 98164
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4532
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 16,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 32,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4532,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 133,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4532,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 133,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3674708,
+          "eagerJsDecodedBytes": 2578653,
+          "styleDecodedBytes": 735863,
+          "jsonDecodedBytes": 95697,
+          "sameOriginRequests": 133,
+          "domNodes": 4532,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 133,
+          "cachedScriptCount": 114,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/ecosystem-chamber.js?v=646",
+          "medianDecodedBytes": 59643,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "mobile-anonymous-cold",
+        "device": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "savedWallet": false,
+        "cache": "cold",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 3989,
+        "domContentLoadedMs": 185.8,
+        "domInteractiveMs": 58.8,
+        "loadMs": 186.3,
+        "sameOriginTransferBytes": 3597398,
+        "sameOriginEncodedBytes": 3560198,
+        "jsonTransferBytes": 82629,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.2033,
+        "longTaskCount": 2,
+        "longTaskDurationMs": 186,
+        "totalBlockingTimeMs": 86,
+        "longestTaskMs": 110,
+        "networkTransferCount": 124,
+        "zeroTransferCount": 0,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 68,
+        "cachedScriptCount": 0,
+        "fixtureResponseBytes": 306821
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 3989
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 18.47,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 50.88,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 3989,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 3989,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 3989,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/sleeping-giants.js",
+          "medianDecodedBytes": 29481,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "mobile-anonymous-warm",
+        "device": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "savedWallet": false,
+        "cache": "warm",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4054,
+        "domContentLoadedMs": 46.7,
+        "domInteractiveMs": 18.5,
+        "loadMs": 141.8,
+        "sameOriginTransferBytes": 2621,
+        "sameOriginEncodedBytes": 3560198,
+        "jsonTransferBytes": 2321,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.0032,
+        "longTaskCount": 1,
+        "longTaskDurationMs": 59,
+        "totalBlockingTimeMs": 9,
+        "longestTaskMs": 59,
+        "networkTransferCount": 8,
+        "zeroTransferCount": 116,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 78,
+        "cachedScriptCount": 107,
+        "fixtureResponseBytes": 81708
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4054
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 5900,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 900,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4054,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4054,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4054,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/sleeping-giants.js",
+          "medianDecodedBytes": 29481,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "mobile-anonymous-installed-worker",
+        "device": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "savedWallet": false,
+        "cache": "installed-worker",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4054,
+        "domContentLoadedMs": 145.1,
+        "domInteractiveMs": 67.5,
+        "loadMs": 145.6,
+        "sameOriginTransferBytes": 264795,
+        "sameOriginEncodedBytes": 3560198,
+        "jsonTransferBytes": 0,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.2034,
+        "longTaskCount": 1,
+        "longTaskDurationMs": 59,
+        "totalBlockingTimeMs": 9,
+        "longestTaskMs": 59,
+        "networkTransferCount": 1,
+        "zeroTransferCount": 123,
+        "serviceWorkerResponseCount": 124,
+        "externalRequestAttempts": 78,
+        "cachedScriptCount": 107,
+        "fixtureResponseBytes": 81708
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4054
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 21.62,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 66.67,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4054,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 124,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4054,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 124,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4054,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 124,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": null,
+            "walletBalance": null
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/sleeping-giants.js",
+          "medianDecodedBytes": 29481,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "mobile-saved-wallet-cold",
+        "device": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "savedWallet": true,
+        "cache": "cold",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4461,
+        "domContentLoadedMs": 205,
+        "domInteractiveMs": 152.5,
+        "loadMs": 205.5,
+        "sameOriginTransferBytes": 3597398,
+        "sameOriginEncodedBytes": 3560198,
+        "jsonTransferBytes": 82629,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.2078,
+        "longTaskCount": 2,
+        "longTaskDurationMs": 202,
+        "totalBlockingTimeMs": 102,
+        "longestTaskMs": 120,
+        "networkTransferCount": 124,
+        "zeroTransferCount": 0,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 121,
+        "cachedScriptCount": 0,
+        "fixtureResponseBytes": 324520
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4461
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 59.9,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 118.63,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4461,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4461,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4461,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 0,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/sleeping-giants.js",
+          "medianDecodedBytes": 29481,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "mobile-saved-wallet-warm",
+        "device": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "savedWallet": true,
+        "cache": "warm",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4458,
+        "domContentLoadedMs": 66,
+        "domInteractiveMs": 26.2,
+        "loadMs": 219.5,
+        "sameOriginTransferBytes": 2621,
+        "sameOriginEncodedBytes": 3560198,
+        "jsonTransferBytes": 2321,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.0077,
+        "longTaskCount": 1,
+        "longTaskDurationMs": 99,
+        "totalBlockingTimeMs": 49,
+        "longestTaskMs": 99,
+        "networkTransferCount": 8,
+        "zeroTransferCount": 116,
+        "serviceWorkerResponseCount": 0,
+        "externalRequestAttempts": 116,
+        "cachedScriptCount": 107,
+        "fixtureResponseBytes": 97555
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4458
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 21.69,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 54.55,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4458,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4458,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4458,
+          "serviceWorkerControlled": false,
+          "serviceWorkerResponseCount": 0,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/sleeping-giants.js",
+          "medianDecodedBytes": 29481,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    },
+    {
+      "profile": {
+        "id": "mobile-saved-wallet-installed-worker",
+        "device": "mobile",
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "savedWallet": true,
+        "cache": "installed-worker",
+        "network": "populated",
+        "theme": "aurora"
+      },
+      "medians": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4458,
+        "domContentLoadedMs": 183.3,
+        "domInteractiveMs": 98.3,
+        "loadMs": 184.3,
+        "sameOriginTransferBytes": 264795,
+        "sameOriginEncodedBytes": 3560198,
+        "jsonTransferBytes": 0,
+        "imageDecodedBytes": 0,
+        "layoutShift": 0.2079,
+        "longTaskCount": 1,
+        "longTaskDurationMs": 97,
+        "totalBlockingTimeMs": 47,
+        "longestTaskMs": 97,
+        "networkTransferCount": 1,
+        "zeroTransferCount": 123,
+        "serviceWorkerResponseCount": 124,
+        "externalRequestAttempts": 116,
+        "cachedScriptCount": 107,
+        "fixtureResponseBytes": 97555
+      },
+      "maxima": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4458
+      },
+      "stability": {
+        "decodedBytesMaxAdjacentDeltaPct": 0,
+        "decodedBytesWithinFivePct": true,
+        "longTaskMaxAdjacentDeltaPct": 28.57,
+        "rawLongTasksWithinFifteenPct": false,
+        "totalBlockingTimeMaxAdjacentDeltaPct": 51.61,
+        "totalBlockingTimeWithinFifteenPct": false
+      },
+      "runs": [
+        {
+          "run": 1,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4458,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 124,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 2,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4458,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 124,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        },
+        {
+          "run": 3,
+          "sameOriginDecodedBytes": 3560198,
+          "eagerJsDecodedBytes": 2496153,
+          "styleDecodedBytes": 719021,
+          "jsonDecodedBytes": 80529,
+          "sameOriginRequests": 124,
+          "domNodes": 4458,
+          "serviceWorkerControlled": true,
+          "serviceWorkerResponseCount": 124,
+          "cachedScriptCount": 107,
+          "populated": {
+            "bakers": "3",
+            "price": "$0.740",
+            "head": 15000000,
+            "wallet": "tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9",
+            "walletBalance": 1500000
+          },
+          "errors": []
+        }
+      ],
+      "warmupPassed": true,
+      "largestResources": [
+        {
+          "path": "/js/core/app.js?v=646",
+          "medianDecodedBytes": 386573,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/network-health.js?v=646",
+          "medianDecodedBytes": 316218,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/styles.min.css?v=646",
+          "medianDecodedBytes": 306885,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos.js?v=646",
+          "medianDecodedBytes": 175081,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/daily-briefing.js",
+          "medianDecodedBytes": 173715,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hero-search.min.css?v=646",
+          "medianDecodedBytes": 149268,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/shell-extras.min.css?v=646",
+          "medianDecodedBytes": 143733,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/history.js?v=646",
+          "medianDecodedBytes": 106320,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/search.js",
+          "medianDecodedBytes": 81926,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/site-map.js",
+          "medianDecodedBytes": 70515,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/core/api.js",
+          "medianDecodedBytes": 67585,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/data-magic.js",
+          "medianDecodedBytes": 62943,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/effects/bg-effects.js",
+          "medianDecodedBytes": 56907,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-tezos-portfolio.js",
+          "medianDecodedBytes": 47504,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/my-baker.js",
+          "medianDecodedBytes": 46058,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/hen-mode.min.css?v=98",
+          "medianDecodedBytes": 44299,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/rewards-tracker.js",
+          "medianDecodedBytes": 35894,
+          "observedRuns": 3
+        },
+        {
+          "path": "/data/protocol-data.json?v=2",
+          "medianDecodedBytes": 33228,
+          "observedRuns": 3
+        },
+        {
+          "path": "/css/site-map.min.css?v=646",
+          "medianDecodedBytes": 31212,
+          "observedRuns": 3
+        },
+        {
+          "path": "/js/features/sleeping-giants.js",
+          "medianDecodedBytes": 29481,
+          "observedRuns": 3
+        }
+      ],
+      "errors": []
+    }
+  ]
+}

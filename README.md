@@ -1903,7 +1903,47 @@ long timer assertions use Playwright's controlled clock instead.
 as CI so the standard local gate and the push gate do not exercise different
 runner semantics.
 
-`npm run measure:load -- --base-url http://127.0.0.1:9000 --runs 5` records a
+`npm run measure:load:ci` checks the committed startup budgets across twelve
+profiles: desktop and phone, anonymous and saved wallet, each with a cold cache,
+warm cache, or installed service worker. Each profile records one unscored
+warm-up and three measured runs using populated, deterministic external-data
+fixtures. The runner starts and stops its own local static server when
+`--base-url` is omitted. The full report and diagnostics are written to
+`test-artifacts/initial-load/`, including when a measured profile fails.
+
+The gate checks aggregate decoded JavaScript, CSS, JSON and total page resource
+bytes, same-origin page request count, and DOM count against
+`tests/fixtures/initial-load-budgets.json`.
+It also retains the forbidden eager-resource and duplicate-module checks.
+Navigation timings, layout shift and long tasks remain diagnostics; machine
+speed does not decide this release gate. Budget changes require explicit review
+alongside the reason for growth, rather than automatic baseline regeneration.
+The historical `initial-load-baseline.json` remains a dated comparison receipt.
+The separate `initial-load-baseline-2026-09-16.json` records the full matrix's
+measured summaries and provenance. Initial ceilings allow 5% above each
+profile's measured maximum for total, JavaScript, and CSS bytes, and 10% for JSON
+bytes, rounded up to KiB. Request counts allow the greater of three extra
+requests or 2%; DOM counts allow 10% for fixture and platform geometry. The
+budget metadata identifies its initial calibration. The dated reference and
+reviewed ceilings are maintained separately and are never regenerated
+automatically.
+These profiles use synthetic source receipts, a fixed fixture date, and system
+fallback fonts. Reports record that date and the source revision; same-origin
+generated snapshots remain those in the measured checkout. Timings do not
+represent production network or web-font performance, and they complement the
+existing feature and visual browser checks.
+The default observation window ends 2.5 seconds after readiness, with up to two
+more seconds to drain fixture response bodies already in flight. Page budgets
+exclude fixture transport; fixture bytes and server-only responses, including
+worker fetches, are separate diagnostics. These local decoded-byte measurements
+are not a complete production-transfer estimate.
+
+`npm run test:initial-load` exercises the real browser harness with deliberate
+readiness, request-policy, telemetry, cache, and budget failures. It also proves
+that cancellation persists diagnostics, closes its owned local server,
+and preserves unrelated local processes. CI runs these checks before the matrix.
+
+`npm run measure:load -- --base-url http://127.0.0.1:9000 --network blocked --runs 5` records a
 repeatable clean-profile initial-load row with request and decoded-byte totals,
 eager JavaScript size, DOM and navigation timing, layout shift, long tasks, and
 largest resources. Add `--mode installed-worker` to audit the installed service
@@ -2307,7 +2347,10 @@ warning collection stays enabled, and an injected SDK import failure verifies
 that actual upstream failures still reach the test result.
 GitHub Pages must use **GitHub Actions** as its build source; the workflow uploads
 the validated repository artifact and preserves dot-prefixed public paths such
-as `.well-known`. Scheduled repository writers explicitly dispatch that workflow
+as `.well-known`. Pages waits for all six browser smoke shards and the separate
+initial-load budget job. That job runs `npm run measure:load:ci` after static
+contracts and uploads its report even when the budget check fails. Scheduled
+repository writers explicitly dispatch that workflow
 after a bot-authored commit because GitHub does not emit another push-triggered
 workflow from its own token; their generated-data updates therefore pass the
 same validation gate before Pages.

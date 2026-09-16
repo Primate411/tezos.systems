@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-09-16",
+  "reference": "tests/fixtures/initial-load-baseline-2026-09-16.json",
+  "notes": [
+    "Per-profile ceilings selected from the R01 calibration and validated by the three-run CI matrix. These are decoded local bytes, not compressed production transfers.",
+    "Total, JavaScript and CSS: 5% headroom rounded up to KiB. JSON: 10% rounded up to KiB for generated snapshot variation. Requests: max(3, ceil(2%)) extra. DOM: 10% for rendering and OS font geometry.",
+    "Byte gates cover first-party document and resource payloads. Synthetic API fixture bytes and actual HTTP server bytes are separate diagnostics. Timings never gate CI.",
+    "Ceiling increases require a reviewed explanation. CI does not rewrite budgets or the historical July baseline."
+  ],
+  "profileContract": {
+    "network": "populated",
+    "theme": "aurora",
+    "settleMs": 2500,
+    "fixtureRevision": "3f540d3f303fae49957e0a522509aef4435ad5a0a8e2080a571d9265c7dcb110"
+  },
+  "profiles": {
+    "desktop-anonymous-cold": {
+      "sameOriginDecodedBytes": 3859456,
+      "eagerJsDecodedBytes": 2708480,
+      "styleDecodedBytes": 773120,
+      "jsonDecodedBytes": 105472,
+      "sameOriginRequests": 136,
+      "domNodes": 4471
+    },
+    "desktop-anonymous-warm": {
+      "sameOriginDecodedBytes": 3859456,
+      "eagerJsDecodedBytes": 2708480,
+      "styleDecodedBytes": 773120,
+      "jsonDecodedBytes": 105472,
+      "sameOriginRequests": 136,
+      "domNodes": 4541
+    },
+    "desktop-anonymous-installed-worker": {
+      "sameOriginDecodedBytes": 3859456,
+      "eagerJsDecodedBytes": 2708480,
+      "styleDecodedBytes": 773120,
+      "jsonDecodedBytes": 105472,
+      "sameOriginRequests": 136,
+      "domNodes": 4541
+    },
+    "desktop-saved-wallet-cold": {
+      "sameOriginDecodedBytes": 3859456,
+      "eagerJsDecodedBytes": 2708480,
+      "styleDecodedBytes": 773120,
+      "jsonDecodedBytes": 105472,
+      "sameOriginRequests": 136,
+      "domNodes": 4990
+    },
+    "desktop-saved-wallet-warm": {
+      "sameOriginDecodedBytes": 3859456,
+      "eagerJsDecodedBytes": 2708480,
+      "styleDecodedBytes": 773120,
+      "jsonDecodedBytes": 105472,
+      "sameOriginRequests": 136,
+      "domNodes": 4986
+    },
+    "desktop-saved-wallet-installed-worker": {
+      "sameOriginDecodedBytes": 3859456,
+      "eagerJsDecodedBytes": 2708480,
+      "styleDecodedBytes": 773120,
+      "jsonDecodedBytes": 105472,
+      "sameOriginRequests": 136,
+      "domNodes": 4986
+    },
+    "mobile-anonymous-cold": {
+      "sameOriginDecodedBytes": 3738624,
+      "eagerJsDecodedBytes": 2621440,
+      "styleDecodedBytes": 755712,
+      "jsonDecodedBytes": 89088,
+      "sameOriginRequests": 127,
+      "domNodes": 4388
+    },
+    "mobile-anonymous-warm": {
+      "sameOriginDecodedBytes": 3738624,
+      "eagerJsDecodedBytes": 2621440,
+      "styleDecodedBytes": 755712,
+      "jsonDecodedBytes": 89088,
+      "sameOriginRequests": 127,
+      "domNodes": 4460
+    },
+    "mobile-anonymous-installed-worker": {
+      "sameOriginDecodedBytes": 3738624,
+      "eagerJsDecodedBytes": 2621440,
+      "styleDecodedBytes": 755712,
+      "jsonDecodedBytes": 89088,
+      "sameOriginRequests": 127,
+      "domNodes": 4460
+    },
+    "mobile-saved-wallet-cold": {
+      "sameOriginDecodedBytes": 3738624,
+      "eagerJsDecodedBytes": 2621440,
+      "styleDecodedBytes": 755712,
+      "jsonDecodedBytes": 89088,
+      "sameOriginRequests": 127,
+      "domNodes": 4908
+    },
+    "mobile-saved-wallet-warm": {
+      "sameOriginDecodedBytes": 3738624,
+      "eagerJsDecodedBytes": 2621440,
+      "styleDecodedBytes": 755712,
+      "jsonDecodedBytes": 89088,
+      "sameOriginRequests": 127,
+      "domNodes": 4904
+    },
+    "mobile-saved-wallet-installed-worker": {
+      "sameOriginDecodedBytes": 3738624,
+      "eagerJsDecodedBytes": 2621440,
+      "styleDecodedBytes": 755712,
+      "jsonDecodedBytes": 89088,
+      "sameOriginRequests": 127,
+      "domNodes": 4904
+    }
+  },
+  "calibration": {
+    "measuredAt": "2026-09-16T21:16:04.046Z",
+    "sourceRevision": "e7a8bf6207fcaae63843492e14c9a742bc4d5d9e",
+    "sourceDirty": true,
+    "measurement": "One measured run per profile; these footprint maxima select ceilings, which require validation by the separate repeated reference.",
+    "profileMaxima": {
+      "desktop-anonymous-cold": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4064
+      },
+      "desktop-anonymous-warm": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4128
+      },
+      "desktop-anonymous-installed-worker": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4128
+      },
+      "desktop-saved-wallet-cold": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4536
+      },
+      "desktop-saved-wallet-warm": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4532
+      },
+      "desktop-saved-wallet-installed-worker": {
+        "sameOriginDecodedBytes": 3674708,
+        "eagerJsDecodedBytes": 2578653,
+        "styleDecodedBytes": 735863,
+        "jsonDecodedBytes": 95697,
+        "sameOriginRequests": 133,
+        "domNodes": 4532
+      },
+      "mobile-anonymous-cold": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 3989
+      },
+      "mobile-anonymous-warm": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4054
+      },
+      "mobile-anonymous-installed-worker": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4054
+      },
+      "mobile-saved-wallet-cold": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4461
+      },
+      "mobile-saved-wallet-warm": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4458
+      },
+      "mobile-saved-wallet-installed-worker": {
+        "sameOriginDecodedBytes": 3560198,
+        "eagerJsDecodedBytes": 2496153,
+        "styleDecodedBytes": 719021,
+        "jsonDecodedBytes": 80529,
+        "sameOriginRequests": 124,
+        "domNodes": 4458
+      }
+    }
+  }
+}

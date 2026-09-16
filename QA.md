@@ -22,7 +22,7 @@ npm test
 
 This runs:
 
-- `npm run test:static`: dependency-free checks for JSON validity, local asset references, cache-bust alignment, CSP domains, core DOM selector contracts, and served CSS freshness.
+- `npm run test:static`: source and fixture checks for JSON validity, local asset references, cache-bust alignment, CSP domains, core DOM selector contracts, and served CSS freshness, plus local HTTP cache and fixture-server checks. No browser or live upstream is needed.
 - `npm run test:smoke`: starts a local static server, opens Chromium, checks the app shell/PWA/cache contract, desktop and mobile dashboard flows, governance/LB, feature workflows, themes, widgets, HEN, and standalone routes.
 
 ## Useful variants
@@ -34,6 +34,8 @@ npm run test:smoke:list
 npm run test:smoke:headed
 npm run test:smoke:strict
 npm run test:smoke:live
+npm run test:initial-load
+npm run measure:load:ci
 node tests/smoke.mjs --only app-shell,route-crawl
 node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 ```
@@ -44,6 +46,45 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 - `--headed` opens the browser visibly for debugging.
 - `--strict-external` fails on upstream data warnings that are normally tolerated, such as CoinGecko or TzKT rate limits.
 - `--browser-executable` pins the browser executable used for the smoke crawl.
+
+## Initial load budgets
+
+Run `npm run measure:load:ci` before accepting startup or asset-loading changes.
+It starts a local server and measures desktop and phone views, anonymous and
+saved-wallet state, and cold, warm, and installed-worker caches. Each of the
+twelve populated-fixture profiles gets one unscored warm-up and three measured
+runs. The report and diagnostics stay in `test-artifacts/initial-load/` on both
+success and failure; CI uploads this directory and Pages waits for the job.
+
+Review decoded JavaScript, CSS, JSON and total page bytes, same-origin page request count, and DOM
+count against `tests/fixtures/initial-load-budgets.json`. Resource policy and
+duplicate-module failures also block the gate. Timings, layout shift and long
+tasks are diagnostic evidence, not machine-dependent pass/fail thresholds.
+The matrix uses synthetic source data and system fallback fonts, so keep live
+network timing and rendered theme/font QA separate from these budget results.
+The default window extends 2.5 seconds past readiness, then allows up to two
+seconds for started fixture response bodies to finish. Fixture transport and
+server-only/worker bytes are separate diagnostics, outside the page budgets;
+these measurements do not estimate all production network traffic.
+Do not increase a budget just to make a failed run pass; justify any deliberate
+increase with its feature scope and measured resource changes.
+The dated matrix reference is `tests/fixtures/initial-load-baseline-2026-09-16.json`.
+Initial per-profile ceilings add 5% to measured maximum total/JavaScript/CSS
+bytes and 10% to JSON bytes, rounded up to KiB; request counts add the greater
+of three or 2%, and DOM counts add 10%. Keep its provenance and the budget's
+calibration metadata reviewable; neither file is automatically regenerated.
+
+For the older blocked-upstream experiment, use
+`npm run measure:load -- --network blocked --runs 5`; an explicit `--base-url`
+uses an existing local server. `--mode installed-worker` and `--require-stable`
+remain available for focused diagnostics. Keep the historical baseline fixture
+separate from the reviewed budget file.
+
+Run `npm run test:initial-load` when changing the measurement harness itself.
+Its browser checks exercise the real runner, adverse requests, missing telemetry,
+real cache receipts, budget failures, and cancellation cleanup; CI runs them
+before the budget matrix. The pure policy, fixture-response, and report checks run in
+`npm run test:static`, alongside local HTTP server/cache/proxy checks.
 
 ## My Tezos loading geometry
 

@@ -113,6 +113,66 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  initial-load:
+    name: Initial load budgets
+    runs-on: ubuntu-latest
+    needs: static-contracts
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: node scripts/resolve-playwright-version.mjs
+
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-chromium-shell
+
+      - name: Install Chromium dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Install Chromium headless shell
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: |
+          attempt=1
+          while ! npx playwright install --only-shell chromium; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 5))
+            sleep "$sleep_seconds"
+            attempt=$((attempt + 1))
+          done
+
+      - name: Check initial load harness
+        run: npm run test:initial-load
+
+      - name: Measure initial load matrix
+        run: npm run measure:load:ci
+
+      - name: Upload initial load report and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: initial-load
+          path: test-artifacts/initial-load
+          if-no-files-found: warn
+          retention-days: 14
+
   update-smoke-costs:
     name: Learn hosted smoke timings
     if: needs.browser-smoke.result == 'success'
@@ -162,7 +222,7 @@ jobs:
 
   deploy-pages:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    needs: browser-smoke
+    needs: [browser-smoke, initial-load]
     runs-on: ubuntu-latest
     permissions:
       contents: read
