@@ -3498,6 +3498,7 @@ function initUptimeClock() {
     let bakerSetSnapshot = null;
     let bakerSetRefreshPromise = null;
     let bakerSetRefreshError = '';
+    let bakerSetPreloadScheduled = false;
     let topContinuityTrendSnapshot = null;
     let topContinuityTrendRefreshPromise = null;
     let topContinuityTrendRefreshError = '';
@@ -4090,7 +4091,7 @@ function initUptimeClock() {
             cache: 'no-store',
             memoryCache: false,
             timeoutMs: 12_000,
-            __tezosSystemsPriority: 'interactive'
+            __tezosSystemsPriority: explainActiveKey === 'total-bakers' ? 'interactive' : 'background'
         }, retries);
     }
 
@@ -4139,7 +4140,7 @@ function initUptimeClock() {
             cache: 'no-store',
             memoryCache: false,
             timeoutMs: 15_000,
-            __tezosSystemsPriority: 'interactive'
+            __tezosSystemsPriority: explainActiveKey === 'total-bakers' ? 'interactive' : 'background'
         }, 2);
         if (!Array.isArray(rows)) throw new Error('Octez active baker set returned an invalid payload');
         return rows.map(String).filter(isTezosAddress);
@@ -4249,77 +4250,104 @@ function initUptimeClock() {
     }
 
     async function fetchTopContinuityBakerSet() {
-        await refreshTopContinuityTrends();
-        const baseline = getTopContinuityBakerBaseline();
-        if (!baseline) throw new Error('The 7D baker baseline is unavailable');
-        const baselineBlock = await fetchTopContinuityBaselineBlock(baseline.timestamp);
-        const [currentBakers, currentAddresses, baselineAddresses, totalBakingPower] = await Promise.all([
-            fetchTopContinuityCurrentBakers(),
+        // Start independent current reads while resolving the exact 7D boundary.
+        const [currentAddresses, { baseline, baselineBlock, baselineAddresses }] = await Promise.all([
             fetchTopContinuityProtocolBakerSet('head'),
-            fetchTopContinuityProtocolBakerSet(baselineBlock.hash),
-            fetchTopContinuityTotalBakingPower().catch(() => null)
+            (async () => {
+                await refreshTopContinuityTrends();
+                const baseline = getTopContinuityBakerBaseline();
+                if (!baseline) throw new Error('The 7D baker baseline is unavailable');
+                const baselineBlock = await fetchTopContinuityBaselineBlock(baseline.timestamp);
+                const baselineAddresses = await fetchTopContinuityProtocolBakerSet(baselineBlock.hash);
+                return { baseline, baselineBlock, baselineAddresses };
+            })()
         ]);
         const currentSet = new Set(currentAddresses);
         const baselineSet = new Set(baselineAddresses);
-        const currentByAddress = new Map(currentBakers.map((row) => [row.address, row]));
         const gainedAddresses = currentAddresses
             .filter((address) => !baselineSet.has(address))
             .slice(0, BAKER_SET_LIST_LIMIT);
         const closedAddresses = baselineAddresses
             .filter((address) => !currentSet.has(address))
             .slice(0, BAKER_SET_LIST_LIMIT);
-        const gainedMetadata = await Promise.all(gainedAddresses.map(async (address) => (
-            currentByAddress.get(address) || fetchTopContinuityBaker(address)
-        )));
-        const closedMetadata = await Promise.all(closedAddresses.map(fetchTopContinuityBaker));
-        const baselineTime = Date.parse(baselineBlock.timestamp);
-        const latest = gainedMetadata.map((row) => {
-            const activationTime = Date.parse(row.activationTime || '');
-            const exactActivation = Number.isFinite(activationTime) && activationTime > baselineTime;
-            return {
-                ...row,
-                eventLevel: exactActivation ? row.activationLevel : baselineBlock.level,
-                eventTime: exactActivation ? row.activationTime : baselineBlock.timestamp,
-                eventWindowDays: exactActivation ? null : BAKER_SET_BASELINE_DAYS,
-                entryBoundaryLevel: exactActivation ? row.activationLevel : baselineBlock.level
-            };
-        });
-        const closed = closedMetadata.map((row) => {
-            const deactivationTime = Date.parse(row.deactivationTime || '');
-            const exactDeactivation = Number.isFinite(deactivationTime) && deactivationTime > baselineTime;
-            return {
-                ...row,
-                eventLevel: exactDeactivation ? row.deactivationLevel : baselineBlock.level,
-                eventTime: exactDeactivation ? row.deactivationTime : baselineBlock.timestamp,
-                eventWindowDays: exactDeactivation ? null : BAKER_SET_BASELINE_DAYS
-            };
-        });
-        const latestWithSizes = latest.map((row) => {
-            const size = bakerSizeTier(row.bakingPower, totalBakingPower);
-            return size ? { ...row, size } : row;
-        });
-        const [latestWithEntryKinds, closedWithSizes] = await Promise.all([
-            attachLatestBakerEntryKinds(latestWithSizes),
-            attachClosedBakerSizes(closed)
-        ]);
-        let domains = new Map();
-        try {
-            domains = await resolveTezReverseNames(
-                [...latestWithEntryKinds, ...closedWithSizes].map((row) => row.address)
-            );
-        } catch (error) {
-            console.warn('[baker-set] Tezos Domains reverse lookup failed:', error?.message || error);
-        }
+        const latest = gainedAddresses.map((address) => ({
+            address,
+            eventLevel: baselineBlock.level,
+            eventTime: baselineBlock.timestamp,
+            eventWindowDays: BAKER_SET_BASELINE_DAYS,
+            entryBoundaryLevel: baselineBlock.level
+        }));
+        const closed = closedAddresses.map((address) => ({
+            address,
+            eventLevel: baselineBlock.level,
+            eventTime: baselineBlock.timestamp,
+            eventWindowDays: BAKER_SET_BASELINE_DAYS
+        }));
         return {
-            latest: latestWithEntryKinds,
-            closed: closedWithSizes,
-            domains,
+            latest,
+            closed,
+            domains: new Map(),
+            detailsPending: true,
             baselineAt: baselineBlock.timestamp,
             baselineLevel: baselineBlock.level,
             baselineCount: baseline.value,
             currentCount: currentAddresses.length,
             observedAt: Date.now()
         };
+    }
+
+    async function enrichTopContinuityBakerSet(snapshot) {
+        // Membership is already confirmed. Optional receipts must never keep
+        // the whole list behind a spinner, or wait for one another to paint.
+        const publish = (patch) => {
+            if (bakerSetSnapshot !== snapshot) return;
+            Object.assign(snapshot, patch);
+            renderTopContinuityBakerRoster();
+        };
+        await Promise.allSettled([
+            resolveTezReverseNames([...snapshot.latest, ...snapshot.closed].map((row) => row.address))
+                .then((domains) => publish({ domains })),
+            (async () => {
+                const totalPromise = fetchTopContinuityTotalBakingPower().catch(() => null);
+                const currentBakers = await fetchTopContinuityCurrentBakers().catch(() => []);
+                const currentByAddress = new Map(currentBakers.map((row) => [row.address, row]));
+                const latest = await Promise.all(snapshot.latest.map(async (row) => {
+                    const metadata = currentByAddress.get(row.address)
+                        || await fetchTopContinuityBaker(row.address).catch(() => null);
+                    if (!metadata) return row;
+                    const exact = Date.parse(metadata.activationTime || '') > Date.parse(snapshot.baselineAt);
+                    return { ...row, ...metadata, ...(exact ? {
+                        eventLevel: metadata.activationLevel,
+                        eventTime: metadata.activationTime,
+                        eventWindowDays: null,
+                        entryBoundaryLevel: metadata.activationLevel
+                    } : {}) };
+                }));
+                publish({ latest });
+                await Promise.all([
+                    attachLatestBakerEntryKinds(latest).then((classified) => publish({
+                        latest: classified.map((row, index) => ({ ...snapshot.latest[index], ...row }))
+                    })),
+                    totalPromise.then((total) => publish({
+                        latest: snapshot.latest.map((row) => ({ ...row, size: bakerSizeTier(row.bakingPower, total) }))
+                    }))
+                ]);
+            })(),
+            (async () => {
+                const closed = await Promise.all(snapshot.closed.map(async (row) => {
+                    const metadata = await fetchTopContinuityBaker(row.address).catch(() => null);
+                    if (!metadata) return row;
+                    const exact = Date.parse(metadata.deactivationTime || '') > Date.parse(snapshot.baselineAt);
+                    return { ...row, ...metadata, ...(exact ? {
+                        eventLevel: metadata.deactivationLevel,
+                        eventTime: metadata.deactivationTime,
+                        eventWindowDays: null
+                    } : {}) };
+                }));
+                publish({ closed });
+                publish({ closed: await attachClosedBakerSizes(closed) });
+            })()
+        ]);
     }
 
     function renderTopContinuityBakerRow(row, kind, savedAddresses) {
@@ -4380,6 +4408,7 @@ function initUptimeClock() {
     }
 
     function renderTopContinuityBakerRoster() {
+        if (document.visibilityState !== 'visible') return;
         const roster = document.getElementById('top-continuity-baker-roster');
         if (!roster || explainActiveKey !== 'total-bakers') return;
         roster.setAttribute('aria-busy', bakerSetRefreshPromise ? 'true' : 'false');
@@ -4397,7 +4426,9 @@ function initUptimeClock() {
             minute: '2-digit'
         });
         const freshness = bakerSetRefreshPromise
-            ? 'Refreshing baker records…'
+            ? bakerSetSnapshot.detailsPending
+                ? `Live ${observed} · loading details…`
+                : `Last good ${observed} · refreshing…`
             : bakerSetRefreshError
                 ? `Last good ${observed} · refresh unavailable`
                 : `Live ${observed}`;
@@ -4409,6 +4440,7 @@ function initUptimeClock() {
     }
 
     function refreshTopContinuityBakerRoster({ force = false } = {}) {
+        if (document.visibilityState !== 'visible') return Promise.resolve(bakerSetSnapshot);
         const fresh = bakerSetSnapshot && Date.now() - bakerSetSnapshot.observedAt < BAKER_SET_REFRESH_MS;
         if (!force && fresh) {
             renderTopContinuityBakerRoster();
@@ -4419,6 +4451,9 @@ function initUptimeClock() {
         bakerSetRefreshPromise = (async () => {
             try {
                 bakerSetSnapshot = await fetchTopContinuityBakerSet();
+                renderTopContinuityBakerRoster();
+                await enrichTopContinuityBakerSet(bakerSetSnapshot);
+                bakerSetSnapshot.detailsPending = false;
                 return bakerSetSnapshot;
             } catch (error) {
                 bakerSetRefreshError = error?.message || 'Baker set refresh failed';
@@ -4432,6 +4467,26 @@ function initUptimeClock() {
         renderTopContinuityBakerRoster();
         return bakerSetRefreshPromise;
     }
+
+    function preloadTopContinuityBakerRoster() {
+        if (bakerSetPreloadScheduled || !chainBakersText || document.visibilityState !== 'visible') return;
+        bakerSetPreloadScheduled = true;
+        const preload = () => {
+            if (document.visibilityState !== 'visible') {
+                bakerSetPreloadScheduled = false;
+                return;
+            }
+            refreshTopContinuityBakerRoster();
+        };
+        if (window.requestIdleCallback) window.requestIdleCallback(preload, { timeout: 3000 });
+        else window.setTimeout(preload, 0);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        preloadTopContinuityBakerRoster();
+        renderTopContinuityBakerRoster();
+    });
 
     function updateTopContinuityExplainTitle() {
         if (!explainActiveKey) return;
@@ -4696,6 +4751,10 @@ function initUptimeClock() {
             pill.dataset.topContinuityHistoryPillWired = '1';
             pill.setAttribute('aria-controls', 'top-continuity-explain');
             pill.setAttribute('aria-expanded', 'false');
+            if (pill.dataset.cardHistory === 'total-bakers') {
+                pill.addEventListener('pointerenter', () => refreshTopContinuityBakerRoster());
+                pill.addEventListener('focus', () => refreshTopContinuityBakerRoster());
+            }
             pill.addEventListener('click', () => {
                 if (explainActiveKey === pill.dataset.cardHistory) {
                     closeTopContinuityExplanation();
@@ -4942,6 +5001,7 @@ function initUptimeClock() {
         if (TOP_CONTINUITY_TREND_METRICS[explainActiveKey]) {
             renderTopContinuityTrends();
         }
+        preloadTopContinuityBakerRoster();
     };
 }
 

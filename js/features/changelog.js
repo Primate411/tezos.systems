@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-15',
         entries: [
+            { type: '⚡', text: 'Recent baker changes prepare after the main stats load and show confirmed rows before slower names, size badges, and baking-history details finish' },
             { type: '🔧', text: 'Live Head keeps each block’s inspector button in place as fresh gas and attestation details arrive' },
             { type: '✨', text: 'Community Funding now includes TTCrowd by TheTezos, with campaign previews, creator credits, original currencies, and clearly labeled contribution or treasury accounting' }
         ]

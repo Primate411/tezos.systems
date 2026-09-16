@@ -43,6 +43,7 @@ import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
+import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
 import { decodeGeneratedTransport, encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -37648,6 +37649,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'baker-wallet-actions', description: 'Every canonical baker row exposes wallet-reviewed first-time delegation and exact Tezos stake operations', run: () => smokeBakerWalletActions(browser, baseUrl) },
     { name: 'whale-watch-chamber', description: 'Complete-window receipts, grouped flow legs, timestamp dormancy, receipt-backed awakenings, legacy giants alias, prepend anchoring, and mobile geometry', run: () => smokeWhaleWatchChamber(browser, baseUrl) },
     { name: 'cycle-history-chamber', description: 'Direct range and metric routes, focused charts, close lifecycle, restored entry focus, and mobile geometry', run: () => smokeCycleHistoryChamber(browser, baseUrl) },
+    { name: 'baker-roster-loading', description: 'Baker changes preload while visible, paint before slow details, and preserve desktop/mobile readers through enrichment and name-service failures', run: () => smokeBakerRosterLoading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'feature-workflows-desktop', description: 'Desktop baker lifecycle, Baker Directory, calculator, price intelligence, comparison, Whale Watch, Cycle History, and share cards', run: () => smokeFeatureWorkflows(browser, baseUrl, 'desktop') },
     { name: 'feature-workflows-mobile', description: 'Mobile baker lifecycle roster, price chronology, touch actions, and in-flow geometry', run: () => smokeFeatureWorkflows(browser, baseUrl, 'mobile') },
     { name: 'share-actions', description: 'Share modal copy, post, download, native share, and mobile photo fallback buttons', run: () => smokeShareActions(browser, baseUrl) },

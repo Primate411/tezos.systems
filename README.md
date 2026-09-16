@@ -1113,6 +1113,12 @@ inline modal styles in `js/core/app.js`.
   names nearing expiration.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
+- The header's Baker set disclosure preloads once after headline stats settle
+  while the page is visible. Confirmed 7D membership changes render before
+  optional names, size badges, and prior-bake receipts, which fill in quietly.
+  The `baker-roster-loading` smoke holds those optional reads to verify immediate
+  prepared openings, honest pending badges, retained desktop/mobile geometry,
+  hidden-tab catch-up, and fresh-snapshot reuse.
 - First-screen Live Head is built for liveness and retrieval: the top of the
   page moves from live cycle/market data to `Tezos Systems`, a clickable
   `Running on <current protocol>` Protocol History launcher beside the title

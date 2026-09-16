@@ -1,5 +1,10 @@
 const RULES = [
   {
+    suites: /^baker-roster-loading$/,
+    files: ['js/core/app.js', 'js/core/tezos-domains.js', 'css/shell-extras*', 'tests/lib/baker-roster-loading-smoke.mjs'],
+    tags: ['live-data', 'quiet-refresh', 'startup'], risk: 'high'
+  },
+  {
     suites: /^community-funding$/,
     files: ['js/features/community-funding.js', 'js/core/community-funding.mjs', 'css/community-funding*', 'data/community-funding-*', 'funding/**', 'scripts/refresh-community-funding.mjs', 'scripts/lib/community-funding.mjs', 'tests/lib/community-funding-smoke.mjs'],
     tags: ['chamber', 'quiet-refresh', 'funding'], risk: 'high'
