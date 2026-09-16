@@ -3497,6 +3497,7 @@ function initUptimeClock() {
     };
     let bakerSetSnapshot = null;
     let bakerSetRefreshPromise = null;
+    let bakerSetDetailsRequested = false;
     let bakerSetRefreshError = '';
     let bakerSetPreloadScheduled = false;
     let topContinuityTrendSnapshot = null;
@@ -4439,21 +4440,29 @@ function initUptimeClock() {
         `);
     }
 
-    function refreshTopContinuityBakerRoster({ force = false } = {}) {
+    function refreshTopContinuityBakerRoster({ force = false, details = true } = {}) {
         if (document.visibilityState !== 'visible') return Promise.resolve(bakerSetSnapshot);
+        if (details) bakerSetDetailsRequested = true;
         const fresh = bakerSetSnapshot && Date.now() - bakerSetSnapshot.observedAt < BAKER_SET_REFRESH_MS;
-        if (!force && fresh) {
+        if (!force && fresh && (!details || !bakerSetSnapshot.detailsPending)) {
             renderTopContinuityBakerRoster();
             return Promise.resolve(bakerSetSnapshot);
         }
-        if (bakerSetRefreshPromise) return bakerSetRefreshPromise;
+        if (bakerSetRefreshPromise) {
+            renderTopContinuityBakerRoster();
+            return bakerSetRefreshPromise;
+        }
         bakerSetRefreshError = '';
         bakerSetRefreshPromise = (async () => {
             try {
-                bakerSetSnapshot = await fetchTopContinuityBakerSet();
+                if (force || !fresh) bakerSetSnapshot = await fetchTopContinuityBakerSet();
                 renderTopContinuityBakerRoster();
-                await enrichTopContinuityBakerSet(bakerSetSnapshot);
-                bakerSetSnapshot.detailsPending = false;
+                // Prepare membership cheaply. Fan-out enrichment waits for
+                // user intent so it cannot crowd other views' API requests.
+                if (bakerSetDetailsRequested) {
+                    await enrichTopContinuityBakerSet(bakerSetSnapshot);
+                    bakerSetSnapshot.detailsPending = false;
+                }
                 return bakerSetSnapshot;
             } catch (error) {
                 bakerSetRefreshError = error?.message || 'Baker set refresh failed';
@@ -4461,6 +4470,7 @@ function initUptimeClock() {
                 return bakerSetSnapshot;
             } finally {
                 bakerSetRefreshPromise = null;
+                bakerSetDetailsRequested = false;
                 renderTopContinuityBakerRoster();
             }
         })();
@@ -4476,7 +4486,7 @@ function initUptimeClock() {
                 bakerSetPreloadScheduled = false;
                 return;
             }
-            refreshTopContinuityBakerRoster();
+            refreshTopContinuityBakerRoster({ details: false });
         };
         if (window.requestIdleCallback) window.requestIdleCallback(preload, { timeout: 3000 });
         else window.setTimeout(preload, 0);

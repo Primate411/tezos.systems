@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-16',
+        entries: [
+            { type: '🔧', text: 'Recent baker changes preload only their confirmed membership; optional details wait for hover, focus, or opening so background work does not delay other live views' }
+        ]
+    },
+    {
         date: '2026-09-15',
         entries: [
             { type: '⚡', text: 'Recent baker changes prepare after the main stats load and show confirmed rows before slower names, size badges, and baking-history details finish' },

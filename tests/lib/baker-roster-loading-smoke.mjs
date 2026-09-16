@@ -47,10 +47,16 @@ export async function smokeBakerRosterLoading(browser, baseUrl, { installFeature
         document.dispatchEvent(new Event('visibilitychange'));
       });
       // Observe the real preload while the disclosure is still closed.
-      await page.waitForRequest(request => request.postData()?.includes('ReverseLookupBatch'), { timeout: 10000 });
+      await page.waitForFunction(() => performance.getEntriesByType('resource').filter(entry => (
+        entry.name.includes('/context/delegates?active=true&with_minimal_stake=true')
+      )).length === 2);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       assert.equal(membershipReads, 2, 'preload reads one current and one historical protocol set');
+      assert.equal(detailReads, 0, 'optional detail fan-out must wait for user intent');
       const pill = page.locator('.top-continuity-stat[data-card-history="total-bakers"]');
+      const detailsStarted = page.waitForRequest(request => request.postData()?.includes('ReverseLookupBatch'));
       await pill.click();
+      await detailsStarted;
       assert.ok(detailReads > 0);
       const initial = await page.locator('#top-continuity-baker-roster').evaluate(roster => ({
         rows: roster.querySelectorAll('.top-continuity-baker-row').length,
