@@ -1,3 +1,4 @@
+import { setTextPending } from '../ui/text-loading.js';
 import { debugLog } from './utils.js';
 
 const GITHUB_MAIN_COMMIT_URL = 'https://api.github.com/repos/Primate411/tezos.systems/commits/main';
@@ -63,6 +64,8 @@ function shortSha(sha) {
 async function renderBuildVersion() {
     const el = document.getElementById('build-version');
     if (!el) return;
+    el.textContent = 'Reading build metadata…';
+    setTextPending(el, true);
 
     const [version, latest] = await Promise.all([
         fetchBuildMetadata(),
@@ -77,6 +80,7 @@ async function renderBuildVersion() {
 
     if (!parts.length) return;
 
+    setTextPending(el, false);
     el.textContent = parts.join(' · ');
     const titleParts = [];
     if (latest?.sha) titleParts.push(`Latest main commit: ${latest.sha}`);

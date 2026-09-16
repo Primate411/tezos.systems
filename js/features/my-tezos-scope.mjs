@@ -1,3 +1,4 @@
+import { setTextPending } from '../ui/text-loading.js';
 /**
  * My Tezos wallet scope — one shared L1 scope for every drawer view.
  *
@@ -63,12 +64,13 @@ function formatXtz(mutez) {
 function resetScopeTotals(count) {
     const values = {
         wallets: String(count),
-        total: 'Updating…',
+        total: portfolioReadState === 'error' ? 'Unavailable' : count ? 'Updating…' : '—',
         spendable: '—',
         staked: '—'
     };
     Object.entries(values).forEach(([key, value]) => {
         const target = document.querySelector(`[data-my-tezos-scope-total="${key}"] strong`);
+        setTextPending(target, key !== 'wallets' && count > 0 && portfolioReadState !== 'error');
         if (target && target.textContent !== value) quietlyMutate(target, () => { target.textContent = value; });
     });
     renderScopeFreshness(null);
@@ -88,6 +90,7 @@ function renderScopeTotals(detail = latestPortfolioDetail) {
     };
     Object.entries(values).forEach(([key, value]) => {
         const target = document.querySelector(`[data-my-tezos-scope-total="${key}"] strong`);
+        setTextPending(target, false);
         if (target && target.textContent !== value) quietlyMutate(target, () => { target.textContent = value; });
     });
     renderScopeFreshness(detail);
@@ -226,6 +229,7 @@ export function initMyTezosScope() {
     });
     window.addEventListener('my-tezos-portfolio-status', (event) => {
         portfolioReadState = event.detail?.state || 'loading';
+        if (!latestPortfolioDetail) resetScopeTotals(readScopedMyTezosEntries().length);
         renderScopeFreshness();
     });
     window.addEventListener('my-tezos-portfolio-ready', (event) => {

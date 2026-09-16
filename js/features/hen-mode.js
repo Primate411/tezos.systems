@@ -1,3 +1,4 @@
+import { loadingText } from '../ui/text-loading.js';
 /* ═══════════════════════════════════════════════════
    HEN MODE — live Tezos NFT discovery
    ═══════════════════════════════════════════════════ */
@@ -1545,11 +1546,16 @@ const HenMode = (() => {
 
     async function loadCreatorMiniProfile(address) {
         var target = document.getElementById('hen-expanded-creator-mini');
-        if (!target || !address) return;
+        if (!target) return;
+        if (!address) {
+            target.innerHTML = '<div><span>creator</span><strong>Unavailable</strong></div>';
+            return;
+        }
         try {
             var mod = await objktProfileModule();
             var profile = await mod.fetchObjktProfile(address);
-            if (!target.isConnected || !profile) return;
+            if (!target.isConnected) return;
+            if (!profile) throw new Error('Creator profile unavailable');
             var display = profileDisplayName(profile, address);
             var creator = profile.creator || null;
             target.innerHTML =
@@ -1560,6 +1566,7 @@ const HenMode = (() => {
             setupProfileImages();
         } catch (err) {
             console.warn('[HEN] creator mini profile error:', err);
+            if (target.isConnected) target.innerHTML = '<div><span>creator</span><strong>' + escapeHtml(shortAddr(address)) + '</strong><small>Profile unavailable</small></div>';
         }
     }
 
@@ -1623,10 +1630,10 @@ const HenMode = (() => {
                     '<button class="hen-expanded-share" title="Copy share link">⎘ share</button>' +
                     '<a class="hen-expanded-secondary" href="' + xShareUrl(token, displayName) + '" target="_blank" rel="noopener">share on x</a>' +
                 '</div>' +
-                '<div class="hen-expanded-creator-mini" id="hen-expanded-creator-mini"><span class="hen-profile-avatar is-skeleton"></span><div><span>creator</span><strong>loading...</strong></div></div>' +
+                '<div class="hen-expanded-creator-mini" id="hen-expanded-creator-mini"><span class="hen-profile-avatar is-skeleton"></span><div><span>creator</span><strong data-text-pending="true">loading...</strong></div></div>' +
                 '<div class="hen-artist-work" id="hen-artist-work">' +
                     '<div class="hen-artist-work-label">more by this artist...</div>' +
-                    '<div class="hen-artist-work-grid" id="hen-artist-work-grid"></div>' +
+                    '<div class="hen-artist-work-grid" id="hen-artist-work-grid">' + (creator ? loadingText('Reading more work by this artist') : '') + '</div>' +
                 '</div>' +
             '</div>';
         var expandedImg = exp.querySelector('.hen-expanded-media');
@@ -1695,7 +1702,7 @@ const HenMode = (() => {
         var generation = feedGeneration;
         var keepLoaderVisible = false;
         var loader = loadingEl();
-        if (loader) { loader.textContent = (FEED_MODES[feedMode] || FEED_MODES.all).loading; loader.classList.add('active'); }
+        if (loader) { loader.innerHTML = loadingText((FEED_MODES[feedMode] || FEED_MODES.all).loading); loader.classList.add('active'); }
 
         try {
             var canUsePrefetch = Array.isArray(prefetchedTokens) && offset === 0;
@@ -1734,7 +1741,7 @@ const HenMode = (() => {
         } finally {
             if (generation === feedGeneration) {
                 loading = false;
-                if (loader && !keepLoaderVisible) loader.classList.remove('active');
+                if (loader && !keepLoaderVisible) { loader.classList.remove('active'); loader.replaceChildren(); }
             }
         }
     }

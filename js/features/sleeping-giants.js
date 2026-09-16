@@ -1,3 +1,4 @@
+import { loadingRows } from '../ui/text-loading.js';
 /**
  * Sleeping Giants - dormant large-account observation and awakening receipts.
  *
@@ -460,7 +461,7 @@ function updateUI({ loading = false } = {}) {
     if (!container) return;
     wireGiantGrid(container);
     if (loading && !giants.length) {
-        quietlySyncHtml(container, '<div class="giants-loading"><span class="loading-icon">🔍</span><span>Searching for dormant large accounts...</span></div>');
+        quietlySyncHtml(container, `<div class="giants-loading">${loadingRows("Searching for dormant large accounts")}</div>`);
         return;
     }
     if (!giants.length) {

@@ -1,3 +1,4 @@
+import { setPendingFields, setTextPending } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { ensureChartLibraries } from '../ui/chart-loader.js';
 /**
@@ -29,7 +30,7 @@ import { classifyOctezVersion, fetchOctezVersions, normalizeBakerSoftware } from
 import { fetchObjktProfile } from './objkt.js';
 import { refresh as refreshMyBakerStats } from './my-baker.js';
 import { initRewardsTracker, renderRewardsLoading } from './rewards-tracker.js';
-import { getDailyDeltaSignalSummaries, renderNetworkLoading } from './daily-briefing.js';
+import { getDailyDeltaSignalSummaries, renderNetworkLoading, renderNetworkUnavailable } from './daily-briefing.js';
 import {
     activateMyTezosPortfolio,
     initMyTezosPortfolio,
@@ -981,6 +982,7 @@ function renderBakerActivity(activity, loading = false) {
         if (window._myTezosData?.isBaker === false) quietlyMutate(container, () => { container.hidden = true; });
         else if (container.querySelector('[aria-busy="true"]')) quietlyMutate(container, () => {
             container.querySelector('[aria-busy]').setAttribute('aria-busy', 'false');
+            setPendingFields(container, '[data-text-pending]', false);
             const message = container.querySelector('.drawer-activity-panel > p');
             if (message) message.textContent = 'Recent reward accounts unavailable.';
         });
@@ -995,6 +997,7 @@ function renderBakerActivity(activity, loading = false) {
         ${!delegators.length && !stakers.length ? `<p>${loading ? 'Reading recent reward accounts…' : 'No recent reward-account records returned for this account.'}</p>` : ''}
     </div>`;
     quietlySyncHtml(container, html);
+    setPendingFields(container, '.drawer-activity-header > span, .drawer-activity-group-head span, .drawer-activity-panel > p', loading);
     quietlyMutate(container, () => { container.hidden = false; });
 }
 
@@ -1018,7 +1021,15 @@ function renderBakerSignalMessage(message) {
 
 function renderBakerSignalUnavailable() {
     // Keep the last confirmed signal on transient source failures.
-    if (document.getElementById('drawer-operator-status')?.hidden) {
+    const operator = document.getElementById('drawer-operator-status');
+    if (operator?.querySelector('.drawer-operator-panel[aria-busy="true"]')) {
+        quietlyMutate(operator, () => { operator.hidden = true; operator.replaceChildren(); });
+        const brief = document.getElementById('drawer-baker-brief');
+        if (brief?.querySelector('.drawer-loading-card')) quietlySyncHtml(brief, '');
+        const history = document.getElementById('drawer-baker-history');
+        if (history?.querySelector('[aria-busy="true"]')) quietlySyncHtml(history, '');
+    }
+    if (operator?.hidden) {
         renderBakerSignalMessage('Baker Signal is unavailable. We’ll retry while My Tezos is open.');
     }
 }
@@ -1036,6 +1047,7 @@ function formatScheduleWindow(start, end) {
 
 function renderBakerSchedule(receipt) {
     const snapshot = receipt?.snapshot;
+    const pending = !snapshot && receipt?.state === 'loading' ? ' data-text-pending="true"' : '';
     const now = Date.now();
     const fresh = receipt?.state === 'fresh' && isBakerScheduleFresh(snapshot, now);
     const assignments = snapshot?.assignments || [];
@@ -1047,8 +1059,8 @@ function renderBakerSchedule(receipt) {
         return `<div class="drawer-operator-tile drawer-schedule-right" data-quiet-key="schedule-slot-${index}">
             <span class="drawer-operator-label">${label}</span>
             <strong class="drawer-operator-value">${right ? escapeHtml(`${fresh ? '≈' : ''}${formatDuration(right.at - clock)}`) : '—'}</strong>
-            <span class="drawer-operator-detail">${right ? `Level <a href="https://tzkt.io/${escapeHtml(receipt.bakerAddr)}/schedule" target="_blank" rel="noopener noreferrer">${formatLevel(right.level)}</a>` : 'Level <span>—</span>'}</span>
-            <span class="drawer-schedule-time">${right ? escapeHtml(formatScheduleTime(right.at)) : (snapshot ? 'No further published right' : 'Timing unavailable')}</span>
+            <span class="drawer-operator-detail"${pending}>${right ? `Level <a href="https://tzkt.io/${escapeHtml(receipt.bakerAddr)}/schedule" target="_blank" rel="noopener noreferrer">${formatLevel(right.level)}</a>` : 'Level <span>—</span>'}</span>
+            <span class="drawer-schedule-time"${pending}>${right ? escapeHtml(formatScheduleTime(right.at)) : (snapshot ? 'No further published right' : 'Timing unavailable')}</span>
         </div>`;
     }).join('');
     const coverage = snapshot
@@ -1065,19 +1077,19 @@ function renderBakerSchedule(receipt) {
     const rewardNotice = thresholds
         ? `Cycle rewards stay intact if you reach at least ${thresholds.consensus.numerator}/${thresholds.consensus.denominator} of expected consensus attestation activity and ${(100 * thresholds.dal.numerator / thresholds.dal.denominator).toLocaleString('en-US', { maximumFractionDigits: 2 })}% of eligible DAL slots, and meet the other reward conditions.`
         : 'Missing some duties need not reduce cycle rewards if participation thresholds and other reward conditions are met. Current thresholds are unavailable.';
-    return `<section class="drawer-operator-next drawer-baker-schedule" data-quiet-key="baker-schedule" data-schedule-state="${fresh ? 'fresh' : 'stale'}" data-schedule-checked="${snapshot?.observedAt || ''}" aria-label="Upcoming baking rights and maintenance planning">
+    return `<section class="drawer-operator-next drawer-baker-schedule" data-quiet-key="baker-schedule" data-schedule-state="${!snapshot && receipt?.state === 'loading' ? 'loading' : fresh ? 'fresh' : 'stale'}" data-schedule-checked="${snapshot?.observedAt || ''}" aria-label="Upcoming baking rights and maintenance planning">
         <div class="drawer-schedule-upcoming">${next}</div>
         <div class="drawer-maintenance" data-quiet-key="maintenance">
             <h4 class="drawer-operator-label">MAINTENANCE GAP</h4>
             <div class="drawer-maintenance-result" data-quiet-key="maintenance-result">
-                <strong>${earliest ? `In ≈${formatDuration(earliest.start - now)}` : (fresh ? 'No fitting gap' : 'Waiting for a fresh schedule')}</strong>
-                <span class="drawer-maintenance-window">${escapeHtml(windowText || (fresh ? 'Try a shorter outage or check the schedule again later.' : 'Awaiting confirmed timing.'))}</span>
-                <span class="drawer-maintenance-between">${earliest ? `After level ${formatLevel(earliest.afterLevel)} · back before ${formatLevel(earliest.beforeLevel)}` : 'No confirmed outage window'}</span>
+                <strong${pending}>${earliest ? `In ≈${formatDuration(earliest.start - now)}` : (fresh ? 'No fitting gap' : 'Waiting for a fresh schedule')}</strong>
+                <span class="drawer-maintenance-window"${pending}>${escapeHtml(windowText || (fresh ? 'Try a shorter outage or check the schedule again later.' : 'Awaiting confirmed timing.'))}</span>
+                <span class="drawer-maintenance-between"${pending}>${earliest ? `After level ${formatLevel(earliest.afterLevel)} · back before ${formatLevel(earliest.beforeLevel)}` : 'No confirmed outage window'}</span>
             </div>
             <span class="drawer-maintenance-buffer">Earliest fit · ${MAINTENANCE_BUFFER_MINUTES}m buffers each side</span>
         </div>
         <div class="drawer-schedule-notes">
-            <p class="drawer-maintenance-longest">${longest ? `Longest buffered gap: ${longestMinutes < 1 ? '<1' : longestMinutes}m · ${escapeHtml(formatScheduleWindow(longest.start, longest.end))}` : 'Longest buffered gap: awaiting a confirmed schedule.'}</p>
+            <p class="drawer-maintenance-longest"${pending}>${longest ? `Longest buffered gap: ${longestMinutes < 1 ? '<1' : longestMinutes}m · ${escapeHtml(formatScheduleWindow(longest.start, longest.end))}` : 'Longest buffered gap: awaiting a confirmed schedule.'}</p>
             <p class="drawer-schedule-reward-note"><strong>Maintenance &amp; rewards.</strong> ${escapeHtml(rewardNotice)} Missed baking rewards and fees are separate.</p>
             <details data-chamber-disclosure data-quiet-key="schedule-method"><summary>Schedule coverage &amp; timing</summary>
                 <p>${escapeHtml(coverage)}. No gap is inferred after the last returned right.</p>
@@ -1087,7 +1099,7 @@ function renderBakerSchedule(receipt) {
                 <p><a href="https://octez.tezos.com/docs/active/consensus.html#rewards" target="_blank" rel="noopener noreferrer">Consensus reward rules</a> · <a href="https://octez.tezos.com/docs/active/dal_support.html#minimal-participation" target="_blank" rel="noopener noreferrer">DAL reward rules</a></p>
                 <a href="https://tzkt.io/${escapeHtml(receipt?.bakerAddr || '')}/schedule" target="_blank" rel="noopener noreferrer">Verify baker schedule on TzKT ↗</a>
             </details>
-            <span class="drawer-schedule-freshness">${fresh ? `${assignments.length} rights checked · approximate times` : (snapshot ? 'Last confirmed data · timing unavailable' : 'Schedule unavailable')}</span>
+            <span class="drawer-schedule-freshness"${pending}>${fresh ? `${assignments.length} rights checked · approximate times` : (snapshot ? 'Last confirmed data · timing unavailable' : 'Schedule unavailable')}</span>
         </div>
     </section>`;
 }
@@ -1155,6 +1167,7 @@ function renderBakerOperatorStatus(status, isBaker, bakerName = '', loading = fa
     `;
     if (container.children.length) quietlySyncHtml(container, html);
     else container.innerHTML = html;
+    setPendingFields(container, '.drawer-operator-grid > .drawer-operator-tile .drawer-operator-detail', loading);
     if (wasHidden) quietlyMutate(container, () => { container.hidden = false; });
     const duration = container.querySelector('#baker-maintenance-duration');
     if (duration) duration.onchange = () => {
@@ -2960,6 +2973,7 @@ async function renderMorningBrief(address, force = false) {
             }
         }
 
+        setTextPending(document.querySelector('#drawer-rewards .spark-label'), false);
         if (!rewards || rewards.length < 2) {
             const label = document.querySelector('#drawer-rewards .spark-label');
             if (label) label.textContent = rewards ? 'Earnings trend needs at least two recorded cycles.' : 'Earnings trend unavailable.';
@@ -2980,6 +2994,10 @@ async function renderMorningBrief(address, force = false) {
             return;
         }
         console.warn('Morning Brief error:', err);
+        renderNetworkUnavailable();
+        const pendingRewards = document.querySelector('#drawer-rewards .spark-label[data-text-pending]');
+        if (pendingRewards) pendingRewards.textContent = 'Earnings trend unavailable.';
+        setPendingFields(document.getElementById('drawer-rewards'), '[data-text-pending]', false);
         const container = document.getElementById('drawer-brief');
         if (container) {
             const hasLastGoodBrief = container.querySelector('.brief-section:not(.drawer-loading-card)');
@@ -3000,6 +3018,7 @@ async function renderMorningBrief(address, force = false) {
         const pendingStory = storyContainer?.querySelector('[aria-busy="true"]');
         if (pendingStory) quietlyMutate(pendingStory, () => {
             pendingStory.setAttribute('aria-busy', 'false');
+            setPendingFields(pendingStory, '[data-text-pending]', false);
             pendingStory.querySelector('.tezos-story-persona').textContent = 'Your Story is unavailable';
             pendingStory.querySelector('.tezos-story-summary').textContent = 'Retry the account read from Overview.';
         });
@@ -3236,6 +3255,7 @@ function seedDrawerLoadingState() {
         bakerBrief.hidden = false;
         bakerBrief.innerHTML = renderBakerStatusCard({}, true) + renderBakerGrade({}, true)
             + '<div class="brief-section brief-section-governance drawer-loading-card"><h4 class="brief-section-title">Vote Check</h4><span class="drawer-loading-line"></span></div>';
+        setPendingFields(bakerBrief, '.drawer-grade-heading strong, .drawer-grade-summary, .drawer-grade-facts dd, .drawer-status-summary > *, .drawer-incidents-heading > span, .drawer-incidents-empty, .drawer-attestation-allowance > strong', true);
     }
 
     const history = document.getElementById('drawer-baker-history');
@@ -3247,6 +3267,7 @@ function seedDrawerLoadingState() {
     const story = document.getElementById('my-tezos-story-content');
     if (story && !story.querySelector('.tezos-story-dossier')) {
         story.innerHTML = storyLoadingCard();
+        setPendingFields(story, '.tezos-story-persona, .tezos-story-name, .tezos-story-summary, .tezos-story-metric strong, .tezos-story-metric small, .tezos-story-badge, .tezos-story-next strong', true);
     }
 
     const rewards = document.getElementById('drawer-rewards');

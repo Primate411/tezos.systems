@@ -758,7 +758,7 @@ function renderLiquidityBakingLoreShell() {
             <div class="lb-lore-collapsible" id="lb-lore-body-wrap" role="region" aria-labelledby="lb-lore-toggle" hidden>
                 <div class="lb-lore-source">Sourced from the curated protocol timeline: Granada → Ithaca → Jakarta.</div>
                 <div class="lb-lore-timeline" id="lb-lore-body">
-                    <div class="lb-lore-loading">Loading protocol-history lore...</div>
+                    <div class="lb-lore-loading"><span data-text-pending="true">Loading protocol-history lore...</span></div>
                 </div>
             </div>
         </section>
@@ -1482,8 +1482,8 @@ export function initLiquidityBaking() {
                     </div>
                 </div>
                 <div class="lb-entry-switcher-strip" id="lb-entry-switcher-strip" data-lb-sample-blocks="0" data-lb-switcher-count="0" aria-label="Recent Liquidity Baking vote switchers">
-                    <div class="lb-entry-switcher-head"><span>Recent switchers</span><small>Loading sample</small></div>
-                    <div class="lb-entry-switcher-empty" data-quiet-key="lb-entry-switch-loading">Checking vote changes</div>
+                    <div class="lb-entry-switcher-head"><span>Recent switchers</span><small data-text-pending="true">Loading sample</small></div>
+                    <div class="lb-entry-switcher-empty" data-quiet-key="lb-entry-switch-loading" data-text-pending="true">Checking vote changes</div>
                 </div>
             </div>
         </div>

@@ -755,7 +755,7 @@ function renderMomentumSparkline(voters, isLiveVote, votePeriod) {
             <div class="momentum-title">Vote Momentum</div>
             <div class="momentum-subtitle">${voted.length} of ${total} bakers \u00b7 ${(cumPower / totalPower * 100).toFixed(1)}% of stake</div>
             <div id="momentum-chart-container" style="position:relative;min-height:80px">
-                <div class="momentum-loading" id="momentum-loading">Loading timeline\u2026</div>
+                <div class="momentum-loading" id="momentum-loading"><span data-text-pending="true">Loading timeline\u2026</span></div>
                 <svg viewBox="-30 -8 335 80" class="momentum-svg" id="momentum-svg" preserveAspectRatio="none" style="display:none">
                     <defs>
                         <linearGradient id="momentumGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent-cyan)"/><stop offset="100%" stop-color="transparent"/></linearGradient>
@@ -982,7 +982,7 @@ function renderCurrentStageVoteOrder(data) {
             <div class="current-vote-header">
                 <div>
                     <div class="current-vote-title">${escapeHtml(title)}</div>
-                    <div class="current-vote-context">Loading on-chain ballot order...</div>
+                    <div class="current-vote-context"><span data-text-pending="true">Loading on-chain ballot order...</span></div>
                 </div>
                 <div class="current-vote-count"></div>
             </div>
@@ -1666,7 +1666,7 @@ function renderChronologicalVoteLog() {
             <div class="vote-log-header">
                 <div>
                     <div class="comparison-title">Chronological Vote Log</div>
-                    <div class="vote-log-context">Loading local governance vote history…</div>
+                    <div class="vote-log-context"><span data-text-pending="true">Loading local governance vote history…</span></div>
                 </div>
                 <div class="vote-log-count"></div>
             </div>
@@ -1713,7 +1713,7 @@ function renderHistoricalComparison(data) {
     return `
         <div class="chamber-comparison chamber-anim-fade" id="chamber-historical-context" style="animation-delay:700ms">
             <div class="comparison-title">Historical Context</div>
-            <div class="comparison-context">Loading local governance vote history…</div>
+            <div class="comparison-context"><span data-text-pending="true">Loading local governance vote history…</span></div>
             <div class="comparison-current">
                 <span class="comparison-name current">${currentName}</span>
                 <div class="comparison-bar-track"><div class="comparison-bar-fill current" style="width:${currentPct}%"></div></div>

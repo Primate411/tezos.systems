@@ -1,3 +1,4 @@
+import { setTextPending, setPendingFields } from '../ui/text-loading.js';
 /**
  * Staking Rewards Calculator
  * Calculates estimated XTZ staking/delegation/baker rewards with compound projections
@@ -123,12 +124,14 @@ function loadState() {
 
 function setResult(id, text) {
     const el = document.getElementById(id);
+    setTextPending(el, false);
     if (el) el.textContent = text;
 }
 
 function setResultNumber(id, value, formatter, duration = 250) {
     const el = document.getElementById(id);
     if (!el) return;
+    setTextPending(el, false);
     const target = Number(value);
     if (!Number.isFinite(target)) {
         el.textContent = formatter(value);
@@ -195,6 +198,7 @@ async function renderPayoutLine() {
         return;
     }
     line.hidden = false;
+    setTextPending(line, false);
 
     if (currentMode === 'delegate') {
         const payout = readPercentInput('calc-delegate-payout-assumption');
@@ -205,7 +209,13 @@ async function renderPayoutLine() {
     }
 
     const edge = readPercentInput('calc-stake-edge-assumption');
+    if (!cachedProtocolTiming) {
+        line.textContent = 'Reading protocol timing…';
+        setTextPending(line, true);
+    }
     const timing = await getProtocolTiming();
+    if (currentMode !== 'stake') return;
+    setTextPending(line, false);
     const cycleLabel = formatCycleHours(timing.cycleHours);
     const timingNote = timing.verified
         ? `Current protocol rights delay: ${timing.activationDelayCycles} cycles of roughly ${cycleLabel} each.`
@@ -224,6 +234,7 @@ function setApyDisplay(value, label = 'live network rate') {
 function showApyUnavailable() {
     const el = document.getElementById('calc-apy-display');
     if (el) {
+        setTextPending(el, false);
         el.textContent = 'APY unavailable — retry shortly';
         el.title = 'The live issuance or staking inputs could not be verified, so no reward estimate is shown.';
         delete el.dataset.calcValue;
@@ -318,8 +329,11 @@ async function updateResults() {
     removeBreakdown();
     if (amount <= 0) { clearResults(); return; }
 
+    setPendingFields(document.getElementById('calculator-section'), '#calc-apy-display, .calc-result-xtz, .calc-result-usd', true);
+    if (mode === 'stake') void renderPayoutLine();
     const [apy, price, timing] = await Promise.all([getAPY(), getXTZPrice(), getProtocolTiming()]);
     if (updateId !== updateSequence || mode !== currentMode) return;
+    setPendingFields(document.getElementById('calculator-section'), '[data-text-pending]', false);
     const grossApy = mode === 'stake' ? apy.stakeAPY : apy.delegateAPY;
     if (!Number.isFinite(grossApy) || grossApy <= 0) {
         showApyUnavailable();
@@ -376,8 +390,10 @@ async function updateBakerResults(ownStake, updateId) {
 
     if (ownStake <= 0 && extStaked <= 0 && extDelegated <= 0) { clearResults(); return; }
 
+    setPendingFields(document.getElementById('calculator-section'), '#calc-apy-display, .calc-result-xtz, .calc-result-usd', true);
     const [apy, price, timing] = await Promise.all([getAPY(), getXTZPrice(), getProtocolTiming()]);
     if (updateId !== updateSequence || currentMode !== 'baker') return;
+    setPendingFields(document.getElementById('calculator-section'), '[data-text-pending]', false);
     if (!Number.isFinite(apy?.stakeAPY) || apy.stakeAPY <= 0
         || !Number.isFinite(apy?.delegateAPY) || apy.delegateAPY <= 0) {
         showApyUnavailable();

@@ -1117,9 +1117,20 @@ inline modal styles in `js/core/app.js`.
   while the page is visible. Confirmed 7D membership changes render before
   optional names, size badges, and prior-bake receipts, which fill in quietly
   after hover, focus, or opening without crowding other views during preload.
+  Opaque text bubbles reserve the cold roster and pending trend, name, event-time,
+  size, and first-bake fields; each settles independently, including failed lookups.
+  Reduced motion keeps those placeholders visible without animating them.
   The `baker-roster-loading` smoke holds those optional reads to verify immediate
   prepared openings, intent-only detail requests, honest pending badges, retained
-  desktop/mobile geometry, hidden-tab catch-up, and fresh-snapshot reuse.
+  desktop/mobile geometry, rendered text bubbles, hidden-tab catch-up, and
+  fresh-snapshot reuse. Existing themed Chamber text effects remain unchanged.
+- Asynchronous text uses opaque, theme-aware loading bubbles until its owning
+  request settles. The existing themed Chamber text, Live Head skeletons, numeric
+  effects, and widget primary pulses remain intact. Cached facts stay readable
+  during quiet refresh; confirmed empty and unavailable states never shimmer.
+  The five `text-loading-*` browser suites cover chamber first paint, home/tools,
+  launcher and secondary reads, all My Tezos views, and all eight widgets, with
+  computed-style checks, reduced motion, completion checks, and negative probes.
 - First-screen Live Head is built for liveness and retrieval: the top of the
   page moves from live cycle/market data to `Tezos Systems`, a clickable
   `Running on <current protocol>` Protocol History launcher beside the title

@@ -1,3 +1,4 @@
+import { setTextPending, loadingRows } from '../ui/text-loading.js';
 /**
  * My Tezos Tezos X — explicitly linked, device-local Etherlink accounts.
  */
@@ -40,6 +41,7 @@ let selectedAddress = '';
 let accountRows = [];
 let currentDetails = null;
 let detailView = 'transactions';
+let accountReadState = 'loading';
 let refreshController = null;
 
 function readLinkedAccounts() {
@@ -72,6 +74,9 @@ function isVisible() {
 }
 
 function setStatus(message, state = '') {
+    accountReadState = state;
+    renderSummary();
+    renderDetails();
     const status = document.getElementById('tezosx-status');
     if (!status) return;
     status.textContent = message;
@@ -202,7 +207,9 @@ function renderSummary() {
     };
     Object.entries(values).forEach(([key, value]) => {
         const element = document.querySelector(`[data-tezosx-total="${key}"] strong`);
-        if (element) element.textContent = String(value);
+        const known = rows.length === included.size && rows.every(row => key === 'native' ? row.nativeAvailable !== false && row.nativeXtz != null : row.detailsLoaded);
+        if (element) element.textContent = included.size > 0 && !known ? '—' : String(value);
+        setTextPending(element, included.size > 0 && accountReadState === 'loading' && !known);
     });
     const coverage = document.getElementById('tezosx-coverage');
     if (coverage) {
@@ -227,7 +234,11 @@ function renderDetails() {
     }
     const row = accountRows.find((item) => item.address === selectedAddress) || {};
     const details = currentDetails?.address === selectedAddress ? currentDetails : null;
+    const pending = accountReadState === 'loading' && !details;
+    const unavailable = accountReadState === 'error' && !details;
     const tokens = details?.tokens || [];
+    const tokensPending = accountReadState === 'loading' && !Array.isArray(details?.tokens);
+    const tokenCount = Array.isArray(details?.tokens) ? tokens.length : (row.erc20Assets ?? null);
     const nfts = details?.nfts || [];
     const transactions = details?.transactions || [];
     quietlySyncHtml(target, `
@@ -237,12 +248,12 @@ function renderDetails() {
                     <h4>${escapeHtml(readLinkedAccounts().find((entry) => entry.address === selectedAddress)?.label || shortAddress(selectedAddress))}</h4>
                     <p>Etherlink L2 · chain 42793 · <a href="https://explorer.etherlink.com/address/${escapeHtml(selectedAddress)}" target="_blank" rel="noopener">Blockscout receipt ↗</a></p>
                 </div>
-                <strong>${Number(row.nativeXtz || 0).toLocaleString('en-US', { maximumFractionDigits: 6 })} ꜩ</strong>
+                <strong${pending && row.nativeXtz == null ? ' data-text-pending="true"' : ''}>${row.nativeXtz == null ? '—' : Number(row.nativeXtz).toLocaleString('en-US', { maximumFractionDigits: 6 })} ꜩ</strong>
             </div>
             <div class="tezosx-assets-grid">
-                <article><span>ERC-20 balances</span><strong>${tokens.length}</strong><small>No fiat valuation</small></article>
-                <article><span>NFT holdings</span><strong>${nfts.length}</strong><small>Current indexed holdings</small></article>
-                <article><span>Transactions</span><strong>${Number(row.transactions || 0).toLocaleString()}</strong><small>${row.lastActivity ? `Last ${escapeHtml(new Date(row.lastActivity).toLocaleString())}` : 'Last activity unavailable'}</small></article>
+                <article><span>ERC-20 balances</span><strong${tokensPending && tokenCount == null ? ' data-text-pending="true"' : ''}>${tokenCount ?? '—'}</strong><small>No fiat valuation</small></article>
+                <article><span>NFT holdings</span><strong${pending ? ' data-text-pending="true"' : ''}>${unavailable ? '—' : nfts.length}</strong><small>Current indexed holdings</small></article>
+                <article><span>Transactions</span><strong${pending ? ' data-text-pending="true"' : ''}>${unavailable ? '—' : Number(row.transactions || 0).toLocaleString()}</strong><small>${row.lastActivity ? `Last ${escapeHtml(new Date(row.lastActivity).toLocaleString())}` : 'Last activity unavailable'}</small></article>
             </div>
         </section>
         <div class="my-tezos-pill-group tezosx-detail-tabs" role="group" aria-label="Etherlink receipts">
@@ -253,7 +264,7 @@ function renderDetails() {
             <div class="tezosx-token-list">
                 ${tokens.length ? tokens.map((token) => `
                     <article><strong>${escapeHtml(token.symbol)}</strong><span>${Number(token.balance).toLocaleString('en-US', { maximumFractionDigits: 8 })}</span><small>${escapeHtml(token.name)}</small></article>
-                `).join('') : '<span>No ERC-20 balances returned for the selected account.</span>'}
+                `).join('') : (tokensPending ? loadingRows('Reading Etherlink receipts') : !Array.isArray(details?.tokens) ? '<span>Token balances unavailable.</span>' : '<span>No ERC-20 balances returned for the selected account.</span>')}
             </div>
         </section>
         <section class="tezosx-detail-section" data-tezosx-detail-view="transactions" ${detailView === 'transactions' ? '' : 'hidden'}>
@@ -265,13 +276,13 @@ function renderDetails() {
                         <div><strong>${escapeHtml(tx.summary || 'Contract call')}</strong><small>${escapeHtml(new Date(tx.timestamp).toLocaleString())} · ${escapeHtml(tx.status)} · fee ${(Number(tx.fee || 0) / 1e18).toLocaleString('en-US', { maximumFractionDigits: 8 })} ꜩ</small></div>
                         <span>↗</span>
                     </a>
-                `).join('') : '<span>No recent transactions returned for the selected account.</span>'}
+                `).join('') : (pending ? loadingRows('Reading Etherlink receipts') : unavailable ? '<span>Etherlink receipts unavailable.</span>' : '<span>No recent transactions returned for the selected account.</span>')}
             </div>
         </section>
         <section class="tezosx-detail-section" data-tezosx-detail-view="nfts" ${detailView === 'nfts' ? '' : 'hidden'}>
             <h4>NFT holdings</h4>
             <div class="tezosx-nft-list">
-                ${nfts.length ? nfts.slice(0, 24).map((nft) => `<article><strong>${escapeHtml(nft.name)}</strong><span>${escapeHtml(nft.collection?.name || 'Etherlink NFT')}</span><small>#${escapeHtml(nft.tokenId)}</small></article>`).join('') : '<span>No NFT holdings returned for the selected account.</span>'}
+                ${nfts.length ? nfts.slice(0, 24).map((nft) => `<article><strong>${escapeHtml(nft.name)}</strong><span>${escapeHtml(nft.collection?.name || 'Etherlink NFT')}</span><small>#${escapeHtml(nft.tokenId)}</small></article>`).join('') : (pending ? loadingRows('Reading Etherlink receipts') : unavailable ? '<span>Etherlink receipts unavailable.</span>' : '<span>No NFT holdings returned for the selected account.</span>')}
             </div>
         </section>
     `);
@@ -284,7 +295,7 @@ function renderDetails() {
 async function readCachedTezosX(address) {
     if (!address) return null;
     const accountKey = myTezosAccountKey('l2', address);
-    const [activities, holdings] = await Promise.all([
+    const [activities, holdings, summary] = await Promise.all([
         getAllMyTezosRecords('activityByAccount', {
             index: 'accountKey',
             query: IDBKeyRange.only(accountKey),
@@ -295,12 +306,14 @@ async function readCachedTezosX(address) {
             index: 'accountKey',
             query: IDBKeyRange.only(accountKey),
             limit: 2_000
-        })
+        }),
+        getMyTezosMeta(`tezosx-summary:${address}`)
     ]);
+    if (!summary && !activities.length && !holdings.length) return null;
     return {
         address,
         transactions: activities.filter((activity) => activity.layer === 'l2'),
-        tokens: [],
+        tokens: null,
         nfts: holdings.filter((holding) => holding.layer === 'l2')
     };
 }

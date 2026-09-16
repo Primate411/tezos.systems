@@ -22,13 +22,13 @@ export function syncSnapshotStatus(body, saved, error) {
     if (status && status.textContent !== text) status.textContent = text;
 }
 
-// Static section frames: no made-up values, spinner, or repeated animation.
+// Section frames reserve text slots without inventing values.
 // The room keeps its own typography and colors through the enclosing surface.
 export function chamberSkeleton({ title, titleId, sections }) {
     return `<div class="chamber-first-paint" aria-busy="true">
         <header><span class="chamber-first-paint-kicker">Tezos Systems</span><h2 id="${escapeHtml(titleId)}">${escapeHtml(title)}</h2>
         <p role="status">Verifying the saved or generated proofbook…</p></header>
-        <div class="chamber-first-paint-grid">${sections.map((section) => `<section><h3>${escapeHtml(section)}</h3><div class="chamber-first-paint-lines" aria-hidden="true"><i></i><i></i><i></i></div></section>`).join('')}</div>
+        <div class="chamber-first-paint-grid">${sections.map((section) => `<section><h3>${escapeHtml(section)}</h3><div class="chamber-first-paint-lines" aria-hidden="true"><i data-text-pending="true"></i><i data-text-pending="true"></i><i data-text-pending="true"></i></div></section>`).join('')}</div>
         <p class="chamber-first-paint-note">Figures and source dates appear after verification.</p>
     </div>`;
 }

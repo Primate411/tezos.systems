@@ -1100,8 +1100,8 @@ function ensureEntryCard() {
         <button class="card-copy-link" type="button" data-copy-hash="#ecosystem" aria-label="Copy Ecosystem Activity direct link" title="Copy Ecosystem Activity link">&#128279;</button>
         <div class="card-inner">
             <div class="card-front chamber-entry-front ecosystem-entry-front" id="ecosystem-entry-front">
-                <div class="ecosystem-entry-heading"><div class="ecosystem-entry-title-line"><h2 class="stat-label" id="ecosystem-entry-title">Ecosystem Activity</h2><span>Weekly</span></div><p>Loading the completed-week app ranking</p></div>
-                <div class="ecosystem-entry-kpis ecosystem-entry-grid"><div class="ecosystem-entry-tile ecosystem-entry-summary"><small>Generated ledger</small><strong class="ecosystem-entry-value">Loading</strong><em>first-party JSON</em></div></div>
+                <div class="ecosystem-entry-heading"><div class="ecosystem-entry-title-line"><h2 class="stat-label" id="ecosystem-entry-title">Ecosystem Activity</h2><span>Weekly</span></div><p><span data-text-pending="true">Loading the completed-week app ranking</span></p></div>
+                <div class="ecosystem-entry-kpis ecosystem-entry-grid"><div class="ecosystem-entry-tile ecosystem-entry-summary"><small>Generated ledger</small><strong class="ecosystem-entry-value" data-text-pending="true">Loading</strong><em>first-party JSON</em></div></div>
             </div>
         </div>
     `;

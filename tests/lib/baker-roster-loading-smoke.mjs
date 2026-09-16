@@ -2,10 +2,67 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+// Verify the rendered indicator, not just a class or an aria-busy attribute.
+async function assertTextBubbles(page, selector, { reducedMotion = false, count = null } = {}) {
+  const bubbles = await page.locator(selector).evaluateAll(nodes => nodes.map(node => {
+    const style = getComputedStyle(node), box = node.getBoundingClientRect();
+    return { slot: node.dataset.bakerLoading, width: box.width, height: box.height,
+      color: style.color, background: style.backgroundColor, image: style.backgroundImage,
+      animation: style.animationName, opacity: style.opacity, radius: parseFloat(style.borderRadius) };
+  }));
+  if (count !== null) assert.equal(bubbles.length, count, `${selector}: expected every pending text slot`);
+  assert.ok(bubbles.length, `${selector}: missing text placeholders`);
+  for (const bubble of bubbles) {
+    assert.ok(bubble.width > 0 && bubble.height > 0 && bubble.radius > 0, `invisible text bubble: ${JSON.stringify(bubble)}`);
+    assert.equal(bubble.opacity, '1');
+    assert.match(bubble.color, /rgba\(.+, 0\)$/);
+    assert.doesNotMatch(bubble.background, /rgba\(.+, 0\)$/);
+    assert.match(bubble.image, /linear-gradient/);
+    assert.equal(bubble.animation, reducedMotion ? 'none' : 'shimmer');
+  }
+}
+
+async function smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsDir) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 1000 }, serviceWorkers: 'block' });
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  try {
+    await installFeatureMocks(context);
+    await context.addInitScript(() => {
+      localStorage.setItem('tezos-systems-theme', 'dark');
+      localStorage.setItem('tezos-toured', '1'); localStorage.setItem('tezos-welcomed', '1');
+      localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    });
+    await context.route('**/*', async route => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname.endsWith('/context/delegates') || pathname.endsWith('/tezos_history')) await gate;
+      return route.fallback();
+    });
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/?theme=dark`, { waitUntil: 'load' });
+    await page.locator('.top-continuity-stat[data-card-history="total-bakers"]').click();
+    await page.locator('.top-continuity-baker-loading').waitFor();
+    await assertTextBubbles(page, '.top-continuity-baker-loading [data-baker-loading]', { count: 30 });
+    await assertTextBubbles(page, '[data-top-continuity-horizons] [data-baker-loading="trend"]', { count: 3 });
+    // Negative probe: the contract must reject a missing visual, even when
+    // its data marker and accessible loading label remain present.
+    const probe = page.locator('.top-continuity-baker-loading [data-baker-loading]').first();
+    await probe.evaluate(node => node.classList.remove('top-continuity-baker-placeholder'));
+    await assert.rejects(() => assertTextBubbles(page, '.top-continuity-baker-loading [data-baker-loading]', { count: 30 }));
+    await probe.evaluate(node => node.classList.add('top-continuity-baker-placeholder'));
+    assert.equal(await page.locator('.top-continuity-baker-loading button, .top-continuity-baker-loading a').count(), 0, 'pending actions are not fake controls');
+    if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, 'baker-roster-cold-390.png') });
+    release();
+    await page.waitForFunction(() => document.querySelectorAll('#top-continuity-baker-roster [data-address]').length === 6);
+  } finally { release(); await context.close(); }
+}
+
 export async function smokeBakerRosterLoading(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
   if (artifactsDir) await mkdir(artifactsDir, { recursive: true });
+  await smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsDir);
   for (const [width, theme] of [[1440, 'matrix'], [390, 'clean'], [320, 'matrix']]) {
-    const context = await browser.newContext({ viewport: { width, height: 1000 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+    const reducedMotion = width === 390;
+    const context = await browser.newContext({ viewport: { width, height: 1000 }, serviceWorkers: 'block', reducedMotion: reducedMotion ? 'reduce' : 'no-preference' });
     let releaseDetails;
     const detailsGate = new Promise(resolve => { releaseDetails = resolve; });
     let membershipReads = 0;
@@ -61,7 +118,7 @@ export async function smokeBakerRosterLoading(browser, baseUrl, { installFeature
       const initial = await page.locator('#top-continuity-baker-roster').evaluate(roster => ({
         rows: roster.querySelectorAll('.top-continuity-baker-row').length,
         loading: Boolean(roster.querySelector('.top-continuity-baker-loading')),
-        badges: roster.querySelectorAll('.top-continuity-baker-new').length,
+        badges: roster.querySelectorAll('.top-continuity-baker-new:not([data-baker-loading])').length,
         status: roster.querySelector('[data-baker-set-status]')?.textContent || ''
       }));
       assert.equal(initial.rows, 6, 'opening a prepared list must paint all rows synchronously with details held');
@@ -69,6 +126,9 @@ export async function smokeBakerRosterLoading(browser, baseUrl, { installFeature
       assert.equal(initial.badges, 0, 'pending first-bake history must not invent NEW or REACTIVATED');
       assert.match(initial.status, /loading details/);
       await page.waitForFunction(() => document.querySelector('#top-continuity-baker-roster .is-gained strong')?.textContent === 'QA Baker');
+      await assertTextBubbles(page, '#top-continuity-baker-roster [data-baker-loading="identity"]', { reducedMotion, count: 6 });
+      await assertTextBubbles(page, '#top-continuity-baker-roster [data-baker-loading="entry"]', { reducedMotion, count: 3 });
+      await assertTextBubbles(page, '#top-continuity-baker-roster [data-baker-loading="size"]', { reducedMotion, count: 6 });
       await page.locator('#top-continuity-baker-roster .top-continuity-baker-row').last().scrollIntoViewIfNeeded();
       const before = await page.evaluate(() => {
         const roster = document.querySelector('#top-continuity-baker-roster');
@@ -118,6 +178,7 @@ export async function smokeBakerRosterLoading(browser, baseUrl, { installFeature
       assert.equal(after.opacity, '1'); assert.ok(after.overflow <= 1);
       after.positions.forEach((rect, i) => rect.forEach((value, j) => assert.ok(Math.abs(value - before.positions[i][j]) <= 1, `row ${i} geometry moved at ${width}px`)));
       assert.ok(after.names.includes(width === 320 ? 'QA Baker' : 'qa-baker.tez'));
+      assert.equal(await page.locator('#top-continuity-baker-roster [data-baker-loading]').count(), 0, 'success and source failure must both settle their text placeholders');
       if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `baker-roster-ready-${width}.png`) });
       await page.evaluate(() => {
         window.scrollBy({ top: 37, behavior: 'instant' });
@@ -129,6 +190,7 @@ export async function smokeBakerRosterLoading(browser, baseUrl, { installFeature
       await pill.click();
       assert.equal(await page.locator('#top-continuity-baker-roster .top-continuity-baker-row').count(), 6);
       assert.equal(membershipReads, 2, 'reopening the fresh roster must reuse its snapshot');
+      assert.equal(await page.locator('#top-continuity-baker-roster [data-baker-loading]').count(), 0, 'cached reopening must not replay loading');
     } finally {
       releaseDetails();
       await context.close();

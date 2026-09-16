@@ -340,7 +340,6 @@
 
 .top-continuity-baker-freshness,
 .top-continuity-baker-empty,
-.top-continuity-baker-loading,
 .top-continuity-baker-error {
     margin: 0;
     color: var(--text-tertiary, var(--text-secondary));
@@ -379,18 +378,33 @@
     flex-direction: column;
 }
 
-.top-continuity-baker-loading > span:first-child {
-    width: 0.5rem;
-    height: 0.5rem;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: var(--pill-color, var(--accent-cyan));
-    box-shadow: 0 0 10px color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 55%, transparent);
-    animation: baker-set-loading 1.15s ease-in-out infinite;
+.top-continuity-baker-loading {
+    display: grid;
+    min-width: 0;
+    gap: 0.62rem;
 }
 
-@keyframes baker-set-loading {
-    50% { opacity: 0.34; }
+.top-continuity-explain .top-continuity-baker-placeholder {
+    display: inline-block;
+    min-width: 2ch;
+    min-height: 0.7em;
+    overflow: hidden;
+    border-color: transparent;
+    border-radius: 999px;
+    color: transparent !important;
+    text-shadow: none;
+    background-color: var(--bg-secondary);
+    background-image: linear-gradient(90deg,
+        color-mix(in srgb, var(--text-primary) 10%, var(--bg-secondary)) 25%,
+        color-mix(in srgb, var(--text-primary) 22%, var(--bg-secondary)) 50%,
+        color-mix(in srgb, var(--text-primary) 10%, var(--bg-secondary)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.top-continuity-baker-row.is-placeholder .top-continuity-baker-actions span {
+    padding: 0.25rem 0.4rem;
+    font: 800 0.56rem/1 'JetBrains Mono', monospace;
 }
 
 .top-continuity-explain-actions {
@@ -475,7 +489,7 @@
         transition: none;
     }
 
-    .top-continuity-baker-loading > span:first-child {
+    .top-continuity-explain .top-continuity-baker-placeholder {
         animation: none;
     }
 }

@@ -1441,8 +1441,8 @@ function ensureEntryCard() {
         <div class="card-inner">
             <div class="card-front chamber-entry-front capital-entry-front" id="capital-entry-front">
                 <div><div class="capital-entry-title-line"><h2 class="stat-label" id="capital-entry-title">Capital Chamber</h2><span class="capital-entry-chip">Public-source</span></div><div class="stat-value capital-entry-value">Loading proofbook</div><div class="stat-description">Tezos and Etherlink capital intelligence</div></div>
-                <div class="capital-entry-kpis"><div class="capital-entry-kpi"><span>Generated snapshot</span><strong>Loading</strong><small>First-party JSON only</small></div></div>
-                <div class="capital-entry-price-empty">Loading 90D XTZ history</div>
+                <div class="capital-entry-kpis"><div class="capital-entry-kpi"><span>Generated snapshot</span><strong data-text-pending="true">Loading</strong><small>First-party JSON only</small></div></div>
+                <div class="capital-entry-price-empty"><span data-text-pending="true">Loading 90D XTZ history</span></div>
             </div>
         </div>
     `;

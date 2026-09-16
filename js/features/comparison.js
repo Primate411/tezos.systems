@@ -1,3 +1,4 @@
+import { setTextPending } from '../ui/text-loading.js';
 /**
  * Tezos vs Others - Comparison Cards
  * Shows Tezos metrics side-by-side with Ethereum and Solana
@@ -680,6 +681,7 @@ function buildComparisonCard(metric, stats) {
         const valEl = document.createElement('div');
         valEl.className = 'comparison-chain-value';
         valEl.textContent = chain.value;
+        setTextPending(valEl, chain.cls === 'tezos' && chain.value === '—' && !Object.keys(stats).length);
         col.appendChild(valEl);
 
         if (chain.note) {

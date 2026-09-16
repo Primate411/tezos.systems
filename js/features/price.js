@@ -1,3 +1,4 @@
+import { setPendingFields } from '../ui/text-loading.js';
 /**
  * Tezos Systems - XTZ Price Bar Module
  * Displays live XTZ price in USD, EUR, and BTC with 24h/7d/30d changes and market cap
@@ -165,6 +166,8 @@ function updatePriceBar(data) {
     const btcEl = document.getElementById('price-btc');
     const mcapEl = bar.querySelector('.price-mcap');
 
+    setPendingFields(bar, '[data-text-pending]', false);
+    bar.dataset.priceState = 'ready';
     const price = data.usd;
     const mcap = data.usd_market_cap;
 
@@ -217,6 +220,10 @@ async function refreshPrice() {
         const bar = document.getElementById('price-bar');
         if (bar?.classList.contains('visible')) quietlyMutate(bar, () => updatePriceBar(data));
         else updatePriceBar(data);
+    } else if (!data && document.visibilityState === 'visible') {
+        const bar = document.getElementById('price-bar');
+        setPendingFields(bar, '[data-text-pending]', false);
+        if (bar?.dataset.priceState === 'loading') bar.dataset.priceState = 'unavailable';
     }
 }
 

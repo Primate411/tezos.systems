@@ -81,7 +81,7 @@
     <div class="no-baker">Add ?baker=tz1… to URL</div>
   </div>
   <div class="widget-meta">
-    <span class="widget-freshness" data-state="loading">Loading source…</span>
+    <span class="widget-freshness" data-state="loading" data-text-pending="true">Loading source…</span>
     <button class="widget-retry" type="button" aria-label="Refresh widget data">Refresh</button>
     <a class="footer" href="https://tezos.systems/?utm_source=tezos_systems&utm_medium=widget_attribution&utm_campaign=tezos_systems_widgets&utm_content=baker-card" target="_blank" rel="noopener">powered by tezos.systems -></a>
   </div>
@@ -105,12 +105,13 @@ import {
   const contentEl=document.getElementById('content');
 
   if(!baker) {
+    document.querySelector('.widget-freshness').removeAttribute('data-text-pending');
     setWidgetText(document.querySelector('.widget-freshness'),'No baker selected');
     document.querySelector('.widget-freshness').dataset.state='configuration';
     document.querySelector('.widget-retry').hidden=true;
     return;
   }
-  setWidgetText(contentEl.querySelector('.no-baker'),'Loading baker…');
+  syncWidgetHtml(contentEl, '<div class="no-baker"><span data-text-pending="true">Loading baker…</span></div><div class="text-loading-rows" aria-hidden="true"><div><span data-text-pending="true">Baking balance</span><span data-text-pending="true">Delegators</span></div></div>');
   const view=createWidgetView({notFound:true,empty:error=>setWidgetText(contentEl.querySelector('.no-baker'),error.status===404?'Baker not found':'Baker unavailable')});
 
   async function fetchData(){

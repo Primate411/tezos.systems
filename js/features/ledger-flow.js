@@ -1,3 +1,4 @@
+import { loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict, renderChamberGuide, renderChamberStamp, settleChamberArrival } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
@@ -1338,6 +1339,8 @@ function renderLoading(label = 'Opening Ledger Flow...', requestedTarget = '') {
         });
     });
     setLoadStatus(label, 'loading');
+    const empty = body.querySelector('.ledger-flow-empty-panel');
+    if (empty) empty.innerHTML = loadingRows(label);
 }
 
 function renderError(message, detail = '') {
@@ -1345,6 +1348,8 @@ function renderError(message, detail = '') {
     if (!body) return;
     if (!body.querySelector('#ledger-flow-search-form')) renderEmptyState(body);
     setLoadStatus(`${message}${detail ? ` — ${detail}` : ''}`, 'error');
+    const empty = body.querySelector('.ledger-flow-empty-panel');
+    if (empty) quietlySyncHtml(empty, `<strong>${escapeHtml(message)}</strong><span>${escapeHtml(detail || 'Try another account or retry this read.')}</span>`);
 }
 
 function abortActiveLoad(reason = 'superseded') {

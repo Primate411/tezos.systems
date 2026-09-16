@@ -3182,9 +3182,9 @@ async function checkSelectorContracts() {
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
     ['HEN standalone canonical URL', '<link rel="canonical" href="https://tezos.systems/hen/">', henPage],
     ['HEN standalone live overlay', 'id="hen-overlay"', henPage],
-    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=80', henPage],
+    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=81', henPage],
     ['HEN CSS cache stamp', 'css/hen-mode.min.css?v=98', index],
-    ['HEN JS cache stamp', '/js/features/hen-mode.js?v=96', henInit],
+    ['HEN JS cache stamp', '/js/features/hen-mode.js?v=97', henInit],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],
     ['HEN mobile filter toggle', 'id="hen-mobile-filter-toggle"', index],
@@ -4676,7 +4676,7 @@ async function checkUxAuditContracts() {
     fail('RPC polling and first-visit surfaces must respect document visibility and toast occupancy');
   }
   if (index.includes('<script defer src="js/features/hen-mode.js')
-    || !index.includes('<script src="js/core/hen-init.js?v=80" defer></script>')
+    || !index.includes('<script src="js/core/hen-init.js?v=81" defer></script>')
     || !index.includes('<link rel="stylesheet" href="css/hen-mode.min.css?v=98">')) {
     fail('HEN feed runtime must load on intent while shared theme and launcher styles remain eager');
   }

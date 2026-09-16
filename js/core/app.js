@@ -4006,7 +4006,7 @@ function initUptimeClock() {
                 ${horizons.map(({ label, formatted }) => `
                     <span class="top-continuity-horizon" aria-label="${escapeHtml(topContinuityTrendAriaLabel(label, formatted, config.kind))}">
                         <span>${escapeHtml(label)}</span>
-                        <strong>${escapeHtml(formatted)}</strong>
+                        <strong${loading ? ' class="top-continuity-baker-placeholder" data-baker-loading="trend" aria-label="Loading change"' : ''}>${escapeHtml(formatted)}</strong>
                     </span>
                 `).join('')}
             </div>
@@ -4273,6 +4273,9 @@ function initUptimeClock() {
             .slice(0, BAKER_SET_LIST_LIMIT);
         const latest = gainedAddresses.map((address) => ({
             address,
+            metadataPending: true,
+            sizePending: true,
+            entryPending: true,
             eventLevel: baselineBlock.level,
             eventTime: baselineBlock.timestamp,
             eventWindowDays: BAKER_SET_BASELINE_DAYS,
@@ -4280,6 +4283,8 @@ function initUptimeClock() {
         }));
         const closed = closedAddresses.map((address) => ({
             address,
+            metadataPending: true,
+            sizePending: true,
             eventLevel: baselineBlock.level,
             eventTime: baselineBlock.timestamp,
             eventWindowDays: BAKER_SET_BASELINE_DAYS
@@ -4288,6 +4293,7 @@ function initUptimeClock() {
             latest,
             closed,
             domains: new Map(),
+            domainsPending: true,
             detailsPending: true,
             baselineAt: baselineBlock.timestamp,
             baselineLevel: baselineBlock.level,
@@ -4307,7 +4313,8 @@ function initUptimeClock() {
         };
         await Promise.allSettled([
             resolveTezReverseNames([...snapshot.latest, ...snapshot.closed].map((row) => row.address))
-                .then((domains) => publish({ domains })),
+                .then((domains) => publish({ domains }))
+                .finally(() => publish({ domainsPending: false })),
             (async () => {
                 const totalPromise = fetchTopContinuityTotalBakingPower().catch(() => null);
                 const currentBakers = await fetchTopContinuityCurrentBakers().catch(() => []);
@@ -4315,9 +4322,9 @@ function initUptimeClock() {
                 const latest = await Promise.all(snapshot.latest.map(async (row) => {
                     const metadata = currentByAddress.get(row.address)
                         || await fetchTopContinuityBaker(row.address).catch(() => null);
-                    if (!metadata) return row;
+                    if (!metadata) return { ...row, metadataPending: false };
                     const exact = Date.parse(metadata.activationTime || '') > Date.parse(snapshot.baselineAt);
-                    return { ...row, ...metadata, ...(exact ? {
+                    return { ...row, ...metadata, metadataPending: false, ...(exact ? {
                         eventLevel: metadata.activationLevel,
                         eventTime: metadata.activationTime,
                         eventWindowDays: null,
@@ -4327,26 +4334,28 @@ function initUptimeClock() {
                 publish({ latest });
                 await Promise.all([
                     attachLatestBakerEntryKinds(latest).then((classified) => publish({
-                        latest: classified.map((row, index) => ({ ...snapshot.latest[index], ...row }))
+                        latest: classified.map((row, index) => ({ ...row, ...snapshot.latest[index],
+                            entryKind: row.entryKind, priorBakeLevel: row.priorBakeLevel, priorBakeTime: row.priorBakeTime,
+                            entryPending: false }))
                     })),
                     totalPromise.then((total) => publish({
-                        latest: snapshot.latest.map((row) => ({ ...row, size: bakerSizeTier(row.bakingPower, total) }))
+                        latest: snapshot.latest.map((row) => ({ ...row, size: bakerSizeTier(row.bakingPower, total), sizePending: false }))
                     }))
                 ]);
             })(),
             (async () => {
                 const closed = await Promise.all(snapshot.closed.map(async (row) => {
                     const metadata = await fetchTopContinuityBaker(row.address).catch(() => null);
-                    if (!metadata) return row;
+                    if (!metadata) return { ...row, metadataPending: false };
                     const exact = Date.parse(metadata.deactivationTime || '') > Date.parse(snapshot.baselineAt);
-                    return { ...row, ...metadata, ...(exact ? {
+                    return { ...row, ...metadata, metadataPending: false, ...(exact ? {
                         eventLevel: metadata.deactivationLevel,
                         eventTime: metadata.deactivationTime,
                         eventWindowDays: null
                     } : {}) };
                 }));
                 publish({ closed });
-                publish({ closed: await attachClosedBakerSizes(closed) });
+                publish({ closed: (await attachClosedBakerSizes(closed)).map((row) => ({ ...row, sizePending: false })) });
             })()
         ]);
     }
@@ -4354,6 +4363,8 @@ function initUptimeClock() {
     function renderTopContinuityBakerRow(row, kind, savedAddresses) {
         const domain = bakerSetSnapshot?.domains?.get(row.address) || '';
         const label = domain || row.alias || shortAddress(row.address);
+        const identityPending = !domain && (bakerSetSnapshot?.domainsPending || row.metadataPending);
+        const pending = (slot, label) => ` class="top-continuity-baker-placeholder" data-baker-loading="${slot}" aria-label="${label}"`;
         const identityTitle = domain
             ? `${domain} Tezos Domains reverse record · ${row.address}`
             : row.alias
@@ -4368,7 +4379,9 @@ function initUptimeClock() {
                 : entryKind === 'unknown'
                     ? 'First-bake history unavailable'
                     : '';
-        const entryBadge = entryKind === 'new'
+        const entryBadge = row.entryPending
+            ? '<span class="top-continuity-baker-new top-continuity-baker-placeholder" data-baker-loading="entry" aria-label="Loading first-bake history">REACTIVATED</span>'
+            : entryKind === 'new'
             ? '<span class="top-continuity-baker-new" aria-label="Brand-new baker with no earlier baked block" title="Brand new · no earlier baked block">NEW</span>'
             : entryKind === 'reactivated'
                 ? '<span class="top-continuity-baker-new is-reactivated" aria-label="Reactivated baker with an earlier baked block" title="Reactivated · earlier baked block found">REACTIVATED</span>'
@@ -4378,7 +4391,9 @@ function initUptimeClock() {
             ? `${kind === 'gained' ? 'Entered' : 'Left'} the active baker set after ${absoluteBakerSetTime(row.eventTime)}`
             : absoluteBakerSetTime(row.eventTime);
         const sizeLabel = row.size ? `${row.size.label} baker, ${row.size.detail}` : 'Baker size unavailable';
-        const sizeBadge = row.size
+        const sizeBadge = row.sizePending
+            ? '<span class="top-continuity-baker-size top-continuity-baker-placeholder" data-baker-loading="size" aria-label="Loading baker size">—</span>'
+            : row.size
             ? `<span class="top-continuity-baker-size is-${escapeHtml(row.size.key)}" data-baker-size="${escapeHtml(row.size.key)}" aria-label="${escapeHtml(sizeLabel)}" title="${escapeHtml(`${row.size.label} baker · ${row.size.detail}`)}">${escapeHtml(row.size.label)}</span>`
             : `<span class="top-continuity-baker-size is-unavailable" data-baker-size="unavailable" aria-label="${escapeHtml(sizeLabel)}" title="${escapeHtml(sizeLabel)}">—</span>`;
         const myTezosAction = saved
@@ -4386,8 +4401,8 @@ function initUptimeClock() {
             : `<button type="button" data-quiet-key="baker-set-my:${escapeHtml(row.address)}" data-baker-set-save-address="${escapeHtml(row.address)}" data-baker-set-label="${escapeHtml(label)}" aria-label="Add ${escapeHtml(label)} to saved My Tezos addresses" title="Add to My Tezos">+ My</button>`;
         return `
             <article class="top-continuity-baker-row is-${kind}" data-quiet-key="baker-set-${kind}:${escapeHtml(row.address)}" data-address="${escapeHtml(row.address)}" data-baker-entry="${escapeHtml(entryKind)}">
-                <time datetime="${escapeHtml(row.eventTime || '')}" title="${escapeHtml(eventTimeTitle)}">${escapeHtml(compactBakerSetAge(row.eventTime, Date.now(), eventWindowDays))}</time>
-                <span class="top-continuity-baker-identity" title="${escapeHtml([identityTitle, entryDetail].filter(Boolean).join(' · '))}"><span class="top-continuity-baker-name"><strong>${escapeHtml(label)}</strong>${entryBadge}</span></span>
+                <time${row.metadataPending ? pending('age', 'Loading event time') : ''} datetime="${escapeHtml(row.eventTime || '')}" title="${escapeHtml(eventTimeTitle)}">${escapeHtml(compactBakerSetAge(row.eventTime, Date.now(), eventWindowDays))}</time>
+                <span class="top-continuity-baker-identity" title="${escapeHtml([identityTitle, entryDetail].filter(Boolean).join(' · '))}"><span class="top-continuity-baker-name"><strong${identityPending ? pending('identity', 'Loading baker name') : ''}>${escapeHtml(label)}</strong>${entryBadge}</span></span>
                 ${sizeBadge}
                 <span class="top-continuity-baker-actions">
                     ${myTezosAction}
@@ -4408,6 +4423,21 @@ function initUptimeClock() {
         `;
     }
 
+    function renderTopContinuityBakerSkeleton() {
+        const list = (title, note) => `
+            <section class="top-continuity-baker-list" aria-label="${title}">
+                <div class="top-continuity-baker-heading"><strong>${title}</strong><span>${note}</span></div>
+                ${Array.from({ length: BAKER_SET_LIST_LIMIT }, () => `
+                    <div class="top-continuity-baker-row is-placeholder" aria-hidden="true">
+                        <span class="top-continuity-baker-placeholder" data-baker-loading="age">≤7d</span>
+                        <span class="top-continuity-baker-placeholder" data-baker-loading="identity">Baker identity</span>
+                        <span class="top-continuity-baker-size top-continuity-baker-placeholder" data-baker-loading="size">—</span>
+                        <span class="top-continuity-baker-actions"><span class="top-continuity-baker-placeholder" data-baker-loading="action">+ My</span><span class="top-continuity-baker-placeholder" data-baker-loading="action">TzKT</span></span>
+                    </div>`).join('')}
+            </section>`;
+        return `<div class="top-continuity-baker-loading" role="status" aria-label="Loading recent baker changes">${list('7D New + Reactivated', 'active set entered')}${list('7D Closed Bakers', 'active set left')}</div>`;
+    }
+
     function renderTopContinuityBakerRoster() {
         if (document.visibilityState !== 'visible') return;
         const roster = document.getElementById('top-continuity-baker-roster');
@@ -4415,7 +4445,7 @@ function initUptimeClock() {
         roster.setAttribute('aria-busy', bakerSetRefreshPromise ? 'true' : 'false');
         if (!bakerSetSnapshot) {
             const markup = bakerSetRefreshPromise
-                ? '<div class="top-continuity-baker-loading"><span aria-hidden="true"></span><span>Loading recent baker changes…</span></div>'
+                ? renderTopContinuityBakerSkeleton()
                 : '<div class="top-continuity-baker-error"><span>Recent baker changes are unavailable.</span><button type="button" data-baker-set-retry>Retry</button></div>';
             quietlySyncHtml(roster, markup);
             return;
@@ -6402,7 +6432,7 @@ function renderProtocolHistoryChamberShell(overlay) {
                 <button class="protocol-history-chamber-link" type="button" data-copy-hash="#protocol-history">Copy anthology link</button>
             </div>
             <div class="protocol-history-anthology-host" id="protocol-history-anthology-board">
-                <div class="protocol-anthology-loading">Reading the protocol archive...</div>
+                <div class="protocol-anthology-loading"><span data-text-pending="true">Reading the protocol archive...</span></div>
             </div>
         </div>
         <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="anthology-record"><summary>About the adopted amendment record</summary>            ${renderChamberVerdict({ key: 'anthology', state: 'archive', sentence: 'Each adopted protocol chapter keeps its governance arguments and historical outcome; it is not a current vote.', receipts: [['Record', 'Adopted amendments'], ['Context', 'Sources and debate by chapter']] })}</details>

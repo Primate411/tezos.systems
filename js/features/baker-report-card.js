@@ -332,7 +332,7 @@ export async function showBakerReportCard(bakerAddress) {
         display:flex;align-items:center;justify-content:center;
         backdrop-filter:blur(4px);
     `;
-    overlay.innerHTML = '<div style="color:#00ff88;font-size:16px;">Generating report card…</div>';
+    overlay.innerHTML = '<div role="status" style="color:#00ff88;font-size:16px;"><span data-text-pending="true">Generating report card…</span></div>';
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     document.body.appendChild(overlay);
 

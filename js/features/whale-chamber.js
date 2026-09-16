@@ -1,3 +1,4 @@
+import { loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict, renderChamberStamp, settleChamberArrival } from '../ui/chamber-reading.js';
 import { getChamberScrollContainer, requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
@@ -640,6 +641,7 @@ function awakeningsMarkup() {
 }
 
 function unavailableMarkup(title, error = '') {
+    if (!error && !lastArtifact) return `<section class="whale-watch-view" id="whale-watch-panel-${escapeHtml(currentView)}" role="tabpanel" aria-labelledby="whale-watch-tab-${escapeHtml(currentView)}" tabindex="0">${loadingRows('Reading whale archive')}</section>`;
     const local = getSleepingGiantsSnapshot();
     return `
         <section class="whale-watch-view whale-watch-unavailable" id="whale-watch-panel-${escapeHtml(currentView)}" role="tabpanel" aria-labelledby="whale-watch-tab-${escapeHtml(currentView)}" tabindex="0">
@@ -724,9 +726,9 @@ function entryMarkup() {
         </div>
         <div class="whale-watch-entry-sonar" aria-hidden="true"><i></i><i></i><i></i><b>🐋</b></div>
         <div class="whale-watch-entry-metrics">
-            <div><span>Largest · archive</span><strong>${transfer?.largestOperation ? xtz(transfer.largestOperation.amountMutez, 2) : 'Loading'}</strong></div>
-            <div><span>Operation groups</span><strong>${transfer ? exact(transfer.operationGroupCount) : '—'}</strong></div>
-            <div><span>Dormant accounts</span><strong>${dormant ? exact(dormant.eligibleCount) : '—'}</strong></div>
+            <div><span>Largest · archive</span><strong${!lastArtifact && !artifactError ? ' data-text-pending="true"' : ''}>${transfer?.largestOperation ? xtz(transfer.largestOperation.amountMutez, 2) : lastArtifact ? 'None returned' : artifactError ? 'Unavailable' : 'Loading'}</strong></div>
+            <div><span>Operation groups</span><strong${!lastArtifact && !artifactError ? ' data-text-pending="true"' : ''}>${transfer ? exact(transfer.operationGroupCount) : '—'}</strong></div>
+            <div><span>Dormant accounts</span><strong${!lastArtifact && !artifactError ? ' data-text-pending="true"' : ''}>${dormant ? exact(dormant.eligibleCount) : '—'}</strong></div>
         </div>
         <div class="whale-watch-entry-rails"><span>Overview</span><span>Live Tape</span><span>Flow Stories</span><span>Deep Sleep</span><span>Awakenings</span></div>
         ${entryFooterMarkup()}`;

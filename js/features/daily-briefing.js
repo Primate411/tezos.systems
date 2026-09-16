@@ -1,3 +1,4 @@
+import { setPendingFields } from '../ui/text-loading.js';
 /**
  * Daily Tezos Briefing — auto-generated narrative summary per cycle
  * Pure JS, no AI. ~50 sentence templates, data-driven selection.
@@ -3828,6 +3829,7 @@ function rerenderCachedBriefing() {
   try {
     const cached = JSON.parse(localStorage.getItem(LS_BRIEFING) || 'null');
     if (cached?.cycle && cached?.sentences) renderToDrawer(cached.cycle, cached.sentences);
+    else if (window._myTezosData?.fullAddress === safeLocalStorageGet('tezos-systems-my-baker-address')) renderToDrawer(lastStats?.cycle || '—', []);
   } catch { /* ignore */ }
 }
 
@@ -4032,12 +4034,18 @@ function renderToDrawer(cycle, sentences, loading = false) {
   `;
   if (container.children.length) quietlySyncHtml(container, html);
   else container.innerHTML = html;
+  setPendingFields(container, '.network-context-panel[aria-busy="true"] .network-personal-spotlight-copy > p, .network-context-panel[aria-busy="true"] .network-personal-fact-copy > *, .network-context-panel[aria-busy="true"] .network-signal-label, .network-context-panel[aria-busy="true"] .network-signal-detail, .network-context-panel[aria-busy="true"] .network-signal-main > p', true);
   wireNetworkContextNavigation(container);
   window.dispatchEvent(new Event('my-tezos-network-context-rendered'));
 }
 
 export function renderNetworkLoading() {
+  wirePersonalizationRefresh();
   renderToDrawer('—', [], true);
+}
+
+export function renderNetworkUnavailable() {
+  if (document.querySelector('#drawer-network .network-context-panel[aria-busy="true"]')) renderToDrawer('—', []);
 }
 
 export async function initDailyBriefing(stats, xtzPrice) {

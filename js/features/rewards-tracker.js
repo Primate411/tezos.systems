@@ -590,8 +590,8 @@ function getBlocksRemaining(stats) {
 export function renderRewardsLoading() {
   buildCSS();
   return `<div id="${CONTAINER_ID}" aria-busy="true"><div class="rt-grid">
-    ${['⏱ Cycle Clock', '📈 Current Cycle', '🏆 Lifetime Rewards'].map(title => `<div class="rt-card"><div class="rt-card-title">${title}</div><div class="rt-value">—</div><div class="rt-sub">Reading reward data…</div></div>`).join('')}
-  </div></div><div class="drawer-rewards-spark" style="position:relative;width:100%;height:80px;margin-top:12px;"><div class="spark-label" style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">Reading earnings trend…</div><div style="position:relative;height:60px;"><canvas id="drawer-rewards-sparkline"></canvas></div></div>`;
+    ${['⏱ Cycle Clock', '📈 Current Cycle', '🏆 Lifetime Rewards'].map(title => `<div class="rt-card"><div class="rt-card-title">${title}</div><div class="rt-value" data-text-pending="true">—</div><div class="rt-sub" data-text-pending="true">Reading reward data…</div></div>`).join('')}
+  </div></div><div class="drawer-rewards-spark" style="position:relative;width:100%;height:80px;margin-top:12px;"><div class="spark-label" data-text-pending="true" style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">Reading earnings trend…</div><div style="position:relative;height:60px;"><canvas id="drawer-rewards-sparkline"></canvas></div></div>`;
 }
 
 function buildContainer(report, stats, xtzPrice) {

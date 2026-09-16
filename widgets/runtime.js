@@ -1,3 +1,4 @@
+import { setPendingFields } from '../js/ui/text-loading.js';
 import '../js/core/tzkt-throttle.js';
 import { fetchWithRetry } from '../js/core/api.js';
 import { API_URLS, FETCH_LIMITS, STAKING_TARGET } from '../js/core/config.js';
@@ -355,6 +356,7 @@ export function createWidgetView({ source = 'TzKT', empty = null, notFound = fal
         retry,
         commit({ render, error, receivedAt }) {
             quietlyMutate(root, () => {
+                setPendingFields(root, '[data-text-pending]', false);
                 if (!error) {
                     render();
                     lastGoodAt = receivedAt;

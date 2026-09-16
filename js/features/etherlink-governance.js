@@ -1502,7 +1502,7 @@ function renderHistoricalProposals(track) {
                     <span class="lb-panel-kicker">Historical proposals</span>
                     <h3>Recent ${escapeHtml(track.label)} submissions</h3>
                 </div>
-                <span class="lb-live-pill">${track.historyReady ? `${escapeHtml(String((track.historicalProposals || []).length))} indexed` : 'loading history'}</span>
+                <span class="lb-live-pill"${track.historyReady ? '' : ' data-text-pending="true"'}>${track.historyReady ? `${escapeHtml(String((track.historicalProposals || []).length))} indexed` : 'loading history'}</span>
             </div>
             <div class="lb-table etherlink-gov-table">
                 <div class="lb-table-head etherlink-gov-history-row">
@@ -1510,7 +1510,7 @@ function renderHistoricalProposals(track) {
                 </div>
                 <div>${rows || (track.historyReady
                     ? '<div class="lb-empty">No historical proposal submissions found in the indexed TzKT sample.</div>'
-                    : '<div class="lb-empty">Loading proposal history in the background. Current vote data above is already live.</div>')}</div>
+                    : '<div class="lb-empty"><span data-text-pending="true">Loading proposal history in the background.</span> Current vote data above is already live.</div>')}</div>
             </div>
         </section>
     `;

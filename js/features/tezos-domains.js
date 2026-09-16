@@ -860,7 +860,7 @@ function renderLookupResult(state = lookupState) {
     const status = state.status || 'idle';
     if (status === 'loading') {
         return `
-            <div class="td-lookup-result loading" id="tezos-domains-lookup-result">
+            <div class="td-lookup-result loading" data-text-pending="true" id="tezos-domains-lookup-result">
                 <span class="td-lookup-state">Checking ${escapeHtml(state.name)}...</span>
             </div>
         `;

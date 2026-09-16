@@ -1,3 +1,4 @@
+import { loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose, activateChamberDialog, deactivateChamberDialog } from '../ui/chamber-accessibility.js';
 /**
@@ -518,7 +519,7 @@ function renderCtezOvenState(root) {
 
     if (_ctezState.loading) {
         if (status) status.textContent = `Checking ctez ovens for ${shortAddress(_ctezState.address)}...`;
-        if (list) list.innerHTML = '<div class="ctez-oven-loading">Reading ctez contract state...</div>';
+        if (list) list.innerHTML = `<div class="ctez-oven-loading">${loadingRows("Reading ctez contract state")}</div>`;
         if (actionPanel) actionPanel.hidden = true;
         updateCtezActionButtons(root);
         return;

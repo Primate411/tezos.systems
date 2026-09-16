@@ -1,3 +1,4 @@
+import { setTextPending, loadingRows } from '../ui/text-loading.js';
 /**
  * My Tezos Collection — summary-first Objkt holdings for included L1 accounts.
  */
@@ -35,6 +36,8 @@ let collectionSyncId = '';
 let renderedAssetLimit = MY_TEZOS_COLLECTION_PAGE_SIZE;
 let renderedAssetSignature = '';
 let collectionReadState = 'loading';
+const confirmedCollectionScopes = new Set();
+const collectionScopeKey = () => selectedEntries().map(entry => entry.address).sort().join('|');
 
 function includedEntries() {
     return readSavedMyTezosEntries().filter((entry) => entry.included !== false);
@@ -116,6 +119,10 @@ function renderProfiles() {
     const profiles = currentProfiles.filter((profile) => scopeAddresses.has(profile.address));
     const relevantRecords = currentRecords.filter((record) => scopeAddresses.has(record.ownerAddress));
     if (!profiles.length) {
+        if (collectionReadState === 'loading' && !confirmedCollectionScopes.has(collectionScopeKey()) && selectedEntries().length) {
+            quietlySyncHtml(target, loadingRows('Reading public profiles', 1));
+            return;
+        }
         quietlySyncHtml(target, '<span>Objkt collector and creator profiles appear when the selected addresses have public profile data.</span>');
         return;
     }
@@ -157,6 +164,7 @@ function renderCollection() {
             if (cell) {
                 const text = !relevant.length && collectionReadState === 'error' ? '—' : String(value);
                 cell.textContent = text;
+                setTextPending(cell, !relevant.length && selectedEntries().length > 0 && collectionReadState === 'loading' && !confirmedCollectionScopes.has(collectionScopeKey()));
                 cell.closest('article')?.classList.toggle('is-wide-total', text.length > 9);
             }
         });
@@ -178,7 +186,9 @@ function renderCollection() {
     const assets = allAssets.slice(0, renderedAssetLimit);
     empty.hidden = allAssets.length > 0;
     if (!allAssets.length) {
-        quietlySyncHtml(grid, '');
+        const pending = collectionReadState === 'loading' && !confirmedCollectionScopes.has(collectionScopeKey()) && selectedEntries().length > 0;
+        quietlySyncHtml(grid, pending ? loadingRows('Reading artwork holdings') : '');
+        empty.hidden = pending;
         renderedAssetSignature = '';
         empty.textContent = collectionReadState === 'error' && selectedEntries().length
             ? 'Collection unavailable. Objkt could not be read; holdings are unknown. We’ll retry while this tab is open.'
@@ -231,6 +241,7 @@ function renderCollection() {
 function reconcileCollectionRender({ background = false, message, state }) {
     const render = () => {
         collectionReadState = state;
+        if (state === 'complete') confirmedCollectionScopes.add(collectionScopeKey());
         renderCollection();
         setStatus(message, state);
     };
@@ -507,6 +518,7 @@ export async function activateMyTezosCollection({ force = false } = {}) {
     }
     try {
         await initMyTezosDb();
+        collectionReadState = 'loading';
         currentRecords = await readCachedRecords(selectedEntries());
         currentProfiles = (await getMyTezosMeta('collection-profiles')) || [];
         renderCollection();

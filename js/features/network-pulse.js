@@ -1,3 +1,4 @@
+import { setPendingFields } from '../ui/text-loading.js';
 import { renderChamberVerdict, syncChamberVerdict, settleChamberArrival } from '../ui/chamber-reading.js';
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
@@ -1257,6 +1258,12 @@ function renderNetworkPulseChamber(stats, container, { loading = false, rows = l
             <a class="panel-direct-link" href="/pulse/" aria-label="Direct link to Network Pulse Chamber">Direct: /pulse/</a>
         </div>
     `;
+    setPendingFields(container, '.network-pulse-field.is-loading .network-pulse-card:not(.network-pulse-room-card) p', true);
+    if (loading && !seeded) {
+        container.querySelectorAll('.network-pulse-card strong').forEach(node => {
+            if (/^(Quiet|Unavailable)$/.test(node.textContent)) node.innerHTML = '<span data-text-pending="true" aria-label="Reading network data">Loading…</span>';
+        });
+    }
     container.dataset.networkPulseRendered = '1';
     settleChamberArrival(container, { quiet: loading });
     startScrollSpy();
@@ -1267,6 +1274,7 @@ function patchNetworkPulseChamber(stats, rows = lastHistoryRows, { loading = fal
     const body = overlay?.querySelector('.network-pulse-body');
     if (!body || body.dataset.networkPulseRendered !== '1') return false;
     syncChamberVerdict(body, pulseReading(stats));
+    if (!loading || hasSeedStats(stats)) setPendingFields(body, '[data-text-pending]', false);
 
     const seeded = hasSeedStats(stats);
     body.querySelector('[data-pulse-live-badge]')?.replaceChildren(document.createTextNode(loading ? (seeded ? 'Warming' : 'Syncing') : 'Live'));

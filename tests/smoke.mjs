@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { smokeTextLoadingChambers, smokeTextLoadingMyTezos, smokeTextLoadingWidgets, smokeTextLoadingTools, smokeTextLoadingSecondary } from './lib/text-loading-smoke.mjs';
 
 import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -15152,7 +15153,8 @@ async function smokeMyTezosMemory(browser, baseUrl) {
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context);
+  // Keep the exact-history boundary fixed; new-head motion has separate suites.
+  await installFeatureMocks(context, { blockHeadAutoAdvance: false });
   await context.addInitScript(({ first, second }) => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
@@ -15166,9 +15168,13 @@ async function smokeMyTezosMemory(browser, baseUrl) {
   }, { first: SAMPLE_ADDRESS, second: SAMPLE_ADDRESS_2 });
   const page = await context.newPage();
   const overviewArchiveRequests = [];
+  const pendingMemoryRequests = new Set();
   page.on('request', (request) => {
+    if (['fetch', 'xhr'].includes(request.resourceType())) pendingMemoryRequests.add(request);
     if (request.url().includes('/full_balance')) overviewArchiveRequests.push(request.url());
   });
+  page.on('requestfinished', request => pendingMemoryRequests.delete(request));
+  page.on('requestfailed', request => pendingMemoryRequests.delete(request));
   attachIssueCollectors(page, 'my tezos memory', issues);
   await openMyTezosSmokeView(page, baseUrl, 'overview');
   await page.waitForFunction(() => ['complete', 'partial'].includes(document.querySelector('#my-tezos-overview-activity-status')?.dataset.state), null, { timeout: 30000 });
@@ -15293,7 +15299,24 @@ async function smokeMyTezosMemory(browser, baseUrl) {
       && document.querySelector('#my-tezos-panel-transactions')?.hidden === false
   ), null, { timeout: 10000 });
   await page.locator('#my-tezos-tab-portfolio').click();
-  await page.waitForFunction(() => ['complete', 'partial'].includes(document.querySelector('#portfolio-memory-status')?.dataset.state), null, { timeout: 30000 });
+  try {
+    await page.waitForFunction(() => ['complete', 'partial'].includes(document.querySelector('#portfolio-memory-status')?.dataset.state), null, { timeout: 30000 });
+  } catch (error) {
+    const state = await page.evaluate(async () => {
+      const { myTezosRequestBroker: broker } = await import('/js/core/my-tezos-request-broker.mjs');
+      return {
+        fields: Object.fromEntries(['portfolio-memory-status', 'portfolio-history-status', 'portfolio-history-empty'].map(id => {
+          const node = document.getElementById(id);
+          return [id, { text: node?.textContent, state: node?.dataset.state }];
+        })),
+        visible: document.visibilityState,
+        drawerOpen: document.getElementById('my-tezos-drawer')?.classList.contains('open'),
+        broker: { paused: broker.paused, active: [...broker.active], inFlight: [...broker.inFlight.keys()], queued: [...broker.queues].map(([provider, jobs]) => [provider, jobs.map(job => job.url)]) },
+        throttle: { queued: window.__tzktThrottle?.queueLength, dispatchIn: window.__tzktThrottle?.nextDispatchInMs }
+      };
+    });
+    throw new Error(`Memory did not settle: ${JSON.stringify(state)}; pending=${JSON.stringify([...pendingMemoryRequests].map(request => request.url()))}; issues=${JSON.stringify(issues)}`, { cause: error });
+  }
   await page.waitForFunction(() => document.querySelectorAll('#portfolio-activity-list .portfolio-activity-item').length >= 3, null, { timeout: 10000 });
   await page.locator('[data-portfolio-range="all"]').click();
   await page.waitForFunction(() => {
@@ -37649,6 +37672,11 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'baker-wallet-actions', description: 'Every canonical baker row exposes wallet-reviewed first-time delegation and exact Tezos stake operations', run: () => smokeBakerWalletActions(browser, baseUrl) },
     { name: 'whale-watch-chamber', description: 'Complete-window receipts, grouped flow legs, timestamp dormancy, receipt-backed awakenings, legacy giants alias, prepend anchoring, and mobile geometry', run: () => smokeWhaleWatchChamber(browser, baseUrl) },
     { name: 'cycle-history-chamber', description: 'Direct range and metric routes, focused charts, close lifecycle, restored entry focus, and mobile geometry', run: () => smokeCycleHistoryChamber(browser, baseUrl) },
+    { name: 'text-loading-chambers', description: 'Delayed source receipts show rendered text bubbles or retain existing themed effects and settle after data', run: () => smokeTextLoadingChambers(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, address: SAMPLE_ADDRESS, etherlinkAddress: SAMPLE_ETHERLINK_ADDRESS }) },
+    { name: 'text-loading-my-tezos', description: 'Delayed source receipts show rendered text bubbles or retain existing themed effects and settle after data', run: () => smokeTextLoadingMyTezos(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, address: SAMPLE_ADDRESS, etherlinkAddress: SAMPLE_ETHERLINK_ADDRESS }) },
+    { name: 'text-loading-widgets', description: 'Delayed source receipts show rendered text bubbles or retain existing themed effects and settle after data', run: () => smokeTextLoadingWidgets(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, address: SAMPLE_ADDRESS, etherlinkAddress: SAMPLE_ETHERLINK_ADDRESS }) },
+    { name: 'text-loading-secondary', description: 'Launcher previews and secondary chamber reads expose text loading in their actual result areas', run: () => smokeTextLoadingSecondary(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS }) },
+    { name: 'text-loading-tools', description: 'Delayed source receipts show rendered text bubbles or retain existing themed effects and settle after data', run: () => smokeTextLoadingTools(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, address: SAMPLE_ADDRESS, etherlinkAddress: SAMPLE_ETHERLINK_ADDRESS }) },
     { name: 'baker-roster-loading', description: 'Baker changes preload while visible, paint before slow details, and preserve desktop/mobile readers through enrichment and name-service failures', run: () => smokeBakerRosterLoading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'feature-workflows-desktop', description: 'Desktop baker lifecycle, Baker Directory, calculator, price intelligence, comparison, Whale Watch, Cycle History, and share cards', run: () => smokeFeatureWorkflows(browser, baseUrl, 'desktop') },
     { name: 'feature-workflows-mobile', description: 'Mobile baker lifecycle roster, price chronology, touch actions, and in-flow geometry', run: () => smokeFeatureWorkflows(browser, baseUrl, 'mobile') },

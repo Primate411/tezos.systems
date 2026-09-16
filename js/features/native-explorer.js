@@ -1,3 +1,4 @@
+import { loadingText, loadingRows } from '../ui/text-loading.js';
 /**
  * Native Tezos entity lens for command-bar account, operation, and block hits.
  */
@@ -597,7 +598,7 @@ function renderLoading(type, value) {
         <div class="native-explorer-loading">
             <span>${escapeHtml(type)}</span>
             <strong>${escapeHtml(shortHash(value, 18, 8))}</strong>
-            <p>Loading Tezos data...</p>
+            <p>${loadingText("Loading Tezos data")}</p>${loadingRows("Loading entity details")}
         </div>
     `);
 }

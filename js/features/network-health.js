@@ -1,3 +1,4 @@
+import { setTextPending, loadingRows } from '../ui/text-loading.js';
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Network Health
@@ -120,6 +121,7 @@ let activityTapeInFlightPriority = 'normal';
 let activityTapeRequestSequence = 0;
 let activityTapeAppliedSequence = 0;
 let usagePulseCache = null;
+let usagePulseSettled = false;
 let usagePulseCacheAt = 0;
 let usagePulseInFlight = null;
 let liveHeadAnimationTimer = null;
@@ -541,6 +543,7 @@ function updateChainHealthReadout(button, readout, { loading = false, stale = fa
     const element = document.getElementById('chain-health-readout');
     const text = stale ? 'STALE' : readout.text;
     if (element) {
+        setTextPending(element, loading && !stale);
         if (element.textContent !== text) {
             const fraction = text.match(/^(\d+)(\/\d+ .+)$/);
             const html = fraction
@@ -809,16 +812,18 @@ function updateHeaderActivity(usage) {
         const { html, title } = usageSlotContent(element.dataset.usageSlot, usage);
         element.innerHTML = html;
         element.title = title;
+        setTextPending(element, !usage && !usagePulseSettled);
     });
     if (usage?.updatedAt) line.dataset.usagePulseStamp = String(usage.updatedAt);
-    cluster?.classList.toggle('is-loading', !hasUsage);
-    button.classList.toggle('is-loading', !hasUsage);
-    line.setAttribute('aria-busy', hasUsage ? 'false' : 'true');
-    button.setAttribute('aria-busy', hasUsage ? 'false' : 'true');
+    const pending = !usage && !usagePulseSettled;
+    cluster?.classList.toggle('is-loading', pending);
+    button.classList.toggle('is-loading', pending);
+    line.setAttribute('aria-busy', pending ? 'true' : 'false');
+    button.setAttribute('aria-busy', pending ? 'true' : 'false');
 
     const summary = hasUsage
         ? `Last hour: ${formatCount(usage.txCount)} transactions${Number.isFinite(usage.movedXtz) ? `, ${formatTezAmount(usage.movedXtz)}${usage.movedClipped ? '+' : ''} XTZ moved` : ''}${Number.isFinite(usage.nftCount) ? `, ${formatCount(usage.nftCount)} NFT transfers` : ''}.`
-        : 'Trailing hour Tezos L1 activity is syncing.';
+        : pending ? 'Trailing hour Tezos L1 activity is syncing.' : 'Trailing hour activity is unavailable.';
     button.title = `${summary} Open Network Health Chamber.`;
     button.setAttribute('aria-label', `Open Network Health Chamber. ${summary}`);
 }
@@ -3860,6 +3865,7 @@ async function fetchUsagePulse({ force = false, priority = 'normal' } = {}) {
         fetchJson(`${TZKT}/tokens/transfers/count?token.metadata.artifactUri.null=false&timestamp.ge=${since}`, 1, { priority }).catch(() => null),
         fetchActivityTape({ priority }).catch(() => activityTapeCache)
     ]).then(([txCount, amounts, nftCount, tape]) => {
+        usagePulseSettled = true;
         const previous = usagePulseCache;
         const amountRows = Array.isArray(amounts) ? amounts : null;
         const movedXtz = amountRows
@@ -3867,16 +3873,18 @@ async function fetchUsagePulse({ force = false, priority = 'normal' } = {}) {
             : null;
         usagePulseCache = {
             updatedAt: Date.now(),
-            txCount: Number.isFinite(Number(txCount)) ? Number(txCount) : (previous?.txCount ?? null),
+            txCount: txCount != null && Number.isFinite(Number(txCount)) ? Number(txCount) : (previous?.txCount ?? null),
             movedXtz: Number.isFinite(movedXtz) ? movedXtz : (previous?.movedXtz ?? null),
             movedClipped: amountRows ? amountRows.length >= USAGE_AMOUNT_PAGE_LIMIT : Boolean(previous?.movedClipped),
-            nftCount: Number.isFinite(Number(nftCount)) ? Number(nftCount) : (previous?.nftCount ?? null),
+            nftCount: nftCount != null && Number.isFinite(Number(nftCount)) ? Number(nftCount) : (previous?.nftCount ?? null),
             whale: (Array.isArray(tape) && tape[0]) || previous?.whale || null
         };
         usagePulseCacheAt = Date.now();
         return usagePulseCache;
     }).catch((error) => {
         console.warn('Network Health usage pulse failed:', error);
+        usagePulseSettled = true;
+        if (document.visibilityState === 'visible') updateHeaderActivity(usagePulseCache);
         return usagePulseCache;
     }).finally(() => {
         usagePulseInFlight = null;
@@ -4673,7 +4681,7 @@ function ensureHealthEntryTape() {
         tape.innerHTML = `
             <div class="health-live-tape-title">Live Tape</div>
             <div class="health-live-tape-rows" id="network-health-live-tape-rows">
-                <div class="health-live-empty">Loading transfers</div>
+                ${loadingRows('Reading transfers')}
             </div>
         `;
         front.appendChild(tape);

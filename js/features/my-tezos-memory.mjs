@@ -1,3 +1,4 @@
+import { setTextPending, loadingRows } from '../ui/text-loading.js';
 /**
  * My Tezos Memory — exact L1 total history plus human-readable activity.
  */
@@ -45,6 +46,9 @@ let successfulVisibleRender = false;
 let currentActivities = [];
 let currentHistory = null;
 let activityFilter = 'transfers';
+let activityReadState = 'loading';
+const confirmedActivityScopes = new Set();
+const activityScopeKey = () => includedEntries().map(entry => entry.address).sort().join('|');
 let unseenOnly = false;
 let loadEarlierQueued = false;
 
@@ -88,7 +92,13 @@ function setStorageNotice(message = '') {
     notice.hidden = !message;
 }
 
-function setStatus(message, state = '') {
+function setStatus(message, state = '', activityState = state) {
+    activityReadState = activityState;
+    if (state !== 'loading') {
+        renderOverviewActivity(currentActivities);
+        renderActivity(currentActivities);
+        renderTransactionSummary(currentActivities, readScopedMyTezosEntries());
+    }
     [
         document.getElementById('portfolio-memory-status'),
         document.getElementById('my-tezos-overview-activity-status')
@@ -187,8 +197,10 @@ function renderActivityList(target, empty, activities, emptyMessage) {
     if (!target || !empty) return;
     empty.hidden = activities.length > 0;
     if (!activities.length) {
-        quietlySyncHtml(target, '');
-        empty.textContent = emptyMessage;
+        const pending = activityReadState === 'loading' && !confirmedActivityScopes.has(activityScopeKey()) && includedEntries().length > 0;
+        quietlySyncHtml(target, pending ? loadingRows('Reading account activity') : '');
+        empty.hidden = pending;
+        empty.textContent = activityReadState === 'error' ? 'Account activity unavailable. Retry to read receipts.' : emptyMessage;
         return;
     }
     quietlySyncHtml(target, activities.map(activityRowHtml).join(''));
@@ -231,7 +243,8 @@ function renderTransactionSummary(activities, entries) {
     };
     Object.entries(values).forEach(([key, value]) => {
         const target = document.querySelector(`[data-transactions-total="${key}"] strong`);
-        if (target) target.textContent = Number(value).toLocaleString();
+        if (target) target.textContent = key !== 'wallets' && !activities.length && activityReadState === 'error' ? '—' : Number(value).toLocaleString();
+        setTextPending(target, key !== 'wallets' && !activities.length && entries.length > 0 && activityReadState === 'loading' && !confirmedActivityScopes.has(activityScopeKey()));
     });
 }
 
@@ -257,6 +270,7 @@ export function prepareMyTezosChangesView() {
 }
 
 function renderMemory(entries, history, activities, { status = 'cached', baselineCreated = false } = {}) {
+    if (status !== 'loading' && status !== 'cached') activityReadState = status;
     currentHistory = history;
     const scopedEntries = readScopedMyTezosEntries(entries);
     currentActivities = aggregateMyTezosActivities(activities, scopedEntries.map((entry) => entry.address));
@@ -280,7 +294,10 @@ function renderMemory(entries, history, activities, { status = 'cached', baselin
                 dailyTarget: 0,
                 complete: false
             },
-            sourceStatus: history?.sourceStatus || { stage: status },
+            sourceStatus: {
+                ...history?.sourceStatus,
+                stage: ['complete', 'partial', 'error'].includes(status) ? status : history?.sourceStatus?.stage || status
+            },
             activities: currentActivities,
             status
         }
@@ -397,6 +414,7 @@ async function syncMemory({ loadEarlier = false, force = false, activityOnly = f
         const results = await Promise.allSettled(jobs);
         const historyResult = activityOnly ? null : results[0];
         const activityResult = activityOnly ? results[0] : results[1];
+        if (activityResult.status === 'fulfilled') confirmedActivityScopes.add(entries.map(entry => entry.address).sort().join('|'));
         if (generation !== activeGeneration || !memorySurfaceVisible()) return null;
         const cached = await readCachedMemory(entries);
         if (historyResult?.status === 'fulfilled') latestHistory = historyResult.value;
@@ -422,7 +440,8 @@ async function syncMemory({ loadEarlier = false, force = false, activityOnly = f
             failures
                 ? `Memory updated with partial source coverage · ${failureSummary || `${failures} request${failures === 1 ? '' : 's'} unavailable`}`
                 : `${loadEarlier ? 'Earlier receipts loaded' : activityOnly ? 'Recent transactions current' : 'Memory current'} · ${formatFreshnessStamp(new Date(), { source: 'TzKT' })}`,
-            failures ? 'partial' : 'complete'
+            failures ? 'partial' : 'complete',
+            activityResult.status === 'rejected' ? 'error' : 'complete'
         );
         await setMyTezosMeta('memory-last-success', {
             timestamp: Date.now(),
@@ -454,6 +473,7 @@ function scheduleSync({ force = false, activityOnly = false } = {}) {
 
 export async function activateMyTezosMemory({ force = false, activityOnly = false } = {}) {
     const entries = includedEntries();
+    activityReadState = 'loading';
     try {
         await initMyTezosDb();
         setStorageNotice('');

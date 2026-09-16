@@ -1,3 +1,4 @@
+import { loadingRows } from '../ui/text-loading.js';
 import { renderChamberStamp, renderChamberVerdict } from '../ui/chamber-reading.js';
 /**
  * Tezos Community Rewards Chamber
@@ -253,7 +254,7 @@ function ensureEntryCard() {
         card.innerHTML = `
             <button class="card-copy-link" type="button" data-copy-hash="#tezoscrp" aria-label="Copy TezosCRP Chamber direct link" title="Copy TezosCRP Chamber link">🔗</button>
             <div class="card-inner">
-                <div class="card-front tezoscrp-entry-front"><h2 class="stat-label" id="tezoscrp-entry-title">TezosCRP Recognition Hall</h2><div class="tezoscrp-entry-loading">Reading the official monthly archive…</div></div>
+                <div class="card-front tezoscrp-entry-front"><h2 class="stat-label" id="tezoscrp-entry-title">TezosCRP Recognition Hall</h2><div class="tezoscrp-entry-loading">${loadingRows("Reading the official monthly archive")}</div></div>
                 <div class="card-back" aria-hidden="true"><h2 class="stat-label">TezosCRP</h2><div class="stat-value">Community recognition</div><p class="stat-description">Official category awards, months, and source receipts.</p></div>
             </div>
         `;

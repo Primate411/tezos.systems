@@ -1,3 +1,4 @@
+import { loadingText, loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
@@ -746,7 +747,7 @@ function renderLoadingRoom() {
         </section>
         <div class="staking-room-loading" role="status">
             <span></span><span></span><span></span>
-            <p>Building the complete &gt;10K stake / unstake tape…</p>
+            <p>${loadingText("Building the complete stake / unstake tape")}</p>${loadingRows("Reading staking receipts")}
         </div>
     `;
     wireGuideDisclosure();
@@ -899,7 +900,7 @@ function renderOperationRow(row, { moverTrailRow = false } = {}) {
 }
 
 function renderArchiveState(message, className = '') {
-    return `<div class="staking-archive-state ${className}" role="status">${escapeHtml(message)}</div>`;
+    return `<div class="staking-archive-state ${className}" role="status">${className === 'is-loading' ? loadingRows(message) : escapeHtml(message)}</div>`;
 }
 
 async function updateArchiveTable({ reset = false } = {}) {

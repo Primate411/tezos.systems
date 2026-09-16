@@ -3,6 +3,7 @@
     const isHenRoute = /^\/hen(?:\/|\/index\.html)?$/.test(window.location.pathname)
         || new URLSearchParams(window.location.search).has('hen');
     let runtimePromise = null;
+    let runtimeAttempts = 0;
     let activationIntent = 0;
     const domReady = document.readyState === 'loading'
         ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
@@ -31,7 +32,11 @@
         runtimePromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.id = 'hen-runtime';
-            script.src = '/js/features/hen-mode.js?v=96';
+            script.type = 'module';
+            const attempt = runtimeAttempts++;
+            // A failed module URL is cached by the browser; explicit retries
+            // need a fresh URL while concurrent launchers still share one load.
+            script.src = '/js/features/hen-mode.js?v=97' + (attempt ? `&retry=${attempt}` : '');
             script.async = true;
             script.addEventListener('load', () => {
                 if (window.HenMode) resolve(window.HenMode);

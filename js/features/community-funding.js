@@ -167,8 +167,8 @@ function sourceStatus(source) {
     const platform = FUNDING_SOURCES[source];
     const state = !receipt ? (errors[source] ? 'Unavailable' : 'Loading') : errors[source] ? 'Refresh failed · saved snapshot' : fundingStale(receipt) ? 'Stale snapshot' : 'Platform snapshot';
     return `<div class="funding-source-status" data-quiet-key="status-${source}" data-stale="${Boolean(errors[source] || fundingStale(receipt))}">
-        <div><strong>${platform.name}</strong><span>${state}</span></div>
-        <div>${receipt ? renderChamberStamp(receipt.generatedAt, 'Checked') : '<span>Waiting for a successful check</span>'}${receipt?.sourceGeneratedAt ? renderChamberStamp(receipt.sourceGeneratedAt, 'Platform data') : ''}</div>
+        <div><strong>${platform.name}</strong><span${!receipt && !errors[source] ? ' data-text-pending="true"' : ''}>${state}</span></div>
+        <div>${receipt ? renderChamberStamp(receipt.generatedAt, 'Checked') : `<span${!errors[source] ? ' data-text-pending="true"' : ''}>Waiting for a successful check</span>`}${receipt?.sourceGeneratedAt ? renderChamberStamp(receipt.sourceGeneratedAt, 'Platform data') : ''}</div>
     </div>`;
 }
 
@@ -193,7 +193,7 @@ function render() {
     if (!available) {
         markup = sources.some(source => errors[source])
             ? `<div class="funding-empty"><span class="funding-empty-mark">↻</span><h3>Funding snapshots are unavailable</h3><p>We couldn’t load a funding snapshot. Try again, or browse the platforms directly.</p>${sources.map(source => external(FUNDING_SOURCES[source].home, `Open ${FUNDING_SOURCES[source].name}`, 'funding-action')).join('')}</div>`
-            : '<div class="funding-grid" aria-busy="true" aria-label="Loading opportunities">' + [0, 1, 2].map(i => `<div class="funding-card funding-skeleton" data-quiet-key="skeleton-${i}"><div></div><span></span><span></span><span></span></div>`).join('') + '</div>';
+            : '<div class="funding-grid" aria-busy="true" aria-label="Loading opportunities">' + [0, 1, 2].map(i => `<div class="funding-card funding-skeleton" data-quiet-key="skeleton-${i}"><div></div><span data-text-pending="true"></span><span data-text-pending="true"></span><span data-text-pending="true"></span></div>`).join('') + '</div>';
     } else if (shown.length) {
         markup = `<div class="funding-panel-heading"><div><h2>${VIEWS[view]}</h2><p>${view === 'support' ? 'Ongoing support, directly to the people building on Tezos.' : view === 'history' ? 'Ended, paused and unavailable campaigns, with each platform’s reported figures.' : 'TezTree and TTCrowd campaigns, with each platform’s goals and currencies.'}</p></div><span>${shown.length} ${view === 'support' ? 'projects' : 'campaigns'}</span></div>
             <div class="funding-grid">${shown.map(({ item, source }) => source === 'hacktez' ? projectCard(item) : campaignCard(item, source)).join('')}</div>`;

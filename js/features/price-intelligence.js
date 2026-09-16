@@ -1,3 +1,4 @@
+import { loadingRows } from '../ui/text-loading.js';
 /**
  * Price Intelligence — SEO-optimized price section with prediction game
  * Compact, elegant, not crowding the page.
@@ -437,6 +438,15 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
 // ─── Public API ───────────────────────────────────────────────────────────────
 export async function initPriceIntelligence(stats, xtzPrice) {
   if (document.getElementById(SECTION_ID)) return;
+  injectStyles();
+  const pendingSection = document.createElement('section');
+  pendingSection.id = SECTION_ID;
+  pendingSection.className = 'price-intelligence-section';
+  pendingSection.setAttribute('aria-busy', 'true');
+  pendingSection.innerHTML = `<div class="section-header"><h2 class="section-title">Market Watch</h2></div><div class="pi-card">${loadingRows('Reading market data', 8)}</div>`;
+  const anchor = document.getElementById('live-head');
+  if (anchor) anchor.after(pendingSection);
+  else document.querySelector('main')?.prepend(pendingSection);
 
   // Get price data from CoinGecko (via shared price.js cache)
   let price = Number(xtzPrice) || 0;
@@ -479,13 +489,8 @@ export async function initPriceIntelligence(stats, xtzPrice) {
 
   const section = buildSection(price, change24h, marketCap, volume, stats, cycle);
 
-  // Insert after Live Head, before the main dashboard content.
-  const hero = document.getElementById('live-head');
-  if (hero) hero.after(section);
-  else {
-    const main = document.querySelector('main');
-    if (main) main.prepend(section);
-  }
+  // Replace only this initial placeholder; a later user toggle may remove it.
+  if (pendingSection.isConnected) pendingSection.replaceWith(section);
 }
 
 export function updatePriceIntelligence(stats, xtzPrice) {

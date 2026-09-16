@@ -1,3 +1,4 @@
+import { setTextPending, loadingText } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 // Historical data visualization module
@@ -584,6 +585,7 @@ function renderHistorySourceCoverage(receipts, range) {
         const receipt = receipts?.[key];
         const unavailable = historyReceiptUnavailable(receipt);
         const empty = !unavailable && historyReceiptRows(receipt).length === 0;
+        setTextPending(el, false);
         el.textContent = historyCoverageLabel(receipt, range);
         el.classList.toggle('is-unavailable', unavailable);
         el.classList.toggle('is-empty', empty);
@@ -1718,7 +1720,7 @@ function renderCycleHistoryIntro(modal) {
                                 <a href="${escapeAttr(item.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)}<span aria-hidden="true">&#8599;</span></a>
                             `).join('')}
                         </div>
-                        <span class="cycle-history-source-coverage" data-history-source-coverage="${escapeAttr(source.key)}">Coverage loads with the selected range.</span>
+                        <span class="cycle-history-source-coverage" data-history-source-coverage="${escapeAttr(source.key)}" data-text-pending="true">Coverage loads with the selected range.</span>
                     </article>
                 `).join('')}
             </div>
@@ -1806,6 +1808,7 @@ function syncCycleHistoryRouteState() {
 }
 
 function setCycleHistoryStatus(message) {
+    setTextPending(document.getElementById('cycle-history-route-status'), false);
     const status = document.getElementById('cycle-history-route-status');
     if (status) status.textContent = message;
 }
@@ -2119,6 +2122,10 @@ async function updateHistoryCharts(range) {
     const requestId = ++cycleHistoryRequestId;
     modal?.setAttribute('aria-busy', 'true');
     setCycleHistoryStatus(`Reading ${rangeLabel(normalizedRange)} snapshots across five source ledgers…`);
+    setTextPending(modal?.querySelector('#cycle-history-route-status'), !cycleHistoryRenderedRange);
+    if (!cycleHistoryRenderedRange) modal?.querySelectorAll('.chart-stats').forEach(node => {
+        node.innerHTML = ['Change', 'High', 'Low'].map(label => `<span class="stat-item"><span class="stat-label">${label}</span>${loadingText(`Reading ${label.toLowerCase()}`)}</span>`).join('');
+    });
     try {
         const [globalReceipt, domainReceipts, freshness] = await Promise.all([
             fetchHistoricalDataReceipt(normalizedRange),
@@ -2213,7 +2220,14 @@ async function updateHistoryCharts(range) {
         console.error('Failed to update history charts:', error);
         return false;
     } finally {
-        if (requestId === cycleHistoryRequestId) modal?.removeAttribute('aria-busy');
+        if (requestId === cycleHistoryRequestId) {
+            modal?.querySelectorAll('[data-text-pending]').forEach(node => {
+                setTextPending(node, false);
+                node.textContent = 'Unavailable';
+            });
+            modal?.removeAttribute('aria-busy');
+            setTextPending(modal?.querySelector('#cycle-history-route-status'), false);
+        }
     }
 }
 
@@ -2419,7 +2433,7 @@ async function renderCardHistoryChart(modal, config, range) {
     modal.dataset.cardHistoryRange = range;
     setCardHistoryRangeState(modal, range);
     destroyChartInstance(canvasId);
-    chartContainer.innerHTML = '<div class="card-history-state">Reading the history ledger</div>';
+    chartContainer.innerHTML = `<div class="card-history-state">${loadingText("Reading the history ledger")}</div>`;
 
     // Load data and render chart
     try {

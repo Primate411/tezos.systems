@@ -67,6 +67,33 @@ Do not add blanket selector exclusions or increase the pixel tolerance to hide d
 Save pending/loaded screenshots and geometry JSON with `--artifacts-dir`. Visually
 review content density as well: matching giant empty placeholders is not acceptance.
 
+## Pending text indicators
+
+Run `node tests/smoke.mjs --only text-loading-chambers,text-loading-my-tezos,text-loading-widgets,text-loading-tools,text-loading-secondary,baker-roster-loading,live-number-motion --repeat-each 2 --retry-failures 0 --hermetic --isolate-suites`.
+
+The browser matrix holds data requests before checking the actual future text
+areas, including launcher previews, below-fold chart readings, account lookups,
+and secondary governance, lore, and Passport receipts. It checks computed size,
+rounded shape, opaque backing, hidden placeholder text, and shimmer animation.
+Desktop and phone cases include reduced motion, which keeps a stationary bubble.
+Negative probes remove the visual while retaining its marker: they must fail.
+Existing themed chamber text effects and widget primary pulses remain valid.
+
+Release held receipts and assert that placeholders disappear, including empty and
+unavailable results. Check cached reopening and preserve last-good facts during
+refresh. My Tezos checks distinguish missing cached records from a confirmed empty
+read. `my-tezos-layout-states` remains the loading-to-loaded geometry gate; the
+baker suite additionally checks scroll, focus, selection, and keyed row identity.
+
+Every new asynchronous text area needs an explicit pending selector and a
+completion assertion in `tests/lib/text-loading-smoke.mjs` (or its owning feature
+smoke). `tests/text-loading-check.mjs` rejects new chamber routes without a loading
+coverage decision. A spinner, nearby progress bar, generic text search, or an
+`aria-busy` attribute alone does not satisfy this contract. Static navigation,
+input-required prompts, confirmed empty results, and errors are exempt. Request
+owners use `js/ui/text-loading.js`; do not infer loading globally from dashes or
+zeroes. Preserve existing themed loading effects instead of replacing them.
+
 ## Manual visual pass
 
 Automated tests catch regressions, but still do this visual pass for UI-heavy changes:

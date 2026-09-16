@@ -1,5 +1,38 @@
 /* Critical first-paint shell state */
 
+/* Only explicitly pending slots opt in. Existing themed text effects are kept.
+   Both gradient stops and the backing are opaque, including transparent embeds. */
+[data-text-pending="true"] {
+    min-width: 2ch;
+    min-height: .75em;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 999px !important;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+    background-color: var(--bg-secondary, #182235) !important;
+    background-image: linear-gradient(90deg,
+        color-mix(in srgb, var(--text-primary, #dce5f5) 10%, var(--bg-secondary, #182235)) 25%,
+        color-mix(in srgb, var(--text-primary, #dce5f5) 22%, var(--bg-secondary, #182235)) 50%,
+        color-mix(in srgb, var(--text-primary, #dce5f5) 10%, var(--bg-secondary, #182235)) 75%) !important;
+    background-size: 200% 100% !important;
+
+}
+/* Pending first facts remain animated even inside a quietly reconciled shell. */
+[data-text-pending="true"][data-text-pending][data-text-pending] { animation: textLoadingShimmer 1.6s ease-in-out infinite !important; }
+[data-text-pending="true"] * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; }
+.text-loading-inline { display: inline-block; }
+[data-my-tezos-scope-total="spendable"] strong[data-text-pending],
+[data-my-tezos-scope-total="staked"] strong[data-text-pending] { padding-inline: 1.5ch; }
+.text-loading-rows { display: grid; gap: .75rem; padding-block: .5rem; }
+.text-loading-rows > div { display: flex; gap: .75rem; align-items: center; min-width: 0; }
+.text-loading-rows [data-text-pending] { width: 44%; font-size: .75rem; line-height: 1.2; }
+.text-loading-rows [data-text-pending] + [data-text-pending] { width: 28%; }
+@keyframes textLoadingShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { [data-text-pending="true"][data-text-pending][data-text-pending] { animation: none !important; } }
+
 .chamber-first-paint { padding: clamp(22px, 4vw, 48px); color: inherit; }
 /* Keep cache verification out of the source-date pill's wrapping geometry. */
 .chamber-snapshot-status { display: block; min-height: 14px; margin: 6px 0; font: 400 10px/14px "JetBrains Mono", monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .8; }

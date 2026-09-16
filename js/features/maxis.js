@@ -1,3 +1,4 @@
+import { loadingText, loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
@@ -1644,12 +1645,12 @@ function renderHonorsPanel(data, category, { ongoing = false, settling = false, 
 function renderSeasonPanel() {
     const data = activeDataForSeason();
     if (!data) {
-        const loading = chamberState.summaryLoading;
+        const loading = chamberState.summaryLoading || chamberState.manifestLoading;
         const contextError = seasonContextError();
         const failed = !loading && Boolean(contextError);
         return `
             ${renderRoomIntro('Protocol arena', loading ? 'Opening the season sheet…' : failed ? 'Selected season is scoped unavailable' : 'Season rankings are not published yet', 'The ongoing Maxis boards remain available on their own live, rolling, and all-time-active clocks; they are never relabeled as protocol-season results.')}
-            <div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">${failed ? '!' : '◉'}</span><strong>${loading ? 'Loading protocol-bounded scores' : failed ? 'The selected season sheet did not pass its receipt' : 'The first Maxis season is forming'}</strong><p>${loading ? 'Fetching the selected season summary while the ongoing Maxis boards stay usable.' : failed ? `${escapeHtml(contextError)} The canonical Maxis room remains available.` : 'A Maxis season only appears here when its activation boundary, score window, and source coverage can be stated honestly.'}</p>${failed ? '<button class="maxis-passport-submit" type="button" data-maxis-season-retry>Retry season sheet</button>' : ''}</div></div>
+            <div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">${failed ? '!' : '◉'}</span><strong>${loading ? loadingText('Loading protocol-bounded scores') : failed ? 'The selected season sheet did not pass its receipt' : 'The first Maxis season is forming'}</strong><p>${loading ? 'Fetching the selected season summary while the ongoing Maxis boards stay usable.' : failed ? `${escapeHtml(contextError)} The canonical Maxis room remains available.` : 'A Maxis season only appears here when its activation boundary, score window, and source coverage can be stated honestly.'}</p>${failed ? '<button class="maxis-passport-submit" type="button" data-maxis-season-retry>Retry season sheet</button>' : ''}</div></div>
         `;
     }
     const category = ensureValidLane(data);
@@ -2569,8 +2570,8 @@ function renderPassportPanel() {
             </form>
             <div aria-live="polite">
                 ${chamberState.passportLoading ? (chamberState.passportLoadingStage === 'domain'
-                    ? '<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">.tez</span><strong>Resolving the Tezos Domain…</strong><p>Finding the account this name currently points to before reading any address-bound Passport shards.</p></div></div>'
-                    : '<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">✺</span><strong>Stamping the Passport…</strong><p>Reading only the deterministic shard for this address, then checking the loaded season ranks.</p></div></div>') : ''}
+                    ? '<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">.tez</span><strong data-text-pending="true">Resolving the Tezos Domain…</strong><p>Finding the account this name currently points to before reading any address-bound Passport shards.</p></div></div>'
+                    : '<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">✺</span><strong data-text-pending="true">Stamping the Passport…</strong><p>Reading only the deterministic shard for this address, then checking the loaded season ranks.</p></div></div>') : ''}
                 ${!chamberState.passportLoading && chamberState.passportError ? `<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">!</span><strong>Passport not opened</strong><p>${escapeHtml(chamberState.passportError)}</p>${chamberState.passportRetryable ? '<button class="maxis-passport-submit" type="button" data-maxis-passport-retry>Retry Passport</button>' : ''}</div></div>` : ''}
                 ${!chamberState.passportLoading && !chamberState.passportError && chamberState.passportProfile ? renderPassportCard(chamberState.passportProfile, chamberState.passportNote) : ''}
                 ${!chamberState.passportLoading && !chamberState.passportError && !chamberState.passportProfile ? (contextError
@@ -2774,7 +2775,7 @@ async function ensureArchivesLoaded({ force = false } = {}) {
 
 function renderChampionsPanel() {
     const archives = archivesFromCurrentState();
-    if (chamberState.archivesLoading) return `<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">◇</span><strong>Opening the permanent record…</strong><p>Reading finalized season sheets only.</p></div></div>`;
+    if (chamberState.archivesLoading || chamberState.manifestLoading) return `<div class="maxis-empty-stage"><div><span class="maxis-empty-stage-mark">◇</span><strong data-text-pending="true">Opening the permanent record…</strong><p>Reading finalized season sheets only.</p></div></div>`;
     const archiveError = textValue(chamberState.archivesError, !chamberState.manifest ? chamberState.manifestError : '');
     if (!archives.length) {
         if (archiveError) {
@@ -3466,11 +3467,11 @@ function renderEntryContents(legacy, manifest, summary) {
             </div>
             <aside class="maxis-entry-season-pulse" aria-label="Current protocol season pulse">
                 <span class="maxis-entry-season-label">◉ Season ${escapeHtml(hasSeasonIdentity ? seasonNumberLabel(season) : '—')} · ${escapeHtml(pulseState)}</span>
-                <strong>${escapeHtml(pulseTitle)}</strong>
+                <strong${seasonPending ? ' data-text-pending="true"' : ''}>${escapeHtml(pulseTitle)}</strong>
                 <p>${escapeHtml(seasonError ? 'The ongoing Maxis identities above remain valid. Open the Chamber to retry the scoped season sheet.' : 'Protocol-bounded movement, honors, and Passport progress.')}</p>
-                <div class="maxis-entry-pulse-line"><span>Boundary</span><strong>${escapeHtml(boundaryCopy)}</strong></div>
-                <div class="maxis-entry-pulse-line"><span>Season Unicorn</span><strong>${escapeHtml(unicornCopy)}</strong></div>
-                <div class="maxis-entry-pulse-line"><span>Season sheet</span><strong>${escapeHtml(sheetCopy)}</strong></div>
+                <div class="maxis-entry-pulse-line"><span>Boundary</span><strong${seasonPending ? ' data-text-pending="true"' : ''}>${escapeHtml(boundaryCopy)}</strong></div>
+                <div class="maxis-entry-pulse-line"><span>Season Unicorn</span><strong${seasonPending ? ' data-text-pending="true"' : ''}>${escapeHtml(unicornCopy)}</strong></div>
+                <div class="maxis-entry-pulse-line"><span>Season sheet</span><strong${seasonPending ? ' data-text-pending="true"' : ''}>${escapeHtml(sheetCopy)}</strong></div>
                 ${seasonCrownCards.length ? `
                     <div class="maxis-entry-season-crowns" aria-label="Current protocol-season lane leaders">
                         ${seasonCrownCards.map(({ category, leader }) => `
@@ -3520,7 +3521,7 @@ function ensureEntryCard() {
         card.innerHTML = `
             <button class="card-copy-link" type="button" data-copy-hash="#maxis" aria-label="Copy Tezos Maxis direct link" title="Copy Tezos Maxis link">🔗</button>
             <div class="card-inner">
-                <div class="card-front maxis-entry-front"><h2 class="stat-label" id="maxis-entry-title">Tezos Maxis</h2><div class="maxis-entry-loading">Opening the identity boards…</div></div>
+                <div class="card-front maxis-entry-front"><h2 class="stat-label" id="maxis-entry-title">Tezos Maxis</h2><div class="maxis-entry-loading">${loadingRows("Opening the identity boards")}</div></div>
                 <div class="card-back" aria-hidden="true"><h2 class="stat-label">Tezos Maxis</h2><div class="stat-value">Maxis identities</div><p class="stat-description">Every identity keeps its honest clock.</p></div>
             </div>
         `;

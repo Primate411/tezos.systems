@@ -7,7 +7,9 @@ export const CHANGELOG = [
     {
         date: '2026-09-16',
         entries: [
-            { type: '🔧', text: 'Recent baker changes preload only their confirmed membership; optional details wait for hover, focus, or opening so background work does not delay other live views' }
+            { type: '🔧', text: 'Recent baker changes preload only their confirmed membership; optional details wait for hover, focus, or opening so background work does not delay other live views' },
+            { type: '🎨', text: 'The Baker set popup now shows opaque loading bubbles while its list, history changes, names, event times, size, and first-bake details are pending' },
+            { type: '🎨', text: 'Pending text across My Tezos, Chambers, tools, previews, and widgets now shows opaque loading bubbles, with existing themed effects preserved and browser checks for loading and completion' }
         ]
     },
     {

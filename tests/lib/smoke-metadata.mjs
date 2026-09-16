@@ -1,4 +1,5 @@
 const RULES = [
+  { suites: /^text-loading-/, files: ['js/ui/text-loading.js', 'js/ui/chamber-skeleton.js', 'css/loading*', 'js/features/**', 'widgets/**', 'tests/lib/text-loading-smoke.mjs'], tags: ['loading', 'live-data', 'responsive'], risk: 'high' },
   {
     suites: /^baker-roster-loading$/,
     files: ['js/core/app.js', 'js/core/tezos-domains.js', 'css/shell-extras*', 'tests/lib/baker-roster-loading-smoke.mjs'],

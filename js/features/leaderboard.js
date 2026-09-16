@@ -1,3 +1,4 @@
+import { loadingText, loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
@@ -1321,7 +1322,7 @@ async function renderBakerActionDialog({ refresh = false } = {}) {
     if (refresh || !state.accountLoaded) {
         content.innerHTML = `
             <h2 id="baker-action-title">Preparing baker action</h2>
-            <div class="baker-action-loading" role="status">Reading wallet and baker state…</div>
+            <div class="baker-action-loading" role="status">${loadingText("Reading wallet and baker state")}</div>
         `;
         try {
             const wallet = await getWalletAccount({ quiet: true });
@@ -1862,8 +1863,8 @@ function renderBakerDirectoryLoading(body) {
     body.innerHTML = `
         <div class="baker-directory-loading" role="status" aria-live="polite">
             <span class="feature-kicker">Baker Directory</span>
-            <strong>Reading the funded active-baker set</strong>
-            <small>Paging TzKT delegates and joining governance receipts</small>
+            <strong>${loadingText("Reading the funded active-baker set")}</strong>
+            <small>Paging TzKT delegates and joining governance receipts</small>${loadingRows("Loading baker rows")}
             <div aria-hidden="true"><i></i></div>
         </div>
     `;

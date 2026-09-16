@@ -51,17 +51,17 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=645">
-    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=645">
-    <link rel="stylesheet" href="css/loading.min.css?v=645">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.min.css?v=645">
-    <link rel="stylesheet" href="css/site-map.min.css?v=645">
+    <link rel="stylesheet" href="css/styles.min.css?v=646">
+    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=646">
+    <link rel="stylesheet" href="css/loading.min.css?v=646">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.min.css?v=646">
+    <link rel="stylesheet" href="css/site-map.min.css?v=646">
     <link rel="stylesheet" href="css/hen-mode.min.css?v=98">
-    <script src="js/core/hen-init.js?v=80" defer></script>
+    <script src="js/core/hen-init.js?v=81" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=645">
+    <link rel="modulepreload" href="js/core/app.js?v=646">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/data-assets.js">
@@ -74,7 +74,7 @@
     <link rel="modulepreload" href="js/ui/animations.js">
     <link rel="modulepreload" href="js/ui/share.js">
     <link rel="modulepreload" href="js/ui/wayfinder.js">
-    <link rel="modulepreload" href="js/features/my-tezos.js?v=645">
+    <link rel="modulepreload" href="js/features/my-tezos.js?v=646">
     <link rel="modulepreload" href="js/features/my-tezos-portfolio.js">
     <link rel="modulepreload" href="js/features/my-tezos-portfolio-model.mjs">
     <link rel="modulepreload" href="js/features/my-tezos-tabs.mjs">
@@ -275,8 +275,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=645"></script>
-    <script src="js/core/home-layout-preload.js?v=645"></script>
+    <script src="js/core/theme-preload.js?v=646"></script>
+    <script src="js/core/home-layout-preload.js?v=646"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -300,7 +300,7 @@
     </div>
 
     <!-- XTZ Price Bar -->
-    <div id="price-bar" class="price-bar">
+    <div id="price-bar" class="price-bar" data-price-state="loading">
         <div class="price-bar-content">
             <a class="cycle-chip" id="cycle-chip" href="#health" aria-label="Open Network Health Chamber from cycle progress" title="Open Network Health Chamber">
                 <span class="cycle-chip-label" id="cycle-chip-label" title="Current cycle">sync</span>
@@ -310,16 +310,16 @@
             <span class="price-pipe">│</span>
             <a href="https://www.coingecko.com/en/coins/tezos" target="_blank" rel="noopener" class="price-link">
                 <span class="price-label">XTZ</span>
-                <span class="price-value">—</span>
+                <span class="price-value" data-text-pending="true">—</span>
                 <span class="price-changes" aria-label="XTZ rolling USD price changes" title="Rolling USD price change · 24 hours, 7 days, 30 days">
-                    <span class="price-change" data-price-change="24h" aria-label="XTZ 24 hour price change unavailable"><span class="price-change-period">24H</span><span class="price-change-value">—</span></span>
-                    <span class="price-change price-change-secondary" data-price-change="7d" aria-label="XTZ 7 day price change unavailable"><span class="price-change-period">7D</span><span class="price-change-value">—</span></span>
-                    <span class="price-change price-change-secondary" data-price-change="30d" aria-label="XTZ 30 day price change unavailable"><span class="price-change-period">30D</span><span class="price-change-value">—</span></span>
+                    <span class="price-change" data-price-change="24h" aria-label="XTZ 24 hour price change unavailable"><span class="price-change-period">24H</span><span class="price-change-value" data-text-pending="true">—</span></span>
+                    <span class="price-change price-change-secondary" data-price-change="7d" aria-label="XTZ 7 day price change unavailable"><span class="price-change-period">7D</span><span class="price-change-value" data-text-pending="true">—</span></span>
+                    <span class="price-change price-change-secondary" data-price-change="30d" aria-label="XTZ 30 day price change unavailable"><span class="price-change-period">30D</span><span class="price-change-value" data-text-pending="true">—</span></span>
                 </span>
             </a>
-            <span class="price-alt" id="price-btc" title="XTZ price in sats (vs BTC)">—</span>
+            <span class="price-alt" data-text-pending="true" id="price-btc" title="XTZ price in sats (vs BTC)">—</span>
             <span class="price-separator">·</span>
-            <span class="price-mcap">—</span>
+            <span class="price-mcap" data-text-pending="true">—</span>
             <span class="price-pipe">│</span>
             <a href="https://gov.tez.capital" target="_blank" rel="noopener" class="price-cta" title="Stake XTZ">🥩 Stake</a>
             <a href="https://docs.tez.capital" target="_blank" rel="noopener" class="price-cta" title="Bake on Tezos">🍞 Bake</a>
@@ -731,19 +731,19 @@
                             <span class="header-activity-cluster-kicker" aria-hidden="true">1H Activity</span>
                             <span class="block-ticker-segment block-ticker-usage block-ticker-usage-tx">
                                 <span class="block-ticker-label">TX</span>
-                                <strong class="block-ticker-value" data-usage-slot="tx">&mdash;</strong>
+                                <strong class="block-ticker-value" data-text-pending="true" data-usage-slot="tx">&mdash;</strong>
                             </span>
                             <span class="block-ticker-segment block-ticker-usage block-ticker-usage-moved">
                                 <span class="block-ticker-label">Moved</span>
-                                <strong class="block-ticker-value" data-usage-slot="moved">&mdash;</strong>
+                                <strong class="block-ticker-value" data-text-pending="true" data-usage-slot="moved">&mdash;</strong>
                             </span>
                             <span class="block-ticker-segment block-ticker-usage block-ticker-usage-nft">
                                 <span class="block-ticker-label">NFT</span>
-                                <strong class="block-ticker-value" data-usage-slot="nft">&mdash;</strong>
+                                <strong class="block-ticker-value" data-text-pending="true" data-usage-slot="nft">&mdash;</strong>
                             </span>
                             <span class="block-ticker-segment block-ticker-usage block-ticker-whale">
                                 <span class="block-ticker-label">Whale</span>
-                                <strong class="block-ticker-value" data-usage-slot="whale">&mdash;</strong>
+                                <strong class="block-ticker-value" data-text-pending="true" data-usage-slot="whale">&mdash;</strong>
                             </span>
                         </span>
                     </span>
@@ -753,7 +753,7 @@
                         <span class="chain-health-label">Chain health</span>
                         <span class="chain-health-separator" aria-hidden="true">•</span>
                         <span class="chain-health-status">
-                            <span class="chain-health-readout" id="chain-health-readout" data-quiet-key="chain-health-readout" data-tone="unknown" aria-hidden="true">—</span>
+                            <span class="chain-health-readout" id="chain-health-readout" data-text-pending="true" data-quiet-key="chain-health-readout" data-tone="unknown" aria-hidden="true">—</span>
                             <span class="chain-health-divider" aria-hidden="true"></span>
                         </span>
                     </span>
@@ -2268,7 +2268,7 @@
             <span class="footer-contribute"><a href="/landing.html">Start here</a> · <a href="/funding/">Community Funding</a> · <a href="https://github.com/Primate411/tezos.systems/issues" target="_blank" rel="noopener">Issues</a> · <a href="https://github.com/Primate411/tezos.systems/pulls" target="_blank" rel="noopener">PRs</a> · <a href="https://github.com/Primate411/tezos.systems" target="_blank" rel="noopener">Source</a> · <a href="/LICENSE" rel="license">MPL-2.0</a></span>
             <span class="footer-source-line">Data from <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT</a> · RPC by <a href="https://eu.rpc.tez.capital" target="_blank" rel="noopener">Tez Capital</a></span>
             <div class="footer-last-line">
-                <p id="build-version" class="build-version"></p>
+                <p id="build-version" data-text-pending="true" class="build-version"></p>
                 <button class="home-block-hide footer-credits-hide" type="button" data-home-hide="credits" aria-label="Hide Credits and sources" title="Hide Credits and sources">
                     <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
                     <span class="home-block-hide-label">Hide</span>
@@ -3000,8 +3000,8 @@
 
 
     <!-- Load app as module -->
-    <script type="module" src="js/effects/valley-loader.js?v=645"></script>
-    <script type="module" src="js/core/app.js?v=645"></script>
+    <script type="module" src="js/effects/valley-loader.js?v=646"></script>
+    <script type="module" src="js/core/app.js?v=646"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

@@ -1,3 +1,4 @@
+import { loadingText } from '../ui/text-loading.js';
 /**
  * Hero Search / Command Bar
  * Turns the protocol header into a front door for native Tezos.Systems rooms.
@@ -1061,12 +1062,13 @@ function resultHtml(result, selectedId, query) {
     const meta = resultMeta(result);
     const matchContext = hiddenMatchContext(result, query);
     if (result.selectable === false) {
+        const pending = result.badge === 'checking';
         return `
             <div class="hero-search-status-row" role="status" data-quiet-key="${escapeHtml(result.id)}">
                 <span class="hero-result-mark" data-kind="${escapeHtml(result.kind)}" aria-hidden="true"></span>
                 <span class="hero-result-copy">
-                    <strong>${escapeHtml(result.title)}</strong>
-                    <span>${escapeHtml(result.detail || '')}</span>
+                    <strong>${pending ? loadingText(result.title) : escapeHtml(result.title)}</strong>
+                    <span>${pending ? loadingText(result.detail || 'Loading result') : escapeHtml(result.detail || '')}</span>
                 </span>
             </div>
         `;

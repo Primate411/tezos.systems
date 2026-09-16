@@ -1,3 +1,4 @@
+import { setTextPending, setPendingFields, loadingText } from '../ui/text-loading.js';
 /**
  * My Tezos Portfolio — watch-only Tezos L1 XTZ aggregation and local history.
  * No address grouping, balances, or history leaves the visitor's browser.
@@ -511,6 +512,7 @@ function renderHistoryStatus(points, coverage) {
     status.textContent = target
         ? `${completed}/${target} exact points · earliest ${earliest} · daily latest year, weekly earlier${latestLevel ? ` · block ${Number(latestLevel).toLocaleString()}` : ''}${sources ? ` · ${sources}` : ''}`
         : 'Preparing the exact one-year schedule…';
+    setTextPending(status, !target && includedEntries().length > 0 && ['cached', 'daily', 'lifetime'].includes(stage));
     status.dataset.state = !target
         ? 'empty'
         : coverage?.complete
@@ -523,6 +525,7 @@ function renderHistoryStatus(points, coverage) {
 }
 
 function showHistoryChartFailure(empty) {
+    setTextPending(empty, false);
     empty.hidden = false;
     if (empty.querySelector('[data-chart-retry]')) return;
     const retryButton = document.createElement('button');
@@ -540,6 +543,7 @@ async function renderHistory({ retry = false } = {}) {
     const canvas = document.getElementById('portfolio-history-chart');
     const empty = document.getElementById('portfolio-history-empty');
     if (!canvas || !empty) return;
+    setTextPending(empty, false);
     const selected = selectedHistory();
     const points = historyPointsForRange(selected.points, portfolioRange);
     renderHistoryStatus(selected.points, selected.coverage);
@@ -553,6 +557,11 @@ async function renderHistory({ retry = false } = {}) {
             : selected.coverage?.target
                 ? 'Loading missing exact points. Saved points remain on this device and resume when My Tezos is visible.'
                 : 'Building the exact daily one-year schedule…';
+        const pending = ['cached', 'daily', 'lifetime'].includes(exactHistoryState.sourceStatus?.stage);
+        if (!first && includedEntries().length > 0) {
+            if (pending) empty.innerHTML = loadingText('Reading exact balance history');
+            else empty.textContent = 'Exact balance history is unavailable for this range.';
+        }
         if (portfolioChart) {
             portfolioChart.data.labels = [];
             portfolioChart.data.datasets[0].data = [];
@@ -667,6 +676,8 @@ function setFreshness(message, state = '') {
     if (!freshness) return;
     freshness.textContent = message;
     freshness.dataset.state = state;
+    const cold = state === 'loading' && lastCompletePortfolio?.composition !== portfolioCompositionKey(includedEntries());
+    setPendingFields(document, '#portfolio-summary strong, .portfolio-wallet-row:not(.excluded) [data-label]:not([data-label="Baker"])', cold);
     window.dispatchEvent(new CustomEvent('my-tezos-portfolio-status', { detail: { state } }));
 }
 
