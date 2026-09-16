@@ -287,7 +287,8 @@ async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, art
                 row.focus({ preventScroll: true });
                 const range = document.createRange(); range.selectNodeContents(row.querySelector('.funding-preview-copy strong'));
                 getSelection().removeAllRanges(); getSelection().addRange(range);
-                window.__previewReader = { card, row, scroll: scrollY, selection: getSelection().toString(), url: location.href, height: card.getBoundingClientRect().height };
+                window.__previewReader = { card, row, scroll: scrollY, selection: getSelection().toString(), url: location.href,
+                    height: card.getBoundingClientRect().height, layoutHeight: getComputedStyle(card).height };
                 window.__previewVisibility = 'hidden';
             });
             const hiddenRequests = requests;
@@ -297,12 +298,20 @@ async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, art
             await page.evaluate(() => { window.__previewVisibility = 'visible'; document.dispatchEvent(new Event('visibilitychange')); });
             await page.waitForFunction(() => document.querySelector('.funding-preview-fact strong')?.textContent.includes('26 ꜩ'));
             assert.equal(requests, hiddenRequests + 3, 'one visible catch-up per preview source');
-            assert.deepEqual(await page.evaluate(() => {
+            const refreshedReader = await page.evaluate(() => {
                 const before = window.__previewReader, card = document.getElementById('funding-entry-card');
-                return { card: before.card === card, row: before.row === card.querySelector('.funding-preview-item'), focus: document.activeElement === before.row,
+                return { state: { card: before.card === card, row: before.row === card.querySelector('.funding-preview-item'), focus: document.activeElement === before.row,
                     scroll: scrollY === before.scroll, selection: getSelection().toString() === before.selection, url: location.href === before.url,
-                    height: card.getBoundingClientRect().height === before.height, visible: getComputedStyle(before.row).opacity === '1' };
-            }), { card: true, row: true, focus: true, scroll: true, selection: true, url: true, height: true, visible: true });
+                    visible: getComputedStyle(before.row).opacity === '1' },
+                    height: card.getBoundingClientRect().height, beforeHeight: before.height,
+                    layoutHeight: getComputedStyle(card).height, beforeLayoutHeight: before.layoutHeight };
+            });
+            assert.deepEqual(refreshedReader.state, { card: true, row: true, focus: true, scroll: true, selection: true, url: true, visible: true });
+            // A fractional translate can round a 410px DOMRect to 409.99997px.
+            // Keep exact CSS geometry and the existing <0.01px renderer tolerance.
+            assert.equal(refreshedReader.layoutHeight, refreshedReader.beforeLayoutHeight, 'preview refresh retains exact layout height');
+            assert(Math.abs(refreshedReader.height - refreshedReader.beforeHeight) < 0.01,
+                `preview refresh retains rendered height at ${width}px: ${refreshedReader.beforeHeight} -> ${refreshedReader.height}`);
             await page.evaluate(() => { scrollBy(0, 25); window.__readerScroll = scrollY; });
             await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
             assert.equal(await page.evaluate(() => scrollY === window.__readerScroll), true);
