@@ -20,6 +20,7 @@ const [helper, css, browser, runner] = await Promise.all([
 ]);
 assert.doesNotMatch(helper, /MutationObserver|setInterval|querySelectorAll\(['"]\*['"]\)/, 'loading state belongs to the request owner, never a global text heuristic');
 assert.match(helper, /escapeHtml\(label\)/, 'accessible labels remain escaped');
+assert.ok(Buffer.byteLength(helper) <= 2048, 'the explicitly allowed standalone loading helper stays within 2 KiB');
 assert.match(css, /background-color: var\(--bg-secondary, #182235\) !important/, 'opaque theme-aware backing');
 assert.match(css, /prefers-reduced-motion: reduce/, 'reduced motion retains a visible stationary bubble');
 for (const suite of ['chambers', 'my-tezos', 'widgets', 'tools', 'secondary']) assert.ok(runner.includes(`name: 'text-loading-${suite}'`));

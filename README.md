@@ -1131,6 +1131,8 @@ inline modal styles in `js/core/app.js`.
   The five `text-loading-*` browser suites cover chamber first paint, home/tools,
   launcher and secondary reads, all My Tezos views, and all eight widgets, with
   computed-style checks, reduced motion, completion checks, and negative probes.
+  Standalone startup budgets account for exactly one shared text-loading module,
+  bounded to 2 KiB, while retaining their existing limits on other dependencies.
 - First-screen Live Head is built for liveness and retrieval: the top of the
   page moves from live cycle/market data to `Tezos Systems`, a clickable
   `Running on <current protocol>` Protocol History launcher beside the title

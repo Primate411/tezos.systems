@@ -64,7 +64,8 @@ export async function smokeStandaloneChamberExpansion(browser, baseUrl, { instal
       // The two bounded transport modules replace repeated snapshot readers.
       const transportModules = ['/js/core/generated-snapshot.js', '/js/core/generated-transport.mjs'];
       assert(cold.scripts.filter(url => transportModules.includes(url)).length <= 2, 'At most one instance of each transport module');
-      assert(cold.scripts.filter(url => url !== '/js/ui/chamber-reading.js' && !transportModules.includes(url)).length < 25, `${id} ${width}: unexpectedly large startup graph ${cold.scripts}`);
+      assert.equal(cold.scripts.filter(url => url === '/js/ui/text-loading.js').length, 1, 'One shared text-loading module');
+      assert(cold.scripts.filter(url => !['/js/ui/chamber-reading.js', '/js/ui/text-loading.js', ...transportModules].includes(url)).length < 25, `${id} ${width}: unexpectedly large startup graph ${cold.scripts}`);
       const forbidden = requests.filter(url => /\/js\/(?:core\/(?:app|api)\.js|features\/(?:network-health|history|my-tezos)\.js)|chart\.umd|api\.tzkt\.io|supabase\.co/.test(url));
       assert.deepEqual(forbidden, [], `${id} ${width}: unrelated dashboard requests`);
       for (const [, , , other] of ROOMS) if (other !== fullName) {
