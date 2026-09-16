@@ -9939,7 +9939,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
   await nearPage.locator('main').waitFor({ state: 'visible', timeout: 10000 });
   await nearPage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true'
     && document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
-  const nearState = await nearPage.evaluate(() => {
+  await nearPage.evaluate(() => {
     window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
       detail: {
         milestone: {
@@ -9956,6 +9956,14 @@ async function smokeCycleMilestone(browser, baseUrl) {
         }
       }
     }));
+  });
+  await nearPage.waitForFunction(() => {
+    const outline = document.querySelector('.top-continuity-milestone-outline');
+    const opacity = outline ? Number.parseFloat(getComputedStyle(outline).opacity) : 0;
+    return document.querySelector('#top-continuity-history')?.dataset.milestoneStatus === 'near'
+      && opacity >= 0.6 && opacity <= 0.68;
+  }, null, { timeout: 1500 });
+  const nearState = await nearPage.evaluate(() => {
     const cluster = document.querySelector('.top-uptime-cluster');
     const clock = document.querySelector('#top-continuity-history');
     const outline = clock?.querySelector('.top-continuity-milestone-outline');
@@ -11831,13 +11839,17 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     const track = section?.querySelector('[data-pulse-track]');
     const live = section?.querySelector('[data-pulse-run="live"]');
     const echo = section?.querySelector('[data-pulse-run="echo"]');
-    const item = echo?.querySelector('[data-pulse-echo-of="release-radar"]')
-      || echo?.querySelector('[data-pulse-echo-of]');
+    // The leading echo reaches a phone viewport before the one-run animation wraps.
+    const item = echo?.querySelector('[data-pulse-echo-of]');
     const animation = track?.getAnimations?.()[0];
     const duration = Number(animation?.effect?.getTiming?.().duration);
     if (!section || !viewport || !live || !item || !animation || !Number.isFinite(duration) || duration <= 0) return null;
     animation.pause();
-    const phase = Math.max(0, Math.min(0.995, 1 + ((item.offsetLeft + (item.getBoundingClientRect().width / 2) - (viewport.clientWidth / 2)) / live.getBoundingClientRect().width)));
+    await animation.ready;
+    animation.currentTime = 0;
+    const runWidth = live.getBoundingClientRect().width;
+    const targetLeft = viewport.getBoundingClientRect().left + 16;
+    const phase = Math.max(0, Math.min(0.995, (item.getBoundingClientRect().left - targetLeft) / runWidth));
     animation.currentTime = phase * duration;
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const viewportRect = viewport.getBoundingClientRect();

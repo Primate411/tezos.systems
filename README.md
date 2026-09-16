@@ -108,7 +108,9 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
   tests. Async browser fixtures execute once and retain completion results in
   their page, avoiding Chromium's collection of promises awaited through the
   browser protocol. Errors and document replacement still fail the check;
-  assertion retries still fail the gate.
+  assertion retries still fail the gate. Milestone checks wait for the declared
+  opacity transition to settle, and mobile ticker checks use a visibly reachable
+  echo with a real hit test and touchscreen tap.
 
 ## Project Structure
 
