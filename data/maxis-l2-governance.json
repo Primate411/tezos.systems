@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "kind": "maxis-l2-governance-careers",
-  "generatedAt": "2026-09-16T21:20:07.548Z",
+  "generatedAt": "2026-09-17T04:55:02.197Z",
   "coverage": {
     "status": "complete",
     "mode": "canonical-period-complete-bigmap-receipts",
@@ -98,14 +98,14 @@
   "sourceReceipts": {
     "periods": {
       "source": "Official Etherlink /api/{track}/pastPeriods",
-      "rows": 46,
-      "expectedRows": 46,
+      "rows": 47,
+      "expectedRows": 47,
       "trackReceipts": [
         {
           "track": "fast",
           "source": "https://governance.etherlink.com/api/fast/pastPeriods",
-          "rows": 27,
-          "contentHash": "d50dc7626c9f2ee8fcfb9fa0b8acac9cc8ec9778b086ec0582c55bdda3c3bd82",
+          "rows": 28,
+          "contentHash": "5c62b5ee710f1df3ac224e7c65915cba9a8c8fa0a0e39023b4b218ab3ffd697d",
           "complete": true,
           "error": null
         },
@@ -235,9 +235,9 @@
     },
     "keys": {
       "source": "TzKT /bigmaps/{ptr}/keys plus /blocks level timestamps",
-      "rows": 782,
-      "expectedRows": 782,
-      "maps": 70,
+      "rows": 800,
+      "expectedRows": 800,
+      "maps": 71,
       "perMap": [
         {
           "ptr": 646464,
@@ -1078,11 +1078,23 @@
           "complete": true,
           "truncated": false,
           "error": null
+        },
+        {
+          "ptr": 825217,
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "path": "voting_context.period.promotion.voters",
+          "rows": 18,
+          "expectedRows": 18,
+          "pages": 1,
+          "completionProof": "inventory-totalKeys-and-terminal-short-page",
+          "complete": true,
+          "truncated": false,
+          "error": null
         }
       ],
       "levelTimestamps": {
-        "rows": 708,
-        "expectedRows": 708,
+        "rows": 723,
+        "expectedRows": 723,
         "complete": true,
         "error": null
       },
@@ -1127,27 +1139,27 @@
     },
     "head": {
       "source": "TzKT /head",
-      "level": 14975400,
-      "timestamp": "2026-09-16T21:20:04.000Z",
-      "hash": "BMEdaRC3bifTLbQgWpUovfrocVkqfshpwuWViK8GWB1CzketLLB",
+      "level": 14979945,
+      "timestamp": "2026-09-17T04:55:01.000Z",
+      "hash": "BM1qaDyj6JXe43xy6uyDxERNAPkXDFD7Q9nCt7unzSVnZhgprkK",
       "protocol": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
       "complete": true,
       "error": null
     }
   },
   "periodLedger": {
-    "count": 46,
+    "count": 47,
     "proposalCount": 25,
-    "promotionCount": 21,
+    "promotionCount": 22,
     "firstLevel": 5913089,
-    "lastLevel": 14971488,
-    "observedHeadLevel": 14975400,
-    "observedHeadTimestamp": "2026-09-16T21:20:04.000Z",
+    "lastLevel": 14976288,
+    "observedHeadLevel": 14979945,
+    "observedHeadTimestamp": "2026-09-17T04:55:01.000Z",
     "trackCounts": {
       "fast": {
-        "periods": 27,
+        "periods": 28,
         "proposalPeriods": 15,
-        "promotionPeriods": 12
+        "promotionPeriods": 13
       },
       "slow": {
         "periods": 17,
@@ -2059,13 +2071,32 @@
         "participantReceipts": 12,
         "proposalKeys": 1,
         "authoredProposals": 1
+      },
+      {
+        "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+        "track": "fast",
+        "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+        "contractVotingIndex": 694,
+        "phase": "promotion",
+        "startLevel": 14971489,
+        "endLevel": 14976288,
+        "startDateTime": "2026-09-16T14:47:37.000Z",
+        "endDateTime": "2026-09-16T22:48:52.000Z",
+        "officialZeroParticipation": false,
+        "bigmapPtrs": {
+          "participants": 825217
+        },
+        "participantBakers": 18,
+        "participantReceipts": 18,
+        "proposalKeys": 0,
+        "authoredProposals": 0
       }
     ]
   },
   "totals": {
-    "participantReceipts": 754,
+    "participantReceipts": 772,
     "proposalParticipantReceipts": 320,
-    "promotionBallots": 434,
+    "promotionBallots": 452,
     "proposalKeys": 28,
     "authoredProposals": 28,
     "participatingBakers": 84,
@@ -2103,21 +2134,21 @@
       "status": "ready",
       "address": "tz1T1fRJmpPp1pN2z45sivxdbKNQtyatzCVx",
       "alias": "Zir0h's bakery",
-      "score": 37,
-      "scoreLabel": "37 L2 governance windows",
-      "context": "20 proposal · 17 promotion · FAST / SLOW / SEQUENCER",
+      "score": 38,
+      "scoreLabel": "38 L2 governance windows",
+      "context": "20 proposal · 18 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1T1fRJmpPp1pN2z45sivxdbKNQtyatzCVx",
-      "lastActivity": "2026-09-16T07:43:28.000Z",
+      "lastActivity": "2026-09-16T17:16:37.000Z",
       "scoreVector": {
-        "windows": 37,
+        "windows": 38,
         "tracks": 3,
-        "promotionWindows": 17,
-        "receipts": 37,
-        "lastActivityLevel": 14967291
+        "promotionWindows": 18,
+        "receipts": 38,
+        "lastActivityLevel": 14972979
       }
     },
     {
@@ -2127,21 +2158,21 @@
       "status": "ready",
       "address": "tz1aJHKKUWrwfsuoftdmwNBbBctjSWchMWZY",
       "alias": "La Boulange",
-      "score": 36,
-      "scoreLabel": "36 L2 governance windows",
-      "context": "19 proposal · 17 promotion · FAST / SLOW / SEQUENCER",
+      "score": 37,
+      "scoreLabel": "37 L2 governance windows",
+      "context": "19 proposal · 18 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1aJHKKUWrwfsuoftdmwNBbBctjSWchMWZY",
-      "lastActivity": "2026-09-16T06:43:22.000Z",
+      "lastActivity": "2026-09-16T15:19:25.000Z",
       "scoreVector": {
-        "windows": 36,
+        "windows": 37,
         "tracks": 3,
-        "promotionWindows": 17,
-        "receipts": 36,
-        "lastActivityLevel": 14966698
+        "promotionWindows": 18,
+        "receipts": 37,
+        "lastActivityLevel": 14971810
       }
     },
     {
@@ -2151,21 +2182,21 @@
       "status": "ready",
       "address": "tz1i36vhJwdv75p4zfRu3TPyqhaXyxDWGoz9",
       "alias": "LibertéZ.ꜩ",
-      "score": 35,
-      "scoreLabel": "35 L2 governance windows",
-      "context": "17 proposal · 18 promotion · FAST / SLOW / SEQUENCER",
+      "score": 36,
+      "scoreLabel": "36 L2 governance windows",
+      "context": "17 proposal · 19 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1i36vhJwdv75p4zfRu3TPyqhaXyxDWGoz9",
-      "lastActivity": "2026-09-16T11:06:10.000Z",
+      "lastActivity": "2026-09-16T18:10:13.000Z",
       "scoreVector": {
-        "windows": 35,
+        "windows": 36,
         "tracks": 3,
-        "promotionWindows": 18,
-        "receipts": 35,
-        "lastActivityLevel": 14969312
+        "promotionWindows": 19,
+        "receipts": 36,
+        "lastActivityLevel": 14973509
       }
     },
     {
@@ -2175,21 +2206,21 @@
       "status": "ready",
       "address": "tz1dCaMnnMJk76UodjewCK67ABiXWjcKj73N",
       "alias": "Captain Stake",
-      "score": 29,
-      "scoreLabel": "29 L2 governance windows",
-      "context": "11 proposal · 18 promotion · FAST / SLOW / SEQUENCER",
+      "score": 30,
+      "scoreLabel": "30 L2 governance windows",
+      "context": "11 proposal · 19 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1dCaMnnMJk76UodjewCK67ABiXWjcKj73N",
-      "lastActivity": "2026-09-16T07:04:16.000Z",
+      "lastActivity": "2026-09-16T15:43:01.000Z",
       "scoreVector": {
-        "windows": 29,
+        "windows": 30,
         "tracks": 3,
-        "promotionWindows": 18,
-        "receipts": 30,
-        "lastActivityLevel": 14966899
+        "promotionWindows": 19,
+        "receipts": 31,
+        "lastActivityLevel": 14972046
       }
     },
     {
@@ -2199,21 +2230,21 @@
       "status": "ready",
       "address": "tz1R4PuhxUxBBZhfLJDx2nNjbr7WorAPX1oC",
       "alias": "Baktz",
-      "score": 29,
-      "scoreLabel": "29 L2 governance windows",
-      "context": "15 proposal · 14 promotion · FAST / SLOW / SEQUENCER",
+      "score": 30,
+      "scoreLabel": "30 L2 governance windows",
+      "context": "15 proposal · 15 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1R4PuhxUxBBZhfLJDx2nNjbr7WorAPX1oC",
-      "lastActivity": "2026-09-16T13:25:04.000Z",
+      "lastActivity": "2026-09-16T14:54:55.000Z",
       "scoreVector": {
-        "windows": 29,
+        "windows": 30,
         "tracks": 3,
-        "promotionWindows": 14,
-        "receipts": 29,
-        "lastActivityLevel": 14970674
+        "promotionWindows": 15,
+        "receipts": 30,
+        "lastActivityLevel": 14971565
       }
     },
     {
@@ -2223,21 +2254,21 @@
       "status": "ready",
       "address": "tz1S5WxdZR5f9NzsPXhr7L9L1vrEb5spZFur",
       "alias": "Baking Benjamins",
-      "score": 28,
-      "scoreLabel": "28 L2 governance windows",
-      "context": "13 proposal · 15 promotion · FAST / SLOW / SEQUENCER",
+      "score": 29,
+      "scoreLabel": "29 L2 governance windows",
+      "context": "13 proposal · 16 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1S5WxdZR5f9NzsPXhr7L9L1vrEb5spZFur",
-      "lastActivity": "2026-08-28T12:54:46.000Z",
+      "lastActivity": "2026-09-16T14:54:07.000Z",
       "scoreVector": {
-        "windows": 28,
+        "windows": 29,
         "tracks": 3,
-        "promotionWindows": 15,
-        "receipts": 28,
-        "lastActivityLevel": 14698482
+        "promotionWindows": 16,
+        "receipts": 29,
+        "lastActivityLevel": 14971557
       }
     },
     {
@@ -2247,21 +2278,21 @@
       "status": "ready",
       "address": "tz1iuWAe6hYCewe1N7me6aekitsH6fFE3i4P",
       "alias": null,
-      "score": 27,
-      "scoreLabel": "27 L2 governance windows",
-      "context": "12 proposal · 15 promotion · FAST / SLOW / SEQUENCER",
+      "score": 28,
+      "scoreLabel": "28 L2 governance windows",
+      "context": "12 proposal · 16 promotion · FAST / SLOW / SEQUENCER",
       "method": "Most distinct completed Etherlink governance windows participated in among currently active Tezos delegates. A baker counts once per FAST, SLOW, or Sequencer window, regardless of proposal count, ballot choice, voting key, or voting power.",
       "clock": "all-time-active",
       "windowKind": "all-time-active",
       "source": "Official Etherlink canonical period ledger reconciled with complete TzKT big-map receipts",
       "sourceUrl": "https://tzkt.io/tz1iuWAe6hYCewe1N7me6aekitsH6fFE3i4P",
-      "lastActivity": "2026-09-16T09:29:55.000Z",
+      "lastActivity": "2026-09-16T15:21:49.000Z",
       "scoreVector": {
-        "windows": 27,
+        "windows": 28,
         "tracks": 3,
-        "promotionWindows": 15,
-        "receipts": 27,
-        "lastActivityLevel": 14968354
+        "promotionWindows": 16,
+        "receipts": 28,
+        "lastActivityLevel": 14971834
       }
     },
     {
@@ -3262,18 +3293,18 @@
       "alias": "BakerIsland",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 8,
+      "lifetimeWindows": 9,
       "lifetimeProposalWindows": 3,
-      "lifetimePromotionWindows": 5,
-      "lifetimeReceiptCount": 8,
+      "lifetimePromotionWindows": 6,
+      "lifetimeReceiptCount": 9,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 5,
+          "windows": 6,
           "proposalWindows": 1,
-          "promotionWindows": 4,
-          "receiptCount": 5,
+          "promotionWindows": 5,
+          "receiptCount": 6,
           "authoredProposals": 0
         },
         "slow": {
@@ -3387,12 +3418,24 @@
           "firstActivityLevel": 14564813,
           "lastActivityLevel": 14564813,
           "lastActivityAt": "2026-08-19T04:05:16.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972902,
+          "lastActivityLevel": 14972902,
+          "lastActivityAt": "2026-09-16T17:08:55.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14564813,
-      "lastL2GovernanceActivityAt": "2026-08-19T04:05:16.000Z",
+      "lastL2GovernanceActivityLevel": 14972902,
+      "lastL2GovernanceActivityAt": "2026-09-16T17:08:55.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 23,
+      "activeDelegateL2GovernanceRank": 21,
       "sourceUrl": "https://tzkt.io/tz1LVqmufjrmV67vNmZWXRDPMwSCh7mLBnS3"
     },
     "tz1LXpCpLNRhP7G9Yw8dRhWd8ZfH8929uvGo": {
@@ -3795,7 +3838,7 @@
       "lastL2GovernanceActivityLevel": 14456442,
       "lastL2GovernanceActivityAt": "2026-08-11T14:09:10.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 16,
+      "activeDelegateL2GovernanceRank": 18,
       "sourceUrl": "https://tzkt.io/tz1LkzdCUHLm5BDphDfjjNHZstUkG7yfmSph"
     },
     "tz1LnWa4AiFCjMezTgSNa65QFoo7DQGEWgEU": {
@@ -5315,7 +5358,7 @@
       "lastL2GovernanceActivityLevel": 14698102,
       "lastL2GovernanceActivityAt": "2026-08-28T12:16:28.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 35,
+      "activeDelegateL2GovernanceRank": 36,
       "sourceUrl": "https://tzkt.io/tz1NfJ9NxodVbF1SV8shnJi9R8UqEUc46Edq"
     },
     "tz1NpWrAyDL9k2Lmnyxcgr9xuJakbBxdq7FB": {
@@ -5905,7 +5948,7 @@
       "lastL2GovernanceActivityLevel": 14412618,
       "lastL2GovernanceActivityAt": "2026-08-08T12:40:01.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 21,
+      "activeDelegateL2GovernanceRank": 22,
       "sourceUrl": "https://tzkt.io/tz1P6WKJu2rcbxKiKRZHKQKmKrpC9TfW1AwM"
     },
     "tz1PWCDnz783NNGGQjEFFsHtrcK5yBW4E2rm": {
@@ -6692,18 +6735,18 @@
       "alias": "Baktz",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 29,
+      "lifetimeWindows": 30,
       "lifetimeProposalWindows": 15,
-      "lifetimePromotionWindows": 14,
-      "lifetimeReceiptCount": 29,
+      "lifetimePromotionWindows": 15,
+      "lifetimeReceiptCount": 30,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 13,
+          "windows": 14,
           "proposalWindows": 7,
-          "promotionWindows": 6,
-          "receiptCount": 13,
+          "promotionWindows": 7,
+          "receiptCount": 14,
           "authoredProposals": 0
         },
         "slow": {
@@ -7069,10 +7112,22 @@
           "firstActivityLevel": 14970674,
           "lastActivityLevel": 14970674,
           "lastActivityAt": "2026-09-16T13:25:04.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14971565,
+          "lastActivityLevel": 14971565,
+          "lastActivityAt": "2026-09-16T14:54:55.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14970674,
-      "lastL2GovernanceActivityAt": "2026-09-16T13:25:04.000Z",
+      "lastL2GovernanceActivityLevel": 14971565,
+      "lastL2GovernanceActivityAt": "2026-09-16T14:54:55.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 6,
       "sourceUrl": "https://tzkt.io/tz1R4PuhxUxBBZhfLJDx2nNjbr7WorAPX1oC"
@@ -7286,7 +7341,7 @@
       "lastL2GovernanceActivityLevel": 9688562,
       "lastL2GovernanceActivityAt": "2025-07-26T13:29:32.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 24,
+      "activeDelegateL2GovernanceRank": 27,
       "sourceUrl": "https://tzkt.io/tz1RMtwyUqVYUEMKgMi49Zu6UfjGCxsHiiU6"
     },
     "tz1RQBCiyXKZimFoRaw5x3XwRQEvX8AM3k4Z": {
@@ -7872,18 +7927,18 @@
       "alias": "Baking Benjamins",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 28,
+      "lifetimeWindows": 29,
       "lifetimeProposalWindows": 13,
-      "lifetimePromotionWindows": 15,
-      "lifetimeReceiptCount": 28,
+      "lifetimePromotionWindows": 16,
+      "lifetimeReceiptCount": 29,
       "lifetimeAuthoredProposals": 1,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 14,
+          "windows": 15,
           "proposalWindows": 6,
-          "promotionWindows": 8,
-          "receiptCount": 14,
+          "promotionWindows": 9,
+          "receiptCount": 15,
           "authoredProposals": 0
         },
         "slow": {
@@ -8237,10 +8292,22 @@
           "firstActivityLevel": 14698482,
           "lastActivityLevel": 14698482,
           "lastActivityAt": "2026-08-28T12:54:46.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14971557,
+          "lastActivityLevel": 14971557,
+          "lastActivityAt": "2026-09-16T14:54:07.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14698482,
-      "lastL2GovernanceActivityAt": "2026-08-28T12:54:46.000Z",
+      "lastL2GovernanceActivityLevel": 14971557,
+      "lastL2GovernanceActivityAt": "2026-09-16T14:54:07.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 7,
       "sourceUrl": "https://tzkt.io/tz1S5WxdZR5f9NzsPXhr7L9L1vrEb5spZFur"
@@ -8558,18 +8625,18 @@
       "alias": "Zir0h's bakery",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 37,
+      "lifetimeWindows": 38,
       "lifetimeProposalWindows": 20,
-      "lifetimePromotionWindows": 17,
-      "lifetimeReceiptCount": 37,
+      "lifetimePromotionWindows": 18,
+      "lifetimeReceiptCount": 38,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 18,
+          "windows": 19,
           "proposalWindows": 10,
-          "promotionWindows": 8,
-          "receiptCount": 18,
+          "promotionWindows": 9,
+          "receiptCount": 19,
           "authoredProposals": 0
         },
         "slow": {
@@ -9031,10 +9098,22 @@
           "firstActivityLevel": 14967291,
           "lastActivityLevel": 14967291,
           "lastActivityAt": "2026-09-16T07:43:28.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972979,
+          "lastActivityLevel": 14972979,
+          "lastActivityAt": "2026-09-16T17:16:37.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14967291,
-      "lastL2GovernanceActivityAt": "2026-09-16T07:43:28.000Z",
+      "lastL2GovernanceActivityLevel": 14972979,
+      "lastL2GovernanceActivityAt": "2026-09-16T17:16:37.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 2,
       "sourceUrl": "https://tzkt.io/tz1T1fRJmpPp1pN2z45sivxdbKNQtyatzCVx"
@@ -9266,7 +9345,7 @@
       "lastL2GovernanceActivityLevel": 14698132,
       "lastL2GovernanceActivityAt": "2026-08-28T12:19:28.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 30,
+      "activeDelegateL2GovernanceRank": 31,
       "sourceUrl": "https://tzkt.io/tz1TvWQRwL6GUXio97RiKRsoRbeB662e6je4"
     },
     "tz1TwVimQy3BywXoSszdFXjT9bSTQrsZYo2u": {
@@ -9869,7 +9948,7 @@
       "lastL2GovernanceActivityLevel": 14698143,
       "lastL2GovernanceActivityAt": "2026-08-28T12:20:34.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 27,
+      "activeDelegateL2GovernanceRank": 28,
       "sourceUrl": "https://tzkt.io/tz1V9KnxxZxrSM73ntYMM7JntZW7UMGSp3EU"
     },
     "tz1VHmaNfUC9BBcm851g2fhgSUq8NxFapuCA": {
@@ -10152,7 +10231,7 @@
       "lastL2GovernanceActivityLevel": 14698110,
       "lastL2GovernanceActivityAt": "2026-08-28T12:17:16.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 34,
+      "activeDelegateL2GovernanceRank": 35,
       "sourceUrl": "https://tzkt.io/tz1WCHXtELv4C7NvUTf59bEgmRSBRkiVGLeJ"
     },
     "tz1WmoPVuCJMjsVGyfBLi7wuRPyRSM2WtBTw": {
@@ -10686,18 +10765,18 @@
       "alias": null,
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 6,
+      "lifetimeWindows": 7,
       "lifetimeProposalWindows": 2,
-      "lifetimePromotionWindows": 4,
-      "lifetimeReceiptCount": 6,
+      "lifetimePromotionWindows": 5,
+      "lifetimeReceiptCount": 7,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 4,
+          "windows": 5,
           "proposalWindows": 1,
-          "promotionWindows": 3,
-          "receiptCount": 4,
+          "promotionWindows": 4,
+          "receiptCount": 5,
           "authoredProposals": 0
         },
         "slow": {
@@ -10787,12 +10866,24 @@
           "firstActivityLevel": 14698146,
           "lastActivityLevel": 14698146,
           "lastActivityAt": "2026-08-28T12:20:52.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14971577,
+          "lastActivityLevel": 14971577,
+          "lastActivityAt": "2026-09-16T14:56:07.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14698146,
-      "lastL2GovernanceActivityAt": "2026-08-28T12:20:52.000Z",
+      "lastL2GovernanceActivityLevel": 14971577,
+      "lastL2GovernanceActivityAt": "2026-09-16T14:56:07.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 26,
+      "activeDelegateL2GovernanceRank": 24,
       "sourceUrl": "https://tzkt.io/tz1ZFFTCQBFU47F6ryQbVWkDZJwccTneHuZW"
     },
     "tz1ZGYjyXgPdJ6a8EXNHmP4jZbJtEQoeRYFQ": {
@@ -11266,18 +11357,18 @@
       "alias": "La Boulange",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 36,
+      "lifetimeWindows": 37,
       "lifetimeProposalWindows": 19,
-      "lifetimePromotionWindows": 17,
-      "lifetimeReceiptCount": 36,
+      "lifetimePromotionWindows": 18,
+      "lifetimeReceiptCount": 37,
       "lifetimeAuthoredProposals": 15,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 17,
+          "windows": 18,
           "proposalWindows": 9,
-          "promotionWindows": 8,
-          "receiptCount": 17,
+          "promotionWindows": 9,
+          "receiptCount": 18,
           "authoredProposals": 8
         },
         "slow": {
@@ -11727,10 +11818,22 @@
           "firstActivityLevel": 14966698,
           "lastActivityLevel": 14966698,
           "lastActivityAt": "2026-09-16T06:43:22.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14971810,
+          "lastActivityLevel": 14971810,
+          "lastActivityAt": "2026-09-16T15:19:25.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14966698,
-      "lastL2GovernanceActivityAt": "2026-09-16T06:43:22.000Z",
+      "lastL2GovernanceActivityLevel": 14971810,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:19:25.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 3,
       "sourceUrl": "https://tzkt.io/tz1aJHKKUWrwfsuoftdmwNBbBctjSWchMWZY"
@@ -12616,7 +12719,7 @@
       "lastL2GovernanceActivityLevel": 14346001,
       "lastL2GovernanceActivityAt": "2026-08-03T19:35:31.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 44,
+      "activeDelegateL2GovernanceRank": 47,
       "sourceUrl": "https://tzkt.io/tz1b23jSuHcadDQjtEZmD4ZHigpHGN7bRXAK"
     },
     "tz1bA9zZpouVgtMRLijvw5safwDKSxg62r1x": {
@@ -13193,7 +13296,7 @@
       "lastL2GovernanceActivityLevel": 14698135,
       "lastL2GovernanceActivityAt": "2026-08-28T12:19:46.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 29,
+      "activeDelegateL2GovernanceRank": 30,
       "sourceUrl": "https://tzkt.io/tz1cHuQiBTVDZJT591QG5KjS7h3QieGkzYut"
     },
     "tz1cJTktkAEhxyWZAyQrjcqZJ3BeQYyQMvBt": {
@@ -13471,7 +13574,7 @@
       "lastL2GovernanceActivityLevel": 9676627,
       "lastL2GovernanceActivityAt": "2025-07-25T10:55:00.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 36,
+      "activeDelegateL2GovernanceRank": 37,
       "sourceUrl": "https://tzkt.io/tz1cXUERthGxHcDVAdKsFiFa4sSWbuGorghY"
     },
     "tz1cqFvyVoQPxf9kVHR6mj55CZUqP9kQuxf1": {
@@ -13522,18 +13625,18 @@
       "alias": "Captain Stake",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 29,
+      "lifetimeWindows": 30,
       "lifetimeProposalWindows": 11,
-      "lifetimePromotionWindows": 18,
-      "lifetimeReceiptCount": 30,
+      "lifetimePromotionWindows": 19,
+      "lifetimeReceiptCount": 31,
       "lifetimeAuthoredProposals": 3,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 17,
+          "windows": 18,
           "proposalWindows": 8,
-          "promotionWindows": 9,
-          "receiptCount": 18,
+          "promotionWindows": 10,
+          "receiptCount": 19,
           "authoredProposals": 3
         },
         "slow": {
@@ -13899,10 +14002,22 @@
           "firstActivityLevel": 14966899,
           "lastActivityLevel": 14966899,
           "lastActivityAt": "2026-09-16T07:04:16.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972046,
+          "lastActivityLevel": 14972046,
+          "lastActivityAt": "2026-09-16T15:43:01.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14966899,
-      "lastL2GovernanceActivityAt": "2026-09-16T07:04:16.000Z",
+      "lastL2GovernanceActivityLevel": 14972046,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:43:01.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 5,
       "sourceUrl": "https://tzkt.io/tz1dCaMnnMJk76UodjewCK67ABiXWjcKj73N"
@@ -14333,7 +14448,7 @@
       "lastL2GovernanceActivityLevel": 14695758,
       "lastL2GovernanceActivityAt": "2026-08-28T08:20:34.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 41,
+      "activeDelegateL2GovernanceRank": 44,
       "sourceUrl": "https://tzkt.io/tz1dgVeTDwo5G9w9Ky6AUJGurTvDb1NNE5UK"
     },
     "tz1dhPBgkEAanRLEca123XkfgphHmFYaj9mQ": {
@@ -14574,7 +14689,7 @@
       "lastL2GovernanceActivityLevel": 14698138,
       "lastL2GovernanceActivityAt": "2026-08-28T12:20:04.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 28,
+      "activeDelegateL2GovernanceRank": 29,
       "sourceUrl": "https://tzkt.io/tz1eCq647sXnC7qkCydJJ7RhzdAR1RcmfXFw"
     },
     "tz1eCs8nFQiKTqwcqQjKyz8QGMCQ4JAXbPS8": {
@@ -14978,7 +15093,7 @@
       "lastL2GovernanceActivityLevel": 14700144,
       "lastL2GovernanceActivityAt": "2026-08-28T15:43:19.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 22,
+      "activeDelegateL2GovernanceRank": 23,
       "sourceUrl": "https://tzkt.io/tz1eo3APJNdYst3mu7axpyZsJBPEqwxm8Sv1"
     },
     "tz1ewtWje28RQJrRnaKzJi5BVgdG3UTYeC59": {
@@ -15497,7 +15612,7 @@
       "lastL2GovernanceActivityLevel": 14698124,
       "lastL2GovernanceActivityAt": "2026-08-28T12:18:40.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 32,
+      "activeDelegateL2GovernanceRank": 33,
       "sourceUrl": "https://tzkt.io/tz1g3RTDPNMbdZLRKBA6UzwBrvWQehBUho7J"
     },
     "tz1gVC3dVsJWk6jiZSeQnGj2QAJWS84pA8VE": {
@@ -15615,18 +15730,18 @@
       "alias": null,
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 6,
+      "lifetimeWindows": 7,
       "lifetimeProposalWindows": 2,
-      "lifetimePromotionWindows": 4,
-      "lifetimeReceiptCount": 6,
+      "lifetimePromotionWindows": 5,
+      "lifetimeReceiptCount": 7,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 4,
+          "windows": 5,
           "proposalWindows": 1,
-          "promotionWindows": 3,
-          "receiptCount": 4,
+          "promotionWindows": 4,
+          "receiptCount": 5,
           "authoredProposals": 0
         },
         "slow": {
@@ -15716,10 +15831,22 @@
           "firstActivityLevel": 14698150,
           "lastActivityLevel": 14698150,
           "lastActivityAt": "2026-08-28T12:21:16.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14971569,
+          "lastActivityLevel": 14971569,
+          "lastActivityAt": "2026-09-16T14:55:19.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14698150,
-      "lastL2GovernanceActivityAt": "2026-08-28T12:21:16.000Z",
+      "lastL2GovernanceActivityLevel": 14971569,
+      "lastL2GovernanceActivityAt": "2026-09-16T14:55:19.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 25,
       "sourceUrl": "https://tzkt.io/tz1gaM8SFYUc9GicoVGbqDuK57Q8Kq5oazaB"
@@ -15975,7 +16102,7 @@
       "lastL2GovernanceActivityLevel": 9524969,
       "lastL2GovernanceActivityAt": "2025-07-11T07:54:36.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 42,
+      "activeDelegateL2GovernanceRank": 45,
       "sourceUrl": "https://tzkt.io/tz1gtNc2o4nrByZ81BEheRa4u7Vncfg1ZvK1"
     },
     "tz1h4GUAMweP7SNWzDgvMk3yRCAZyaP1MxZq": {
@@ -16271,7 +16398,7 @@
       "lastL2GovernanceActivityLevel": 14698117,
       "lastL2GovernanceActivityAt": "2026-08-28T12:17:58.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 33,
+      "activeDelegateL2GovernanceRank": 34,
       "sourceUrl": "https://tzkt.io/tz1hX1eXYqS1dyQhPhCLgvvp1wWe9CLyjQMk"
     },
     "tz1hZvgjekGo7DmQjWh7XnY5eLQD8wNYPczE": {
@@ -16525,7 +16652,7 @@
       "lastL2GovernanceActivityLevel": 14698128,
       "lastL2GovernanceActivityAt": "2026-08-28T12:19:04.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 31,
+      "activeDelegateL2GovernanceRank": 32,
       "sourceUrl": "https://tzkt.io/tz1hiH4yJs9MsziWSJyLzkkuFt1Pf2kimFq3"
     },
     "tz1hk59GLCY65onRt4vT75d57CMVutsLtFsx": {
@@ -16628,7 +16755,7 @@
       "lastL2GovernanceActivityLevel": 11125851,
       "lastL2GovernanceActivityAt": "2025-12-07T19:24:28.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 43,
+      "activeDelegateL2GovernanceRank": 46,
       "sourceUrl": "https://tzkt.io/tz1hk59GLCY65onRt4vT75d57CMVutsLtFsx"
     },
     "tz1i36vhJwdv75p4zfRu3TPyqhaXyxDWGoz9": {
@@ -16637,18 +16764,18 @@
       "alias": "LibertéZ.ꜩ",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 35,
+      "lifetimeWindows": 36,
       "lifetimeProposalWindows": 17,
-      "lifetimePromotionWindows": 18,
-      "lifetimeReceiptCount": 35,
+      "lifetimePromotionWindows": 19,
+      "lifetimeReceiptCount": 36,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 17,
+          "windows": 18,
           "proposalWindows": 8,
-          "promotionWindows": 9,
-          "receiptCount": 17,
+          "promotionWindows": 10,
+          "receiptCount": 18,
           "authoredProposals": 0
         },
         "slow": {
@@ -17086,10 +17213,22 @@
           "firstActivityLevel": 14969312,
           "lastActivityLevel": 14969312,
           "lastActivityAt": "2026-09-16T11:06:10.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14973509,
+          "lastActivityLevel": 14973509,
+          "lastActivityAt": "2026-09-16T18:10:13.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14969312,
-      "lastL2GovernanceActivityAt": "2026-09-16T11:06:10.000Z",
+      "lastL2GovernanceActivityLevel": 14973509,
+      "lastL2GovernanceActivityAt": "2026-09-16T18:10:13.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 4,
       "sourceUrl": "https://tzkt.io/tz1i36vhJwdv75p4zfRu3TPyqhaXyxDWGoz9"
@@ -17310,18 +17449,18 @@
       "alias": null,
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 27,
+      "lifetimeWindows": 28,
       "lifetimeProposalWindows": 12,
-      "lifetimePromotionWindows": 15,
-      "lifetimeReceiptCount": 27,
+      "lifetimePromotionWindows": 16,
+      "lifetimeReceiptCount": 28,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 15,
+          "windows": 16,
           "proposalWindows": 6,
-          "promotionWindows": 9,
-          "receiptCount": 15,
+          "promotionWindows": 10,
+          "receiptCount": 16,
           "authoredProposals": 0
         },
         "slow": {
@@ -17663,10 +17802,22 @@
           "firstActivityLevel": 14968354,
           "lastActivityLevel": 14968354,
           "lastActivityAt": "2026-09-16T09:29:55.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14971834,
+          "lastActivityLevel": 14971834,
+          "lastActivityAt": "2026-09-16T15:21:49.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14968354,
-      "lastL2GovernanceActivityAt": "2026-09-16T09:29:55.000Z",
+      "lastL2GovernanceActivityLevel": 14971834,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:21:49.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 8,
       "sourceUrl": "https://tzkt.io/tz1iuWAe6hYCewe1N7me6aekitsH6fFE3i4P"
@@ -17803,18 +17954,18 @@
       "alias": "Ledger by Kiln",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 4,
+      "lifetimeWindows": 5,
       "lifetimeProposalWindows": 3,
-      "lifetimePromotionWindows": 1,
-      "lifetimeReceiptCount": 4,
+      "lifetimePromotionWindows": 2,
+      "lifetimeReceiptCount": 5,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 2,
+          "windows": 3,
           "proposalWindows": 2,
-          "promotionWindows": 0,
-          "receiptCount": 2,
+          "promotionWindows": 1,
+          "receiptCount": 3,
           "authoredProposals": 0
         },
         "slow": {
@@ -17880,12 +18031,24 @@
           "firstActivityLevel": 14967030,
           "lastActivityLevel": 14967030,
           "lastActivityAt": "2026-09-16T07:17:22.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972218,
+          "lastActivityLevel": 14972218,
+          "lastActivityAt": "2026-09-16T16:00:13.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14967030,
-      "lastL2GovernanceActivityAt": "2026-09-16T07:17:22.000Z",
+      "lastL2GovernanceActivityLevel": 14972218,
+      "lastL2GovernanceActivityAt": "2026-09-16T16:00:13.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 45,
+      "activeDelegateL2GovernanceRank": 43,
       "sourceUrl": "https://tzkt.io/tz3LV9aGKHDnAZHCtC9SjNtTrKRu678FqSki"
     },
     "tz3N81sVKX29idiZMdT5JJZrTQyx5csT2Vhy": {
@@ -18238,18 +18401,18 @@
       "alias": "Tezos Foundation Baker 3",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 16,
+      "lifetimeWindows": 17,
       "lifetimeProposalWindows": 0,
-      "lifetimePromotionWindows": 16,
-      "lifetimeReceiptCount": 16,
+      "lifetimePromotionWindows": 17,
+      "lifetimeReceiptCount": 17,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 11,
+          "windows": 12,
           "proposalWindows": 0,
-          "promotionWindows": 11,
-          "receiptCount": 11,
+          "promotionWindows": 12,
+          "receiptCount": 12,
           "authoredProposals": 0
         },
         "slow": {
@@ -18459,12 +18622,24 @@
           "firstActivityLevel": 14699015,
           "lastActivityLevel": 14699015,
           "lastActivityAt": "2026-08-28T13:48:52.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972026,
+          "lastActivityLevel": 14972026,
+          "lastActivityAt": "2026-09-16T15:41:01.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14699015,
-      "lastL2GovernanceActivityAt": "2026-08-28T13:48:52.000Z",
+      "lastL2GovernanceActivityLevel": 14972026,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:41:01.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 17,
+      "activeDelegateL2GovernanceRank": 16,
       "sourceUrl": "https://tzkt.io/tz3UC5hM9uCUiqmAw1pHdxjAdGueQMd8u3wf"
     },
     "tz3UQN6nBQHofmgQ3pZannhiYE2CT7TEZFim": {
@@ -18473,18 +18648,18 @@
       "alias": "Tezos Foundation Baker 4",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 16,
+      "lifetimeWindows": 17,
       "lifetimeProposalWindows": 0,
-      "lifetimePromotionWindows": 16,
-      "lifetimeReceiptCount": 16,
+      "lifetimePromotionWindows": 17,
+      "lifetimeReceiptCount": 17,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 11,
+          "windows": 12,
           "proposalWindows": 0,
-          "promotionWindows": 11,
-          "receiptCount": 11,
+          "promotionWindows": 12,
+          "receiptCount": 12,
           "authoredProposals": 0
         },
         "slow": {
@@ -18694,12 +18869,24 @@
           "firstActivityLevel": 14699015,
           "lastActivityLevel": 14699015,
           "lastActivityAt": "2026-08-28T13:48:52.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972026,
+          "lastActivityLevel": 14972026,
+          "lastActivityAt": "2026-09-16T15:41:01.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14699015,
-      "lastL2GovernanceActivityAt": "2026-08-28T13:48:52.000Z",
+      "lastL2GovernanceActivityLevel": 14972026,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:41:01.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 18,
+      "activeDelegateL2GovernanceRank": 17,
       "sourceUrl": "https://tzkt.io/tz3UQN6nBQHofmgQ3pZannhiYE2CT7TEZFim"
     },
     "tz3Uzceas5ZauAh47FkKEVLupFoXstWq7MbX": {
@@ -18787,18 +18974,18 @@
       "alias": "Ledger Enterprise by Kiln",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 4,
+      "lifetimeWindows": 5,
       "lifetimeProposalWindows": 3,
-      "lifetimePromotionWindows": 1,
-      "lifetimeReceiptCount": 4,
+      "lifetimePromotionWindows": 2,
+      "lifetimeReceiptCount": 5,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 2,
+          "windows": 3,
           "proposalWindows": 2,
-          "promotionWindows": 0,
-          "receiptCount": 2,
+          "promotionWindows": 1,
+          "receiptCount": 3,
           "authoredProposals": 0
         },
         "slow": {
@@ -18864,12 +19051,24 @@
           "firstActivityLevel": 14966997,
           "lastActivityLevel": 14966997,
           "lastActivityAt": "2026-09-16T07:14:04.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972241,
+          "lastActivityLevel": 14972241,
+          "lastActivityAt": "2026-09-16T16:02:31.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14966997,
-      "lastL2GovernanceActivityAt": "2026-09-16T07:14:04.000Z",
+      "lastL2GovernanceActivityLevel": 14972241,
+      "lastL2GovernanceActivityAt": "2026-09-16T16:02:31.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 47,
+      "activeDelegateL2GovernanceRank": 41,
       "sourceUrl": "https://tzkt.io/tz3Vq38qYD3GEbWcXHMLt5PaASZrkDtEiA8D"
     },
     "tz3W7k9v3uniY1f2HQRKxymJybNvH3FgvZ5N": {
@@ -19185,18 +19384,18 @@
       "alias": "FAFO Bakery",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 6,
+      "lifetimeWindows": 7,
       "lifetimeProposalWindows": 3,
-      "lifetimePromotionWindows": 3,
-      "lifetimeReceiptCount": 6,
+      "lifetimePromotionWindows": 4,
+      "lifetimeReceiptCount": 7,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 1,
+          "windows": 2,
           "proposalWindows": 1,
-          "promotionWindows": 0,
-          "receiptCount": 1,
+          "promotionWindows": 1,
+          "receiptCount": 2,
           "authoredProposals": 0
         },
         "slow": {
@@ -19286,12 +19485,24 @@
           "firstActivityLevel": 14401293,
           "lastActivityLevel": 14401293,
           "lastActivityAt": "2026-08-07T17:41:01.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972613,
+          "lastActivityLevel": 14972613,
+          "lastActivityAt": "2026-09-16T16:40:01.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14401293,
-      "lastL2GovernanceActivityAt": "2026-08-07T17:41:01.000Z",
+      "lastL2GovernanceActivityLevel": 14972613,
+      "lastL2GovernanceActivityAt": "2026-09-16T16:40:01.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 37,
+      "activeDelegateL2GovernanceRank": 26,
       "sourceUrl": "https://tzkt.io/tz3cC4osV2bznw37zNMyN9LruwBTTX43qHen"
     },
     "tz3cqThj23Feu55KDynm7Vg81mCMpWDgzQZq": {
@@ -19300,18 +19511,18 @@
       "alias": "Tezos Foundation Baker 1",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 17,
+      "lifetimeWindows": 18,
       "lifetimeProposalWindows": 0,
-      "lifetimePromotionWindows": 17,
-      "lifetimeReceiptCount": 17,
+      "lifetimePromotionWindows": 18,
+      "lifetimeReceiptCount": 18,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 11,
+          "windows": 12,
           "proposalWindows": 0,
-          "promotionWindows": 11,
-          "receiptCount": 11,
+          "promotionWindows": 12,
+          "receiptCount": 12,
           "authoredProposals": 0
         },
         "slow": {
@@ -19533,10 +19744,22 @@
           "firstActivityLevel": 14699015,
           "lastActivityLevel": 14699015,
           "lastActivityAt": "2026-08-28T13:48:52.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972026,
+          "lastActivityLevel": 14972026,
+          "lastActivityAt": "2026-09-16T15:41:01.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14699015,
-      "lastL2GovernanceActivityAt": "2026-08-28T13:48:52.000Z",
+      "lastL2GovernanceActivityLevel": 14972026,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:41:01.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 13,
       "sourceUrl": "https://tzkt.io/tz3cqThj23Feu55KDynm7Vg81mCMpWDgzQZq"
@@ -19602,18 +19825,18 @@
       "alias": "Kiln",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 4,
+      "lifetimeWindows": 5,
       "lifetimeProposalWindows": 3,
-      "lifetimePromotionWindows": 1,
-      "lifetimeReceiptCount": 4,
+      "lifetimePromotionWindows": 2,
+      "lifetimeReceiptCount": 5,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 2,
       "trackActivity": {
         "fast": {
-          "windows": 2,
+          "windows": 3,
           "proposalWindows": 2,
-          "promotionWindows": 0,
-          "receiptCount": 2,
+          "promotionWindows": 1,
+          "receiptCount": 3,
           "authoredProposals": 0
         },
         "slow": {
@@ -19679,12 +19902,24 @@
           "firstActivityLevel": 14967013,
           "lastActivityLevel": 14967013,
           "lastActivityAt": "2026-09-16T07:15:40.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972229,
+          "lastActivityLevel": 14972229,
+          "lastActivityAt": "2026-09-16T16:01:19.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14967013,
-      "lastL2GovernanceActivityAt": "2026-09-16T07:15:40.000Z",
+      "lastL2GovernanceActivityLevel": 14972229,
+      "lastL2GovernanceActivityAt": "2026-09-16T16:01:19.000Z",
       "activeDelegate": true,
-      "activeDelegateL2GovernanceRank": 46,
+      "activeDelegateL2GovernanceRank": 42,
       "sourceUrl": "https://tzkt.io/tz3dKooaL9Av4UY15AUx9uRGL5H6YyqoGSPV"
     },
     "tz3e7LbZvUtoXhpUD1yb6wuFodZpfYRb9nWJ": {
@@ -20020,18 +20255,18 @@
       "alias": "Tezos Foundation Baker 2",
       "clock": "career",
       "coverageMode": "canonical-period-complete-bigmap-receipts",
-      "lifetimeWindows": 17,
+      "lifetimeWindows": 18,
       "lifetimeProposalWindows": 0,
-      "lifetimePromotionWindows": 17,
-      "lifetimeReceiptCount": 17,
+      "lifetimePromotionWindows": 18,
+      "lifetimeReceiptCount": 18,
       "lifetimeAuthoredProposals": 0,
       "tracksParticipated": 3,
       "trackActivity": {
         "fast": {
-          "windows": 11,
+          "windows": 12,
           "proposalWindows": 0,
-          "promotionWindows": 11,
-          "receiptCount": 11,
+          "promotionWindows": 12,
+          "receiptCount": 12,
           "authoredProposals": 0
         },
         "slow": {
@@ -20253,10 +20488,22 @@
           "firstActivityLevel": 14699015,
           "lastActivityLevel": 14699015,
           "lastActivityAt": "2026-08-28T13:48:52.000Z"
+        },
+        {
+          "id": "fast:KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo:694:promotion",
+          "track": "fast",
+          "phase": "promotion",
+          "contract": "KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo",
+          "contractVotingIndex": 694,
+          "receiptCount": 1,
+          "authoredProposals": 0,
+          "firstActivityLevel": 14972026,
+          "lastActivityLevel": 14972026,
+          "lastActivityAt": "2026-09-16T15:41:01.000Z"
         }
       ],
-      "lastL2GovernanceActivityLevel": 14699015,
-      "lastL2GovernanceActivityAt": "2026-08-28T13:48:52.000Z",
+      "lastL2GovernanceActivityLevel": 14972026,
+      "lastL2GovernanceActivityAt": "2026-09-16T15:41:01.000Z",
       "activeDelegate": true,
       "activeDelegateL2GovernanceRank": 14,
       "sourceUrl": "https://tzkt.io/tz3ipHZQpBBFuxv7eKoFgGnTaU3RBhnS93yY"
@@ -20348,6 +20595,6 @@
   },
   "integrity": {
     "algorithm": "sha256-stable-json-v1",
-    "contentHash": "afce214d31079711a6021ff4c38b29cb34e815d57001969d3f1d960d43bbd014"
+    "contentHash": "aaf4af1fdee36ff4570e476014f50b55b5382b6f01efb8d9b42ce3080be9ae04"
   }
 }
