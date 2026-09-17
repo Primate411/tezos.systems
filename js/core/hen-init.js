@@ -36,7 +36,7 @@
             const attempt = runtimeAttempts++;
             // A failed module URL is cached by the browser; explicit retries
             // need a fresh URL while concurrent launchers still share one load.
-            script.src = '/js/features/hen-mode.js?v=97' + (attempt ? `&retry=${attempt}` : '');
+            script.src = '/js/features/hen-mode.js?v=98' + (attempt ? `&retry=${attempt}` : '');
             script.async = true;
             script.addEventListener('load', () => {
                 if (window.HenMode) resolve(window.HenMode);

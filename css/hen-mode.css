@@ -527,6 +527,13 @@
     min-width: 0;
 }
 
+/* HEN also runs without the dashboard reset on /hen/. */
+.hen-overlay *,
+.hen-overlay *::before,
+.hen-overlay *::after {
+    box-sizing: border-box;
+}
+
 /* ── Boot Sequence ── */
 .hen-boot {
     position: absolute;
@@ -578,6 +585,40 @@
     flex-shrink: 0;
     background: #111;
 }
+.hen-header.has-lore {
+    flex-wrap: wrap;
+}
+
+.hen-lore-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1 0 100%;
+    order: 10;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--hen-line, var(--border));
+    border-bottom: 0;
+    background: color-mix(in srgb, var(--hen-panel, var(--bg-secondary)) 88%, transparent);
+    color: var(--hen-ink, var(--text-primary));
+    font: 600 0.82rem 'IBM Plex Mono', 'Courier New', monospace;
+    letter-spacing: 0;
+}
+
+.hen-lore-line button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--hen-line, var(--border));
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
 .hen-logo {
     display: inline-flex;
     align-items: center;
@@ -1205,7 +1246,7 @@
 }
 .hen-profile-recent-strip {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 128px));
     gap: 6px;
 }
 .hen-profile-recent-item {
@@ -1215,6 +1256,8 @@
     padding: 5px;
 }
 .hen-profile-recent-item img {
+    color: transparent;
+    font-size: 0;
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
@@ -1238,8 +1281,14 @@
     font-style: normal;
     margin-top: 2px;
 }
-.hen-profile-panel.is-collapsed {
-    padding-bottom: 10px;
+.hen-profile-panel.is-collapsed .hen-profile-head {
+    margin-bottom: 0;
+}
+.hen-profile-body[hidden] {
+    display: none;
+}
+.hen-profile-panel img.hen-image-retrying {
+    visibility: hidden;
 }
 
 /* ── Card ── */
@@ -1888,6 +1937,19 @@
 }
 @media (max-width: 600px) {
     .hen-grid { grid-template-columns: repeat(2, 1fr); }
+    .hen-lore-line {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 32px;
+        align-items: flex-start;
+        justify-content: space-between;
+        text-align: left;
+    }
+
+    .hen-lore-line button {
+        width: 32px;
+        height: 32px;
+        margin-top: -4px;
+    }
     .hen-header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
     .hen-source-tabs { order: 3; width: 100%; justify-content: center; }
     .hen-source-tab { min-width: 58px; }
@@ -1973,6 +2035,8 @@
     .hen-expanded-share { width: 100%; text-align: center; }
     .hen-profile-panel { padding: 12px; }
     .hen-profile-head { flex-direction: column; }
+    .hen-profile-panel.is-collapsed .hen-profile-head { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; }
+    .hen-profile-panel.is-collapsed .hen-profile-actions { grid-column: 2; }
     .hen-profile-metrics { grid-template-columns: 1fr 1fr; }
     .hen-profile-recent-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .hen-profile-row { flex-direction: column; gap: 2px; }

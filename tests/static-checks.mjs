@@ -3193,9 +3193,9 @@ async function checkSelectorContracts() {
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
     ['HEN standalone canonical URL', '<link rel="canonical" href="https://tezos.systems/hen/">', henPage],
     ['HEN standalone live overlay', 'id="hen-overlay"', henPage],
-    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=81', henPage],
-    ['HEN CSS cache stamp', 'css/hen-mode.min.css?v=98', index],
-    ['HEN JS cache stamp', '/js/features/hen-mode.js?v=97', henInit],
+    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=82', henPage],
+    ['HEN CSS cache stamp', 'css/hen-mode.min.css?v=99', index],
+    ['HEN JS cache stamp', '/js/features/hen-mode.js?v=98', henInit],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],
     ['HEN mobile filter toggle', 'id="hen-mobile-filter-toggle"', index],
@@ -3213,6 +3213,8 @@ async function checkSelectorContracts() {
     ['HEN favorites key', "const HEN_FAVORITES_KEY = 'tezos-systems-hen-favorites'", henMode],
     ['HEN eager-loads first two desktop rows', 'const HEN_EAGER_CARD_LIMIT = 8', henMode],
     ['HEN eager card limit controls lazy loading', 'staggerIdx < HEN_EAGER_CARD_LIMIT && offset === 0', henMode],
+    ['HEN standalone lore styles', '.hen-header.has-lore', henModeCss],
+    ['HEN standalone box sizing', '.hen-overlay *::after', henModeCss],
     ['HEN stable grid shell', '.hen-overlay.active {\n    display: grid;', henModeCss],
     ['HEN viewport row edge guard', '.hen-overlay > .hen-header,\n.hen-overlay > .hen-status-strip,\n.hen-overlay > .hen-feed,\n.hen-overlay > .hen-cli', henModeCss],
     ['HEN rows clamp to viewport width', 'max-width: 100vw;', henModeCss],
@@ -3252,7 +3254,7 @@ async function checkSelectorContracts() {
     ['HEN OBJKT CDN media helper', 'function mediaCdnUrl', henMode],
     ['HEN Collection media candidate reuse', 'mediaCandidates: mediaCandidates', henMode],
     ['HEN share meta prefers OBJKT CDN image', "var image = mediaCdnUrl(token, 'thumb400') || resolveUri(token.display_uri || token.thumbnail_uri || '');", henMode],
-    ['HEN primary live IPFS gateway', "const IPFS_GW = 'https://dweb.link/ipfs/'", henMode],
+    ['HEN primary live IPFS gateway', "const IPFS_GW = 'https://gateway.pinata.cloud/ipfs/'", henMode],
     ['HEN nftstorage fallback gateway', "'https://nftstorage.link/ipfs/'", henMode],
     ['HEN CSP allows dweb fallback images', 'dweb.link *.dweb.link nftstorage.link ipfs.io gateway.pinata.cloud', index],
     ['HEN direct-load blackout cleanup', 'function clearInitialBlackout', henMode],
@@ -4687,8 +4689,8 @@ async function checkUxAuditContracts() {
     fail('RPC polling and first-visit surfaces must respect document visibility and toast occupancy');
   }
   if (index.includes('<script defer src="js/features/hen-mode.js')
-    || !index.includes('<script src="js/core/hen-init.js?v=81" defer></script>')
-    || !index.includes('<link rel="stylesheet" href="css/hen-mode.min.css?v=98">')) {
+    || !index.includes('<script src="js/core/hen-init.js?v=82" defer></script>')
+    || !index.includes('<link rel="stylesheet" href="css/hen-mode.min.css?v=99">')) {
     fail('HEN feed runtime must load on intent while shared theme and launcher styles remain eager');
   }
   if (!index.includes('id="portfolio-import-file" type="file" accept="application/json,.json" aria-label="Import My Tezos portfolio JSON file"')

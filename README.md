@@ -94,7 +94,9 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
   `js/core/hen-init.js`. Its shared `css/hen-mode.min.css` remains an eager
   stylesheet in the dashboard and generated route shells: it also styles the
   gift tray, recovery links, launchers, and theme. Deferring that CSS requires
-  separating those shared rules first.
+  separating those shared rules first. The standalone `/hen/` page owns its
+  banner styles in that same bundle, opens saved collector details on demand,
+  and tries alternate artwork sources promptly before backing off on failures.
 - Historical queries preserve exact rolling range boundaries; they are not
   rounded to a capture interval. `js/core/api.js` shares in-flight paginated
   requests and caches completed receipts by range (and table/selection for

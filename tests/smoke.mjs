@@ -976,6 +976,7 @@ function smokeHeldToken(index) {
       token_id: String(7000 + index),
       fa_contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345',
       name: isHighSupply ? 'Smoke High Supply' : `Smoke Piece ${index + 1}`,
+      thumbnail_uri: 'ipfs://smoke-hen-image',
       pk: index + 1,
       supply: isHighSupply ? '13635916737' : 10,
       fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345', logo: 'ipfs://smoke-hen-image' },
@@ -33021,6 +33022,71 @@ async function smokeOptionalStartup(browser, baseUrl) {
   log('ok - optional startup deferral, cancellation, retries, retained archive, HEN routes, and styled Anthology chapters');
 }
 
+async function smokeHenStandalone(browser, baseUrl) {
+  for (const width of [1440, 390, 320]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block' });
+    await installFeatureMocks(context);
+    // Reproduce the real CDN refusal; recovery must use the original IPFS asset.
+    let deniedImages = 0;
+    await context.route('https://assets.objkt.media/file/assets-003/**', route => {
+      deniedImages++;
+      return route.fulfill({ status: 403, contentType: 'text/html', body: 'Artwork CDN unavailable' });
+    });
+    await context.addInitScript(address => {
+      localStorage.setItem('tezos-systems-my-baker-address', address);
+    }, SAMPLE_ADDRESS_2);
+    const page = await context.newPage();
+    await page.goto(`${baseUrl}/hen/`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#hen-profile-toggle').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForFunction(() => {
+      const image = document.querySelector('.hen-card img[data-hen-raw-uri="ipfs://smoke-hen-image"]');
+      return image?.naturalWidth > 0 && image.currentSrc.includes('gateway.pinata.cloud');
+    }, null, { timeout: 5000 });
+    assert(deniedImages > 0, 'HEN fallback test must exercise a failed CDN');
+    const geometry = await page.evaluate(() => {
+      const rect = selector => {
+        const r = document.querySelector(selector).getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, height: r.height };
+      };
+      return {
+        lore: rect('#hen-lore-line'), close: rect('.hen-close'), tabs: rect('.hen-source-tabs'),
+        feed: rect('.hen-feed'), grid: rect('#hen-grid'), profile: rect('#hen-profile-panel'),
+        collapsed: document.querySelector('#hen-profile-body').hidden,
+        css: Array.from(document.styleSheets).map(sheet => sheet.href || '')
+      };
+    });
+    assert(!geometry.css.some(url => /shell-extras|styles\.min/.test(url)), 'Direct HEN must work without dashboard styles');
+    assert(geometry.collapsed && geometry.grid.top < 450, `HEN ${width}: saved profile pushes art off screen: ${JSON.stringify(geometry)}`);
+    assert(geometry.lore.top >= geometry.close.bottom - 1 && geometry.lore.top >= geometry.tabs.bottom - 1, `HEN ${width}: lore crowds header controls: ${JSON.stringify(geometry)}`);
+    for (const key of ['lore', 'close', 'tabs', 'feed', 'profile']) {
+      assert(geometry[key].left >= -1 && geometry[key].right <= width + 1, `HEN ${width}: ${key} escapes viewport: ${JSON.stringify(geometry)}`);
+    }
+    if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `hen-standalone-${width}.png`) });
+    await page.locator('#hen-profile-toggle').click();
+    await page.locator('#hen-profile-body').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('.hen-profile-recent-item img, img.hen-profile-row-logo')).every(img => img.naturalWidth > 0), null, { timeout: 5000 });
+    const thumbs = await page.locator('.hen-profile-recent-item img').evaluateAll(imgs => imgs.map(img => img.getBoundingClientRect().height));
+    assert(thumbs.length > 0 && thumbs.every(height => height <= 128), `HEN ${width}: collector thumbnails grow without bounds: ${thumbs}`);
+    await page.locator('#hen-profile-refresh').click();
+    await page.locator('#hen-profile-toggle[aria-expanded="true"]').waitFor({ state: 'visible' });
+    await page.locator('#hen-profile-toggle').click();
+    await page.locator('#hen-lore-line button').click();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('#hen-profile-toggle').waitFor({ state: 'visible' });
+    assert(await page.locator('#hen-lore-line').count() === 0, 'HEN lore dismissal persists on direct reload');
+    if (width < 600) {
+      await page.locator('#hen-mobile-filter-toggle').click();
+      await page.locator('#hen-wallet-input').waitFor({ state: 'visible' });
+      const overflow = await page.locator('#hen-status-strip').evaluate(node => node.scrollWidth - node.clientWidth);
+      assert(overflow <= 1, `HEN ${width}: expanded filters overflow by ${overflow}px`);
+      await page.locator('#hen-mobile-filter-toggle').click();
+    }
+    await page.locator('.hen-close').click();
+    await page.waitForURL(`${baseUrl}/`);
+    await context.close();
+  }
+}
+
 async function smokeHenMode(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -33037,7 +33103,7 @@ async function smokeHenMode(browser, baseUrl) {
   const page = await context.newPage();
   attachIssueCollectors(page, 'HEN mode', issues);
 
-  const response = await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'domcontentloaded' });
+  const response = await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'load' });
   assert(response?.ok(), `HEN mode: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => location.pathname === '/hen/' && !new URLSearchParams(location.search).has('hen'), null, { timeout: 5000 });
@@ -33059,6 +33125,9 @@ async function smokeHenMode(browser, baseUrl) {
   }));
   assert((/connect to flag pieces you own/i.test(initialUiState.walletStatus) || /\.tez|tz1/i.test(initialUiState.walletStatus)) && initialUiState.searchVisible && initialUiState.listedButton === 'false', `HEN mode filter/wallet controls missing initial affordances: ${JSON.stringify(initialUiState)}`);
   assert(['source', 'price ꜩ', 'edition', 'sort'].every((label) => initialUiState.visibleGroupLabels.includes(label)), `HEN mode filter groups are not visibly labelled: ${JSON.stringify(initialUiState.visibleGroupLabels)}`);
+  await page.locator('#hen-profile-toggle').waitFor({ state: 'visible', timeout: 15000 });
+  assert(await page.locator('#hen-profile-toggle').getAttribute('aria-expanded') === 'false', 'HEN saved profile starts compact');
+  await page.locator('#hen-profile-toggle').click();
   try {
     await page.waitForFunction((address) => {
       const inputValue = document.querySelector('#hen-wallet-input')?.value || '';
@@ -33161,17 +33230,8 @@ async function smokeHenMode(browser, baseUrl) {
   }
   assert(stableShell.teiaClass && stableShell.objktClass, `HEN mode platform identity classes missing: ${JSON.stringify(stableShell)}`);
 
-  const loopHintPosition = await page.locator('#hen-loop-hint').evaluate((node) => getComputedStyle(node).position);
-  assert(loopHintPosition === 'absolute', `HEN mode loop hint should stay outside feed flow, got ${loopHintPosition}`);
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
-  await page.waitForTimeout(100);
-  const gridTopBeforeHint = await page.locator('#hen-grid').evaluate((node) => node.getBoundingClientRect().top);
-  await page.locator('#hen-loop-hint-dismiss').click();
-  await page.waitForTimeout(80);
-  const gridTopAfterHint = await page.locator('#hen-grid').evaluate((node) => node.getBoundingClientRect().top);
-  assert(Math.abs(gridTopAfterHint - gridTopBeforeHint) <= 1, `HEN mode loop hint dismissal shifted grid from ${gridTopBeforeHint} to ${gridTopAfterHint}`);
+  assert(await page.locator('#hen-loop-hint').count() === 0, 'HEN should not cover a saved collector with the connect hint');
+  await page.evaluate(async () => { await document.fonts.ready; });
 
   const gridTopBeforeCli = await page.locator('#hen-grid').evaluate((node) => node.getBoundingClientRect().top);
   await enterHenCommand('filters');
@@ -33313,7 +33373,7 @@ async function smokeHenMode(browser, baseUrl) {
   const savedSource = await page.evaluate(() => localStorage.getItem('tezos-systems-hen-source'));
   assert(savedSource === 'teia', `HEN mode did not persist CLI source selection: ${savedSource}`);
 
-  await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'load' });
   await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
   await waitForSources(['TEIA']);
   await expectClassContains(page.locator('.hen-source-tab[data-hen-mode="teia"]'), 'active', 'HEN mode saved Teia source tab');
@@ -37696,6 +37756,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'source-payloads', description: 'Validated source reads and prices recover honestly while retaining reader state', run: () => smokeSourcePayloads(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'optional-tools-lazy', description: 'Optional tools and share rendering load on intent, retain early actions, and recover after failed imports', run: () => smokeOptionalToolsLazy(browser, baseUrl, { installFeatureMocks, clickFeatureLauncher, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'optional-startup', description: 'Changelog, HEN runtime, and Anthology styles load only on intent, preserve routes, and recover from failed or cancelled loads', run: () => smokeOptionalStartup(browser, baseUrl) },
+    { name: 'hen-standalone', description: 'Direct HEN layout, compact collector, and denied-artwork recovery on desktop and mobile', run: () => smokeHenStandalone(browser, baseUrl) },
     { name: 'hen-mode', description: 'HEN overlay startup and exit path', run: () => smokeHenMode(browser, baseUrl) },
     { name: 'route-formatting', description: 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile', run: () => smokeRouteFormatting(browser, baseUrl) },
     { name: 'standalone-links', description: 'Visible first-party links on public and widget routes resolve without local/custom-domain drift', run: () => smokeStandaloneLinks(browser, baseUrl) },

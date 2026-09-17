@@ -81,8 +81,8 @@ const RULES = [
     risk: 'high'
   },
   {
-    suites: /^(optional-startup|hen-mode)$/,
-    files: ['js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js', 'css/protocol-anthology.css', 'hen/index.html'],
+    suites: /^(optional-startup|hen-mode|hen-standalone)$/,
+    files: ['js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js', 'css/protocol-anthology.css', 'hen/index.html', 'css/hen-mode*', 'css/shell-extras*'],
     tags: ['shell', 'navigation'],
     risk: 'high'
   },

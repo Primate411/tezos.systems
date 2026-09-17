@@ -5,11 +5,11 @@ import { loadingText } from '../ui/text-loading.js';
 
 const HenMode = (() => {
     const API = 'https://data.objkt.com/v3/graphql';
-    const IPFS_GW = 'https://dweb.link/ipfs/';
+    const IPFS_GW = 'https://gateway.pinata.cloud/ipfs/';
     const IPFS_GATEWAYS = [
+        'https://gateway.pinata.cloud/ipfs/',
         'https://dweb.link/ipfs/',
         'https://nftstorage.link/ipfs/',
-        'https://gateway.pinata.cloud/ipfs/',
         'https://ipfs.io/ipfs/'
     ];
     const OBJKT_ASSETS_BASE = 'https://assets.objkt.media/file/assets-003/';
@@ -98,6 +98,7 @@ const HenMode = (() => {
     let viewerLabel = null;
     let viewerHoldings = new Map();
     let profileGeneration = 0;
+    let collectorProfileExpanded = false;
     let profileCache = new Map();
     let xtzUsd = null;
     let walletModulePromise = null;
@@ -142,7 +143,7 @@ const HenMode = (() => {
     }
 
     function objktMediaUrl(contract, tokenId, variant) {
-        if (!contract || !tokenId) return '';
+        if (!contract || tokenId === undefined || tokenId === null || tokenId === '') return '';
         return OBJKT_ASSETS_BASE + encodeURIComponent(contract) + '/' + encodeURIComponent(tokenId) + '/' + (variant || 'thumb400');
     }
 
@@ -178,9 +179,8 @@ const HenMode = (() => {
 
     function resolveMediaUri(uri, attempt, options) {
         options = options || {};
-        if ((attempt || 0) === 0 && options.cdnUrl) return options.cdnUrl;
-        var gatewayAttempt = options.cdnUrl ? (Math.max(0, attempt || 0) - 1) : (attempt || 0);
-        return resolveUri(uri, Math.max(0, gatewayAttempt));
+        var candidates = mediaCandidates(uri, options);
+        return candidates.length ? candidates[Math.max(0, attempt || 0) % candidates.length] : '';
     }
 
     function retryableImageUrl(uri, attempt, options) {
@@ -194,32 +194,43 @@ const HenMode = (() => {
     }
 
     function setupImageRetry(img, rawUri, options) {
-        if (!img || !rawUri || rawUri.startsWith('data:')) return;
+        if (!img || !rawUri) return;
         options = options || {};
+        if (rawUri.startsWith('data:') && !options.cdnUrl) return;
         img.dataset.henRawUri = rawUri;
         if (options.cdnUrl) img.dataset.henCdnUrl = options.cdnUrl;
         img.dataset.henRetryAttempt = '0';
-        img.addEventListener('load', function() {
+        function loaded() {
             img.classList.remove('hen-image-retrying');
             img.removeAttribute('data-hen-retry-waiting');
             var thumb = img.closest('.hen-card-thumb, .hen-artist-thumb');
             if (thumb) thumb.classList.add('hen-thumb-loaded');
-        });
-        img.addEventListener('error', function() {
+        }
+        function failed() {
             if (img.dataset.henRetryWaiting === '1') return;
             var attempts = Number(img.dataset.henRetryAttempt || '0') + 1;
             img.dataset.henRetryAttempt = String(attempts);
             img.dataset.henRetryWaiting = '1';
             img.classList.add('hen-image-retrying');
             var delays = imageRetryDelays();
-            var delay = Number(delays[Math.min(attempts - 1, delays.length - 1)]) || 3000;
+            // Try each independent source promptly, then back off between rounds.
+            var candidateCount = mediaCandidates(rawUri, options).length;
+            var round = Math.floor(attempts / Math.max(1, candidateCount));
+            var delay = attempts < candidateCount ? 100 : (Number(delays[Math.min(Math.max(0, round - 1), delays.length - 1)]) || 3000);
             setTimeout(function() {
                 if (!isActive || !img.isConnected) return;
                 img.dataset.henRetryWaiting = '0';
                 img.style.display = '';
                 img.src = retryableImageUrl(rawUri, attempts, { cdnUrl: img.dataset.henCdnUrl || '' });
             }, delay);
-        });
+        }
+        img.addEventListener('load', loaded);
+        img.addEventListener('error', failed);
+        // Cached images can settle before listeners are attached after innerHTML.
+        if (img.complete && img.getAttribute('src')) {
+            if (img.naturalWidth > 0) loaded();
+            else failed();
+        }
     }
 
     function clearInitialBlackout() {
@@ -821,13 +832,13 @@ const HenMode = (() => {
         if (collection.editionCount && collection.editionCount > collection.assetCount && collection.editionCount <= 1000000) {
             stats.push(fmtCount(collection.editionCount) + ' editions');
         }
-        var logo = collection.logo ? '<img class="hen-profile-row-logo" src="' + escapeHtml(resolveUri(collection.logo)) + '" alt="" loading="lazy">' : '<span class="hen-profile-row-logo is-empty"></span>';
+        var logo = collection.logo ? '<img class="hen-profile-row-logo" data-hen-raw-uri="' + escapeHtml(collection.logo) + '" src="' + escapeHtml(resolveUri(collection.logo)) + '" alt="" loading="lazy">' : '<span class="hen-profile-row-logo is-empty"></span>';
         return '<div class="hen-profile-row">' + logo + '<span>' + escapeHtml(collection.name || 'Unknown') + '</span><em>' + escapeHtml(stats.join(' · ')) + '</em></div>';
     }
 
     function renderProfileAvatar(profile, display) {
         if (profile && profile.logo) {
-            return '<img class="hen-profile-avatar" src="' + escapeHtml(resolveUri(profile.logo)) + '" alt="' + escapeHtml(display) + '" loading="lazy">';
+            return '<img class="hen-profile-avatar" data-hen-raw-uri="' + escapeHtml(profile.logo) + '" src="' + escapeHtml(resolveUri(profile.logo)) + '" alt="' + escapeHtml(display) + '" loading="lazy">';
         }
         return '<div class="hen-profile-avatar is-empty">' + escapeHtml((display || '?').slice(0, 1).toUpperCase()) + '</div>';
     }
@@ -918,15 +929,16 @@ const HenMode = (() => {
         panel.innerHTML =
             '<div class="hen-profile-head">' +
                 renderProfileAvatar(profile, display) +
-                '<button type="button" class="hen-profile-chip" id="hen-profile-toggle" aria-expanded="true"><span class="hen-profile-kicker">collector profile</span><strong>' + escapeHtml(display) + '</strong><small>' + escapeHtml((collector ? fmtCount(collector.uniqueAssetsHeld || collector.totalHeld) + ' owned' : 'collector') + (collector && collector.totalSpent ? ' · ' + fmtProfileXTZ(collector.totalSpent) + ' spent' : '') + ' · ' + shortAddr(address)) + '</small></button>' +
+                '<button type="button" class="hen-profile-chip" id="hen-profile-toggle" aria-expanded="' + collectorProfileExpanded + '"><span class="hen-profile-kicker">collector profile · ' + (collectorProfileExpanded ? 'hide details' : 'show details') + '</span><strong>' + escapeHtml(display) + '</strong><small>' + escapeHtml((collector ? fmtCount(collector.uniqueAssetsHeld || collector.totalHeld) + ' owned' : 'collector') + (collector && collector.totalSpent ? ' · ' + fmtProfileXTZ(collector.totalSpent) + ' spent' : '') + ' · ' + shortAddr(address)) + '</small></button>' +
                 '<div class="hen-profile-actions"><button type="button" id="hen-profile-refresh">refresh</button>' + renderProfileLinks(profile, address) + '</div>' +
             '</div>' +
-            '<div class="hen-profile-body" id="hen-profile-body">' +
+            '<div class="hen-profile-body" id="hen-profile-body"' + (collectorProfileExpanded ? '' : ' hidden') + '>' +
                 description +
                 '<div class="hen-profile-metrics">' + metrics.join('') + '</div>' +
                 recent +
                 '<div class="hen-profile-lists">' + lists + '</div>' +
             '</div>';
+        panel.classList.toggle('is-collapsed', !collectorProfileExpanded);
         var refresh = document.getElementById('hen-profile-refresh');
         if (refresh) refresh.addEventListener('click', function() { loadCollectorProfile(address, true); });
         var toggle = document.getElementById('hen-profile-toggle');
@@ -934,6 +946,8 @@ const HenMode = (() => {
             var body = document.getElementById('hen-profile-body');
             var collapsed = panel.classList.toggle('is-collapsed');
             toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            collectorProfileExpanded = !collapsed;
+            toggle.querySelector('.hen-profile-kicker').textContent = 'collector profile · ' + (collapsed ? 'show details' : 'hide details');
             if (body) body.hidden = collapsed;
         });
         setupProfileImages();
@@ -1191,12 +1205,13 @@ const HenMode = (() => {
         if (walletStatus) walletStatus.textContent = viewerAddress ? (viewerLabel || shortAddr(viewerAddress)) : 'connect to flag pieces you own';
         var connect = el('hen-wallet-connect');
         if (connect) connect.classList.toggle('is-connected', Boolean(viewerAddress));
+        if (viewerAddress) document.getElementById('hen-loop-hint')?.remove();
         updateFilterBar();
         updateMobileFilterToggle();
     }
 
     function renderLoopHint() {
-        if (safeGetStorage(HEN_HINT_DISMISSED_KEY) === '1') return;
+        if (viewerAddress || SAVED_ADDRESS_KEYS.some(key => safeGetStorage(key)) || safeGetStorage(HEN_HINT_DISMISSED_KEY) === '1') return;
         if (document.getElementById('hen-loop-hint')) return;
         var strip = document.getElementById('hen-status-strip');
         if (!strip) return;
