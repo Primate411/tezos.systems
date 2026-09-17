@@ -94,6 +94,15 @@ export function compileJavaScript(source, filename, { root = ROOT, chambers = CH
     // Generated shells hand back to this same dashboard controller.
     compiled = compiled.replace(/\bimport\(source\.href\)/g, "import('./app.js')");
   }
+  if (file === 'js/ui/chamber-theme-effects.js' && /\bimport\(\s*(?:source|url)\s*\)/.test(source)) {
+    // This loader selects one literal renderer path, then adds a retry query.
+    // Side-effect edges preserve file reachability without retaining exports or
+    // rooting unrelated effect files merely because their paths appear nearby.
+    const selection = source.match(/\bconst\s+source\s*=\s*([^;]+);/)?.[1] || '';
+    const specifiers = [...selection.matchAll(/(['"])([^'"\n]+)\1/g)]
+      .map(([, , specifier]) => specifier).filter(localScript);
+    compiled += [...new Set(specifiers)].map(specifier => `\nimport ${JSON.stringify(specifier)};`).join('');
+  }
   if (['js/ui/share.js', 'js/ui/changelog-launcher.js'].includes(file)) {
     const specifier = source.match(/\bconst path = (['"])([^'"]+)\1/)?.[2];
     if (specifier) compiled = compiled.replace(/\bimport\(importAttempt\s*\?\s*`[^`]+`\s*:\s*path\)/g,

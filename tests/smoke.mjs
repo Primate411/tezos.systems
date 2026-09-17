@@ -46,6 +46,7 @@ import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
 import { smokeRootOgImage } from './lib/root-og-smoke.mjs';
+import { smokeThemeEffectsLazy } from './lib/theme-effects-lazy-smoke.mjs';
 import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
 import { decodeGeneratedTransport, encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
 import { getChamberCategories } from '../scripts/lib/chamber-catalog.mjs';
@@ -37688,6 +37689,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'share-actions', description: 'Share modal copy, post, download, native share, and mobile photo fallback buttons', run: () => smokeShareActions(browser, baseUrl) },
     { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
     { name: 'valley-theme', description: 'Valley lazy renderer, data motion, lifecycle, reading-state preservation, reduced motion, and responsive geometry', run: () => smokeValleyTheme(browser, baseUrl) },
+    { name: 'theme-effects-lazy', description: 'Only selected background renderers load; previews, delayed imports, failure retries, reduced motion and Chamber handoff preserve one current painter', run: () => smokeThemeEffectsLazy(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },
     { name: 'widget-builder', description: 'Standalone widget builder type picker, preview sizing, and embed code tabs', run: () => smokeWidgetBuilder(browser, baseUrl) },
     { name: 'widget-refresh', description: 'Widgets retain last-good readings through source failures and preserve visibility, focus, selection, and reader state during refresh', run: () => smokeWidgetRefresh(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },

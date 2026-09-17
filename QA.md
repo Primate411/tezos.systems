@@ -110,6 +110,16 @@ change-pill typography, and clipping. The generator uses current observations;
 the tests use controlled source receipts. PNG optimization must preserve exact
 pixels and retain the original bytes whenever compression would grow the file.
 
+## Theme effect loading
+
+Run the `theme-effects-lazy` browser suite alongside `themes`, `valley-theme`
+and `standalone-chamber-lifecycle`. Verify renderer request absence for themes
+that do not use them, first activation, rapid previews and cancellation, failed
+download recovery, reduced-motion changes, and a single initialization across
+the standalone-to-home handoff. Keep Valley's early statistics subscription.
+Use the startup matrix to measure the net saving including the shared loader;
+do not count existing lazy theme styles, fonts or the Valley renderer as new savings.
+
 ## Unused-code review
 
 Run `npm run audit:unused`. Read `test-artifacts/unused-code/report.md` for

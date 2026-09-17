@@ -14,7 +14,7 @@ for (const entry of STATIC_CHECKS) {
 const listed = execFileSync(process.execPath, ['tests/run-static.mjs', '--list'], { cwd: root, encoding: 'utf8' }).trim().split('\n');
 assert.deepEqual(listed, STATIC_CHECKS.map(entry => [entry.script, ...entry.args].join(' ')), 'CLI listing and execution use the same catalog');
 for (const required of [
-    'static-checks', 'smoke-harness-check', 'scheduled-refresh-check', 'source-payload-check', 'unused-code-check', 'root-og-check',
+    'static-checks', 'smoke-harness-check', 'scheduled-refresh-check', 'source-payload-check', 'unused-code-check', 'root-og-check', 'theme-effects-loader-check',
     'widget-refresh-check', 'generated-transport-check', 'service-worker-cache-check',
     'initial-load-policy-check', 'initial-load-network-check', 'initial-load-report-check', 'initial-load-server-check'
 ]) {

@@ -363,6 +363,13 @@ themes, and stores the selection in `localStorage` under
 `tezos-systems-theme`. Every picker row includes a compact copy control for its
 canonical `#theme=<name>` direct link, such as `/#theme=valley`; a valid hash
 theme takes precedence over the saved preference from first paint onward.
+The dashboard and standalone Chambers share the same idempotent effect loader.
+Matrix rain and the grouped canvas backgrounds load only for a theme that uses
+them, and remain unloaded under reduced motion. A later theme choice retries a
+failed download; a delayed download checks the current theme before drawing.
+Valley's small loader still subscribes early to retain initial statistics,
+while its substantial renderer remains lazy. Picker previews and Chamber-to-home
+navigation reuse the loaded modules without installing another set of listeners.
 Aurora's header title uses a desktop-specific multicolor sweep so the one-line
 wordmark stays as vivid as the wrapped mobile title.
 Character-by-character theme reveals reserve the settled text geometry: their

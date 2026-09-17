@@ -161,10 +161,13 @@ const RULES = [
     tags: ['shell', 'navigation']
   },
   {
-    suites: /^(themes|valley-theme|live-number-motion|visit-signal-bloom)$/,
+    suites: /^(themes|theme-effects-lazy|valley-theme|live-number-motion|visit-signal-bloom)$/,
     files: [
       'js/ui/theme.js',
+      'js/ui/chamber-theme-effects.js',
       'js/effects/*',
+      'tests/lib/theme-effects-lazy-smoke.mjs',
+      'tests/theme-effects-loader-check.mjs',
       'css/themes/*',
       'css/valley*'
     ],

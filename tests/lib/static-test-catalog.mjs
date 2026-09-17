@@ -95,6 +95,10 @@ export const STATIC_CHECKS = Object.freeze([
     "args": []
   },
   {
+    "script": "tests/theme-effects-loader-check.mjs",
+    "args": []
+  },
+  {
     "script": "tests/chamber-polling-check.mjs",
     "args": []
   },

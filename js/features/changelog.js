@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-17',
         entries: [
+            { type: '⚡', text: 'Theme backgrounds load only when their selected theme needs them, reducing startup downloads while preserving previews and animation behavior' },
             { type: '🎨', text: 'Social previews make 30-day changes easier to read with larger pills, while lossless image compression reduces their download size' }
         ]
     },

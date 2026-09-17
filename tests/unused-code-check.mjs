@@ -96,6 +96,7 @@ try {
     import './hen-init.js';
     import '../ui/share.js';
     import '../ui/changelog-launcher.js';
+    import '../ui/chamber-theme-effects.js';
     console.log(usedValue, CHAMBER_FEATURES);
     function importAppFeatureModule(id, modulePath) { return import(modulePath); }
     function loadChamberFeature(id) { return import(CHAMBER_FEATURES[id].modulePath); }
@@ -121,6 +122,23 @@ try {
   await write('js/ui/share-renderer.js', 'console.log("share retry runtime");\n');
   await write('js/ui/changelog-launcher.js', "const path = '../features/changelog.js'; const importAttempt = 0; import(importAttempt ? `${path}?retry=${importAttempt}` : path);\n");
   await write('js/features/changelog.js', 'console.log("changelog retry runtime");\n');
+  const themeLoader = `
+    const theme = document.body.dataset.theme;
+    const backgroundThemes = new Set(['ember']);
+    const unrelated = '/js/effects/string-only.js';
+    const attempt = 0;
+    function versionedAsset(value) { return value + '?v=651'; }
+    const source = theme === 'matrix' ? '/js/effects/matrix-effects.js'
+      : backgroundThemes.has(theme) ? '/js/effects/bg-effects.js'
+        : theme === 'valley' ? versionedAsset('/js/effects/valley-loader.js') : null;
+    const url = attempt ? source + '?theme-retry=' + attempt : source;
+    if (source) import(url);
+  `;
+  await write('js/ui/chamber-theme-effects.js', themeLoader);
+  await write('js/effects/matrix-effects.js', 'export function unusedMatrixHelper() {} console.log("conditional Matrix renderer");\n');
+  await write('js/effects/bg-effects.js', 'export function unusedBackgroundHelper() {} console.log("conditional background renderer");\n');
+  await write('js/effects/valley-loader.js', 'console.log("conditional versioned Valley loader");\n');
+  await write('js/effects/string-only.js', 'console.log("an unrelated effect path is not a dynamic import");\n');
   await write('js/features/orphan.js', 'export const orphan = 1;\n');
   await write('js/comment-only.js', 'console.log("commented script remains orphaned");\n');
   await write('js/json-only.js', 'console.log("JSON-LD does not execute imports");\n');
@@ -201,6 +219,11 @@ try {
     const adapter = compileJavaScript(await fs.readFile(path.join(root, filename), 'utf8'), path.join(root, filename), { root, chambers });
     assert.match(adapter, expectedImport, `known computed loader has an analyzable local import: ${filename}`);
   }
+  const themeAdapter = compileJavaScript(themeLoader, path.join(root, 'js/ui/chamber-theme-effects.js'), { root, chambers });
+  for (const file of ['matrix-effects.js', 'bg-effects.js', 'valley-loader.js']) {
+    assert(themeAdapter.includes(`import "../effects/${file}";`), `conditional renderer has a side-effect edge: ${file}`);
+  }
+  assert(!themeAdapter.includes('import "../effects/string-only.js";'), 'unrelated renderer-path strings do not create edges');
 
   const before = await fingerprint();
   const issues = parseKnip(runKnip());
@@ -210,14 +233,17 @@ try {
     'js/core/standalone-chamber.js', 'js/core/app.js', 'js/core/helper.js', 'js/core/chamber-features.mjs',
     'js/features/fixture-chamber.js', 'js/features/loaded-chamber.js', 'js/features/app-extra.js', 'js/features/versioned.js',
     'js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/share.js', 'js/ui/share-renderer.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js',
+    'js/ui/chamber-theme-effects.js', 'js/effects/matrix-effects.js', 'js/effects/bg-effects.js', 'js/effects/valley-loader.js',
     'scripts/lib/maxis-source.mjs', 'scripts/lib/maxis-source-v2.mjs', 'scripts/lib/maxis-season.mjs', 'scripts/lib/maxis-evaluator-v2.mjs',
     'widgets/widget.js', 'sw.js', 'scripts/refresh-only.mjs', 'tests/catalog-only.mjs', 'tests/validate-only.mjs'
   ]) assert(!unusedFiles.has(live), `known-live source is retained: ${live}`);
-  for (const orphan of ['js/features/orphan.js', 'js/comment-only.js', 'js/json-only.js']) {
+  for (const orphan of ['js/features/orphan.js', 'js/comment-only.js', 'js/json-only.js', 'js/effects/string-only.js']) {
     assert(unusedFiles.has(orphan), `unreachable source is still reported: ${orphan}`);
   }
   assert(names(issues, 'js/core/helper.js', 'exports').includes('unusedValue'), 'unused exports inside a live module remain visible');
   assert(!names(issues, 'js/core/helper.js', 'exports').includes('usedValue'), 'real imports retain the used helper export');
+  assert(names(issues, 'js/effects/matrix-effects.js', 'exports').includes('unusedMatrixHelper'), 'theme loading does not suppress Matrix unused exports');
+  assert(names(issues, 'js/effects/bg-effects.js', 'exports').includes('unusedBackgroundHelper'), 'theme loading does not suppress background unused exports');
   const chamberExports = names(issues, 'js/features/fixture-chamber.js', 'exports');
   assert(chamberExports.includes('unusedChamberHelper'), `dynamic catalog handling does not suppress every chamber export: ${JSON.stringify(issues.filter(issue => issue.file === 'js/features/fixture-chamber.js'))}`);
   for (const used of ['initFixture', 'openFixture', 'closeFixture']) {
@@ -242,6 +268,12 @@ try {
     }
   }
   assert(issues.every(issue => !issue.unresolved?.length), 'normalized local URLs all resolve without remote-script false positives');
+
+  await write('js/ui/chamber-theme-effects.js', themeLoader.replace("'/js/effects/matrix-effects.js'", 'null'));
+  const removedThemeBranch = parseKnip(runKnip());
+  assert(fileIssues(removedThemeBranch).has('js/effects/matrix-effects.js'), 'removing a renderer branch makes its orphan visible');
+  assert(!fileIssues(removedThemeBranch).has('js/effects/bg-effects.js'), 'remaining renderer branch stays live');
+  await write('js/ui/chamber-theme-effects.js', themeLoader);
 
   await write('knip.config.js', configuration({}));
   const unrooted = parseKnip(runKnip());

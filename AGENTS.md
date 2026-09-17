@@ -572,8 +572,13 @@ Stamping gotchas:
 - `js/ui/title.js`: dynamic rotating page title.
 - `js/effects/matrix-effects.js`: Matrix rain.
 - `js/effects/bg-effects.js`: animated themed backgrounds.
+- `js/effects/theme-loader.js`: early dashboard entrypoint for the shared
+  `js/ui/chamber-theme-effects.js` loader. Keep initialization idempotent across
+  standalone-to-home handoff; load Matrix/grouped painters only on theme demand,
+  and retry failed imports only on a later theme or motion-preference event.
 - `js/effects/valley-loader.js`: race-guarded lazy loader for the Valley
-  painterly background in `js/effects/valley-effects.js`.
+  painterly background in `js/effects/valley-effects.js`. Keep its early root
+  subscription so it remembers statistics published before Valley is selected.
 - `js/effects/arcade-effects.js`, `audio.js`, `vibes.js`: playful effects.
 
 Verified theme list in `theme.js`:
