@@ -51,9 +51,10 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 
 For viewport scheduling changes, run `tzkt-throttle`, `viewport-loading`, and
 `lazy-chamber-loading` twice with no assertion retries. They cover scroll and
-Chamber reprioritization, aborts and dispatch deadlines, delayed-history first
-paint on desktop/phone, and stable rows/focus/scroll as details finish. With
-`--artifacts-dir`, `viewport-loading` saves pending, essential, and enriched
+Chamber/drawer reprioritization, aborts and dispatch deadlines, delayed-history first
+paint on desktop/phone, head advancement while history is pending, and stable
+rows/focus/scroll as details finish. With
+`--artifacts-dir`, `viewport-loading` saves pending, essential, live-during-history, and enriched
 screenshots. Also capture timed cold loads: the state-based screenshots alone
 do not show how long a visitor sees each stage.
 

@@ -104,6 +104,7 @@ const PERIODS = [
 
 let refreshTimer = null;
 let refreshInFlight = null;
+let initialHeadRefreshInFlight = null;
 let cachedData = null;
 let lastFullFetch = 0;
 let lastBlockPulseFetch = 0;
@@ -6251,11 +6252,34 @@ function wireNetworkHealthCard() {
 }
 
 export async function refreshNetworkHealth({ force = false } = {}) {
-    if (refreshInFlight) return refreshInFlight;
+    if (refreshInFlight) {
+        // Once the first head is visible, slow initial history must not block
+        // subsequent block pulses. Keep one essential head request in flight.
+        if (!cachedData && heartbeatData?.blocks?.length && !initialHeadRefreshInFlight
+            && document.visibilityState === 'visible') {
+            initialHeadRefreshInFlight = fetchLastBlocks().then(blocks => {
+                if (!blocks.length || document.visibilityState !== 'visible') return;
+                const data = {
+                    ...(cachedData || heartbeatData), blocks,
+                    headLevel: blocks[0].level, headTimestamp: blocks[0].timestamp,
+                    updatedAt: Date.now(), summary: summarizeBlocks(blocks.slice(0, HEALTH_CARD_BLOCK_LIMIT))
+                };
+                confirmLiveHeadObservation(data);
+                updateBlockTicker(data);
+            }).catch(error => console.warn('Initial Live Head refresh failed:', error))
+                .finally(() => { initialHeadRefreshInFlight = null; });
+        }
+        return refreshInFlight;
+    }
 
     const forcePeriods = force || !cachedData || Date.now() - lastFullFetch > PERIOD_TTL;
     refreshInFlight = fetchNetworkHealth({ forcePeriods })
         .then((data) => {
+            // History can finish after a newer essential head has arrived.
+            if (Number(heartbeatData?.headLevel) > Number(data.headLevel)) {
+                const { blocks, headLevel, headTimestamp, summary } = heartbeatData;
+                data = { ...data, blocks, headLevel, headTimestamp, summary };
+            }
             confirmLiveHeadObservation(data);
             cachedData = data;
             lastFullFetch = data.periodUpdatedAt || lastFullFetch;

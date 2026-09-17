@@ -13,7 +13,7 @@ export async function smokeViewportLoading(browser, baseUrl, { installFeatureMoc
     const historyReady = new Promise(resolve => { releaseHistory = resolve; });
     let heldHead = 0, heldHistory = 0;
     try {
-      await installFeatureMocks(context, { blockHeadAutoAdvance: false });
+      await installFeatureMocks(context);
       await context.route('https://api.tzkt.io/v1/**', async route => {
         const url = new URL(route.request().url());
         if (url.pathname === '/v1/blocks' && url.searchParams.get('limit') === '26'
@@ -51,6 +51,13 @@ export async function smokeViewportLoading(browser, baseUrl, { installFeatureMoc
       assert.equal(await page.evaluate(() => localStorage.getItem('tezos-systems-network-health')), null,
         'an early head must not be persisted as a complete history receipt');
       await capture('essential');
+      const firstLevel = await page.evaluate(() => Number(document.querySelector('#live-head')?.dataset.heartbeatLevel));
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('block-pulse')));
+      await page.waitForFunction(level => Number(document.querySelector('#live-head')?.dataset.heartbeatLevel) > level,
+        firstLevel, { timeout: 10000 });
+      assert.equal(await page.evaluate(() => localStorage.getItem('tezos-systems-network-health')), null,
+        'a newer head must keep advancing while initial history is still held');
+      await capture('live-during-history');
       await page.evaluate(() => {
         const row = document.querySelector('#live-head-stack [data-live-head-level]');
         document.getElementById('settings-gear').focus({ preventScroll: true });

@@ -10536,6 +10536,23 @@ async function smokeTzktThrottle(browser, baseUrl) {
   });
   assert(chamberStarts[0] === 'chamber', `Viewport priority: open chamber lost to dashboard work ${JSON.stringify(chamberStarts)}`);
 
+  const drawerStarts = await page.evaluate(async () => {
+    window.__tzktThrottleStarts.length = 0;
+    const background = fetch('https://api.tzkt.io/v1/head?drawer=dashboard', { __tezosSystemsSurface: '#priority-bottom' });
+    const drawer = document.createElement('aside');
+    drawer.id = 'my-tezos-drawer';
+    drawer.className = 'open';
+    document.body.append(drawer);
+    window.dispatchEvent(new Event('my-tezos-drawer-opened'));
+    const foreground = fetch('https://api.tzkt.io/v1/head?drawer=dependency');
+    await Promise.all([background, foreground]);
+    const starts = window.__tzktThrottleStarts.map(entry => new URL(entry.url).searchParams.get('drawer'));
+    drawer.remove();
+    window.dispatchEvent(new Event('my-tezos-drawer-closed'));
+    return starts;
+  });
+  assert(drawerStarts[0] === 'dependency', `Viewport priority: My Tezos dependency lost to dashboard work ${JSON.stringify(drawerStarts)}`);
+
   await page.evaluate(() => {
     const { scheduleViewportLoad, beginLoadIntent } = window.__loadTest;
     window.__viewportRuns = [];
@@ -10605,6 +10622,7 @@ async function smokeStakingChamber(browser, baseUrl) {
   assert(response?.ok(), `${label}: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#chambers-grid > .chamber-category[data-chamber-category="capital"] .chamber-category-toggle').click();
   await page.locator('#staking-entry-card').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#staking-entry-card').scrollIntoViewIfNeeded();
   await page.locator('#staking-entry-card').dispatchEvent('pointerenter');
   await page.waitForFunction(() => {
     const card = document.querySelector('#staking-entry-card');
@@ -20437,6 +20455,7 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
       dashboardNodes: !!document.querySelector('#hero-slot, #chambers-grid, #my-tezos-drawer, #history-modal'),
       scripts: performance.getEntriesByType('resource').filter(r => /\.(?:js|mjs)$/.test(new URL(r.name).pathname)).length,
       readingModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/chamber-reading.js').length,
+      priorityModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/core/load-priority.js').length,
       codecModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/core/tezoscrp-codec.mjs').length,
       textLoadingModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/text-loading.js').length,
       elements: document.getElementsByTagName('*').length,
@@ -20444,7 +20463,7 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
       overflow: document.documentElement.scrollWidth > innerWidth,
       timeOrigin: performance.timeOrigin
     }));
-    assert(cold.readingModules === 1 && cold.codecModules === 1 && cold.textLoadingModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules - cold.codecModules - cold.textLoadingModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
+    assert(cold.readingModules === 1 && cold.codecModules === 1 && cold.textLoadingModules === 1 && cold.priorityModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules - cold.codecModules - cold.textLoadingModules - cold.priorityModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
     assert(cold.theme === theme && !cold.overflow, `standalone ${width}: theme or geometry changed`);
     const forbidden = requests.filter(url => /\/(?:app|api|network-health|history|my-tezos|daily-briefing|price|comparison)\.js|chart\.umd|chartjs-adapter|\.supabase\.co|\.tzkt\.io|rpc\.tez\.capital/.test(url));
     assert(forbidden.length === 0, `standalone ${width}: unrelated startup work ${forbidden.join('\n')}`);
@@ -21480,6 +21499,11 @@ async function smokeMaxisChamber(browser, baseUrl) {
   const firstLedgerLink = page.locator('.maxis-row-actions .maxis-ledger-action');
   const ledgerHref = await firstLedgerLink.getAttribute('href');
   const ledgerTarget = decodeURIComponent((ledgerHref || '').split('=').slice(1).join('='));
+  // The generated leader changes over time; pin the selected account receipt
+  // before its newly prioritized navigation request can reach the deny layer.
+  await page.route(`https://api.tzkt.io/v1/accounts/${ledgerTarget}`, route => fulfillJson(route, {
+    address: ledgerTarget, type: 'user', balance: 0
+  }));
   await firstLedgerLink.click();
   await page.waitForFunction((target) => window.location.pathname === '/' && window.location.hash === `#ledger-flow=${encodeURIComponent(target)}`, ledgerTarget, { timeout: 10000 });
   await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 15000 });
@@ -29185,7 +29209,7 @@ async function smokeUxChanges(browser, baseUrl) {
     viewport: { width: 1366, height: 900 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context);
+  await installFeatureMocks(context, { ledgerFlowMocks: true });
   await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'clean');
@@ -29385,7 +29409,7 @@ async function smokeUxChanges(browser, baseUrl) {
     { hash: 'pulse', content: '#network-pulse-modal.active .network-pulse-content', title: '.network-pulse-header .chamber-title' },
     { hash: 'health', content: '#network-health-modal.active .health-content', title: '.health-header .chamber-title' },
     { hash: 'domains', content: '#tezos-domains-modal.active .tezos-domains-content', title: '.tezos-domains-header .chamber-title' },
-    { hash: 'ledger-flow', content: '#ledger-flow-modal.active .ledger-flow-content', title: '.ledger-flow-header .chamber-title' }
+    { hash: `ledger-flow=${SAMPLE_ADDRESS}`, content: '#ledger-flow-modal.active .ledger-flow-content', title: '.ledger-flow-header .chamber-title' }
   ];
   for (const chamber of cleanChambers) {
     await page.goto(`${baseUrl}/?theme=clean#${chamber.hash}`, { waitUntil: 'domcontentloaded' });
@@ -34148,6 +34172,9 @@ async function smokeLiveNumberShellMotion(browser, baseUrl, issues) {
   const response = await page.goto(`${baseUrl}/#theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `live number production shell failed with HTTP ${response?.status()}`);
   await page.waitForFunction(() => typeof window._updateUptimeClock === 'function', null, { timeout: 15000 });
+  // This fixture denies every API call. Let its initial unavailable banner
+  // settle before measuring number-animation geometry in the reading state.
+  await page.locator('#data-status[data-status-kind]').waitFor({ state: 'visible', timeout: 15000 });
 
   const pillLoadingGeometry = await page.evaluate(() => {
     const settledValues = new Map([

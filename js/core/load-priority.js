@@ -6,7 +6,9 @@ let frame = null;
 let running = 0;
 
 export function currentLoadSurface() {
-    return overlay?.isConnected ? overlay : null;
+    if (overlay?.isConnected) return overlay;
+    // My Tezos owns its drawer lifecycle outside the shared modal stack.
+    return typeof document === 'undefined' ? null : document.querySelector('#my-tezos-drawer.open');
 }
 
 export function beginLoadIntent(selector) {
@@ -92,4 +94,6 @@ if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', wake);
     document.addEventListener('scroll', wake, { capture: true, passive: true });
     window.addEventListener('resize', wake, { passive: true });
+    window.addEventListener('my-tezos-drawer-opened', wake);
+    window.addEventListener('my-tezos-drawer-closed', wake);
 }
