@@ -351,7 +351,7 @@ async function fetchStakingPage({ action, limit, cursor = null, afterId = 0, ric
     params.set('select', rich
         ? 'id,level,timestamp,hash,staker,sender,baker,action,amount,status'
         : 'id,timestamp,amount');
-    const response = await fetch(`${API_URLS.tzkt}/operations/staking?${params}`, { cache: 'no-store' });
+    const response = await fetch(`${API_URLS.tzkt}/operations/staking?${params}`, { cache: 'no-store', __tezosSystemsSurface: '#staking-chamber-modal.active, #staking-entry-card' });
     if (!response.ok) throw new Error(`TzKT staking HTTP ${response.status}`);
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error('TzKT staking response was not an array');
@@ -495,7 +495,7 @@ async function hydrateRows(rows) {
         const params = new URLSearchParams();
         params.set('id.in', ids.join(','));
         params.set('select', 'id,level,timestamp,hash,staker,sender,baker,action,amount,status');
-        const response = await fetch(`${API_URLS.tzkt}/operations/staking?${params}`, { cache: 'no-store' });
+        const response = await fetch(`${API_URLS.tzkt}/operations/staking?${params}`, { cache: 'no-store', __tezosSystemsSurface: '#staking-chamber-modal.active, #staking-entry-card' });
         if (!response.ok) throw new Error(`TzKT staking receipts HTTP ${response.status}`);
         const payload = await response.json();
         if (!Array.isArray(payload)) throw new Error('TzKT staking receipts response was not an array');

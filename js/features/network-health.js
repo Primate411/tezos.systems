@@ -1461,7 +1461,7 @@ async function fetchHeartbeatBakingMisses(blocks) {
     const levels = missing.map((block) => Number(block.level));
     const limit = 1000;
     const url = `${TZKT}/rights?type=baking&status=missed&level.in=${levels.join(',')}&limit=${limit}&select=level,round,baker,status,type`;
-    const promise = fetchJson(url, 1, { priority: 'interactive' }).then((rights) => {
+    const promise = fetchJson(url, 1, { priority: 'enrichment' }).then((rights) => {
         if (!Array.isArray(rights)) throw new Error('Invalid missed baking-right receipt');
         for (const right of rights) {
             const block = missing.find((item) => Number(item.level) === Number(right.level));
@@ -2574,7 +2574,7 @@ async function fetchHeartbeatNextRight(level) {
     if (heartbeatNextRightInFlight?.level === level) return heartbeatNextRightInFlight.promise;
 
     const url = `${TZKT}/rights?type=baking&level=${level}&round=0&limit=1`;
-    const promise = fetchJson(url, 1, { priority: 'interactive' })
+    const promise = fetchJson(url, 1, { priority: 'enrichment' })
         .then((rows) => {
             const row = Array.isArray(rows) ? rows[0] : null;
             const right = row ? {
@@ -2655,9 +2655,9 @@ async function fetchHeartbeatL1Voting(blocks) {
     const proposalFields = 'id,hash,level,timestamp,delegate';
     const query = `level.ge=${startLevel}&level.le=${endLevel}&status=applied&limit=${HEARTBEAT_L1_VOTING_LIMIT}`;
     const promise = Promise.allSettled([
-        fetchJson(`${TZKT}/operations/ballots?${query}&select=${ballotFields}`, 1, { priority: 'interactive' }),
-        fetchJson(`${TZKT}/operations/proposals?${query}&select=${proposalFields}`, 1, { priority: 'interactive' }),
-        fetchJson(`${TZKT}/voting/periods?firstLevel.ge=${startLevel}&firstLevel.le=${endLevel}&select=index,firstLevel,kind&limit=${HEARTBEAT_L1_VOTING_LIMIT}`, 1, { priority: 'interactive' })
+        fetchJson(`${TZKT}/operations/ballots?${query}&select=${ballotFields}`, 1, { priority: 'enrichment' }),
+        fetchJson(`${TZKT}/operations/proposals?${query}&select=${proposalFields}`, 1, { priority: 'enrichment' }),
+        fetchJson(`${TZKT}/voting/periods?firstLevel.ge=${startLevel}&firstLevel.le=${endLevel}&select=index,firstLevel,kind&limit=${HEARTBEAT_L1_VOTING_LIMIT}`, 1, { priority: 'enrichment' })
     ]).then(([ballotsResult, proposalsResult, periodsResult]) => {
         const ballots = ballotsResult.status === 'fulfilled' && Array.isArray(ballotsResult.value)
             ? ballotsResult.value
@@ -2735,10 +2735,10 @@ async function fetchHeartbeatActivity(level, { block = null, l1VotingCoverage = 
     const stakingFields = 'id,hash,timestamp,action,amount,staker,baker';
     const tokenTransferFields = 'id,token.id as tokenId,token.contract as contract,token.standard as standard,token.metadata.symbol as symbol,token.metadata.name as name,token.metadata.artifactUri as artifactUri,from,to,amount,transactionId';
     const requests = [
-        fetchJson(`${TZKT}/operations/transactions?level=${level}&status=applied&select=${txFields}&limit=${HEARTBEAT_ACTIVITY_LIMIT}`, 1, { priority: 'interactive' }),
-        fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'interactive' }),
+        fetchJson(`${TZKT}/operations/transactions?level=${level}&status=applied&select=${txFields}&limit=${HEARTBEAT_ACTIVITY_LIMIT}`, 1, { priority: 'enrichment' }),
+        fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'enrichment' }),
         fetchHeartbeatGas(level),
-        fetchJson(`${TZKT}/tokens/transfers?level=${level}&select=${encodeURIComponent(tokenTransferFields)}&limit=${HEARTBEAT_TOKEN_TRANSFER_LIMIT}`, 1, { priority: 'interactive' })
+        fetchJson(`${TZKT}/tokens/transfers?level=${level}&select=${encodeURIComponent(tokenTransferFields)}&limit=${HEARTBEAT_TOKEN_TRANSFER_LIMIT}`, 1, { priority: 'enrichment' })
     ];
     const promise = Promise.all([loadHeartbeatStoryCatalog(), Promise.allSettled(requests)])
         .then(([catalog, [transactionsResult, stakingResult, gasResult, tokenTransfersResult]]) => {
@@ -2977,7 +2977,7 @@ async function fetchHeartbeatGasLimit() {
         return heartbeatGasLimitCache;
     }
     if (heartbeatGasLimitInFlight) return heartbeatGasLimitInFlight;
-    const promise = fetchJson(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, 1, { priority: 'interactive' })
+    const promise = fetchJson(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, 1, { priority: 'enrichment' })
         .then((constants) => {
             const limit = Number(constants?.hard_gas_limit_per_block);
             if (!Number.isFinite(limit) || limit <= 0) throw new Error('Current block gas limit is unavailable');
@@ -2994,8 +2994,8 @@ async function fetchHeartbeatGasLimit() {
 
 async function fetchHeartbeatGas(level) {
     const [managerResult, evidenceResult, gasLimitResult] = await Promise.allSettled([
-        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/3`, 1, { priority: 'interactive' }),
-        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/2`, 1, { priority: 'interactive' }),
+        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/3`, 1, { priority: 'enrichment' }),
+        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/2`, 1, { priority: 'enrichment' }),
         fetchHeartbeatGasLimit()
     ]);
     const groups = managerResult.status === 'fulfilled' && Array.isArray(managerResult.value)
@@ -3030,7 +3030,7 @@ async function fetchHeartbeatMissedRights(blocks) {
     if (heartbeatMissedRightsInFlight?.startLevel === startLevel && heartbeatMissedRightsInFlight?.endLevel === endLevel) {
         return heartbeatMissedRightsInFlight.promise;
     }
-    const promise = fetchMissedRights('attestation', startLevel, endLevel, limit, { priority: 'interactive' }).then((attestations) => {
+    const promise = fetchMissedRights('attestation', startLevel, endLevel, limit, { priority: 'enrichment' }).then((attestations) => {
         heartbeatMissedRightsCache = {
             startLevel,
             endLevel,
@@ -3110,7 +3110,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     updateChainHealthStrip(data, { error, supplemental, suppressMotion: motionSuppressed || !heartbeatSupplementIsCurrent(latest) });
 
     dispatchContestedRoundHotSignal(latest);
-    if (!supplemental) fetchUsagePulse({ priority: 'interactive' }).then(patchTickerUsage);
+    if (!supplemental) fetchUsagePulse({ priority: 'enrichment' }).then(patchTickerUsage);
 
     const status = latestBlockStatus(latest);
     const producerName = bakerName(latest.producer);
@@ -3251,11 +3251,12 @@ function summarizeMyTezosBaker(data) {
     };
 }
 
-async function fetchJson(url, retries = 2, { priority = 'normal' } = {}) {
+async function fetchJson(url, retries = 2, { priority = 'normal', surface = '#network-health-modal.active, #live-head' } = {}) {
     return fetchWithRetry(url, {
         cache: 'no-store',
         memoryCache: false,
-        ...(priority === 'interactive' ? { __tezosSystemsPriority: 'interactive' } : {})
+        __tezosSystemsSurface: surface,
+        __tezosSystemsPriority: priority
     }, retries + 1);
 }
 
@@ -4138,7 +4139,7 @@ async function fetchLastBlocks() {
 
 async function fetchLevelAt(date) {
     const timestamp = encodeURIComponent(date.toISOString());
-    const level = await fetchJson(`${TZKT}/blocks/${timestamp}/level`);
+    const level = await fetchJson(`${TZKT}/blocks/${timestamp}/level`, 2, { priority: 'enrichment', surface: '#network-health-modal.active, [data-stat="network-health"]' });
     return Number(level) || 0;
 }
 
@@ -4149,7 +4150,7 @@ async function fetchBlocksInRange(startLevel, endLevel) {
 
     while (startLevel <= endLevel) {
         const url = `${TZKT}/blocks?level.ge=${startLevel}&level.le=${endLevel}&sort.asc=level&offset=${offset}&limit=${RANGE_PAGE_LIMIT}&select=${fields}`;
-        const page = await fetchJson(url);
+        const page = await fetchJson(url, 2, { priority: 'enrichment', surface: '#network-health-modal.active, [data-stat="network-health"]' });
         blocks.push(...page.map(normalizeBlock));
         if (page.length < RANGE_PAGE_LIMIT) break;
         offset += RANGE_PAGE_LIMIT;
@@ -4182,7 +4183,7 @@ async function fetchBlocksByLevels(levels) {
 
     const pages = await Promise.all(chunks.map((chunk) => {
         const url = `${TZKT}/blocks?level.in=${chunk.join(',')}&sort.asc=level&limit=${chunk.length}&select=${fields}`;
-        return fetchJson(url);
+        return fetchJson(url, 2, { priority: 'enrichment', surface: '#network-health-modal.active, [data-stat="network-health"]' });
     }));
 
     return pages.flat().map(normalizeBlock);
@@ -4249,7 +4250,20 @@ function periodCacheIsFresh(data) {
 
 async function fetchNetworkHealth({ forcePeriods = false } = {}) {
     const [lastBlocks, cycleTiming, octezVersions] = await Promise.all([
-        fetchLastBlocks(),
+        fetchLastBlocks().then(blocks => {
+            // First confirmed head is useful before historical summaries arrive.
+            // Retained/cached rows still follow the existing single refresh path.
+            if (!heartbeatData?.blocks?.length && blocks.length && document.visibilityState === 'visible') {
+                const firstHead = {
+                    blocks, headLevel: blocks[0].level, headTimestamp: blocks[0].timestamp,
+                    updatedAt: Date.now(), summary: summarizeBlocks(blocks.slice(0, HEALTH_CARD_BLOCK_LIMIT)),
+                    periods: [], cycleTiming: cycleTimingCache, octezVersions: null
+                };
+                confirmLiveHeadObservation(firstHead);
+                updateBlockTicker(firstHead);
+            }
+            return blocks;
+        }),
         fetchCycleTiming(),
         fetchOctezVersions()
     ]);

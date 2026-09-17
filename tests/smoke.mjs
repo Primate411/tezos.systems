@@ -48,6 +48,7 @@ import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
 import { smokeRootOgImage } from './lib/root-og-smoke.mjs';
 import { smokeThemeEffectsLazy } from './lib/theme-effects-lazy-smoke.mjs';
 import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
+import { smokeViewportLoading } from './lib/viewport-loading-smoke.mjs';
 import { decodeGeneratedTransport, encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
 import { getChamberCategories } from '../scripts/lib/chamber-catalog.mjs';
 
@@ -4913,6 +4914,9 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
   if (mockOptions.governanceLiveVote) {
     await page.locator('#chamber-entry-card.chamber-entry-wide[data-chamber-entry-size="wide"] .chamber-entry-metric strong').first().waitFor({ state: 'visible', timeout: 10000 });
   }
+  // This geometry fixture hydrates every room at once. Visit LB before waiting
+  // for its data; offscreen preloads now yield to what the reader can see.
+  await page.locator('#lb-entry-card').scrollIntoViewIfNeeded();
   await page.locator('#lb-entry-switcher-strip[data-lb-sample-blocks="2500"][data-lb-switcher-count="3"]').waitFor({ state: 'attached', timeout: 10000 });
   await assertChamberControlGeometry(page, label);
   await assertChamberInfoTooltipsContained(page, label);
@@ -10488,6 +10492,90 @@ async function smokeTzktThrottle(browser, baseUrl) {
     return window.__tzktThrottleStarts.map((entry) => entry.url);
   });
   assert(priorityStarts[0]?.includes('priority-interactive=1'), `TzKT throttle: interactive request did not move ahead of queued passive work ${JSON.stringify(priorityStarts)}`);
+
+  const viewportStarts = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML('beforeend', `<section id="priority-top" style="height:200px">Top</section>
+      <div style="height:1100px"></div><section id="priority-bottom" style="height:200px">Bottom</section>
+      <div id="priority-dialog" role="dialog" hidden style="position:fixed;inset:40px;background:white"><button>Close</button></div>`);
+    window.__tzktThrottleStarts.length = 0;
+    const work = [
+      fetch('https://api.tzkt.io/v1/head?viewport=far', { __tezosSystemsSurface: '#priority-bottom' }),
+      fetch('https://api.tzkt.io/v1/head?viewport=detail', { __tezosSystemsSurface: '#priority-top', __tezosSystemsPriority: 'enrichment' }),
+      fetch('https://api.tzkt.io/v1/head?viewport=essential', { __tezosSystemsSurface: '#priority-top' })
+    ];
+    await Promise.all(work);
+    return window.__tzktThrottleStarts.map(entry => new URL(entry.url).searchParams.get('viewport'));
+  });
+  assert(JSON.stringify(viewportStarts) === JSON.stringify(['essential', 'detail', 'far']), `Viewport priority: wrong initial reading order ${JSON.stringify(viewportStarts)}`);
+
+  const scrolledStarts = await page.evaluate(async () => {
+    window.__tzktThrottleStarts.length = 0;
+    const work = [
+      fetch('https://api.tzkt.io/v1/head?scroll=old', { __tezosSystemsSurface: '#priority-top' }),
+      fetch('https://api.tzkt.io/v1/head?scroll=new', { __tezosSystemsSurface: '#priority-bottom' })
+    ];
+    document.querySelector('#priority-bottom').scrollIntoView();
+    await Promise.all(work);
+    return window.__tzktThrottleStarts.map(entry => new URL(entry.url).searchParams.get('scroll'));
+  });
+  assert(scrolledStarts[0] === 'new', `Viewport priority: pending requests did not follow scroll ${JSON.stringify(scrolledStarts)}`);
+
+  const chamberStarts = await page.evaluate(async () => {
+    const { activateOverlayDialog, deactivateOverlayDialog } = window.__loadTest;
+    window.__tzktThrottleStarts.length = 0;
+    const background = fetch('https://api.tzkt.io/v1/head?overlay=dashboard', { __tezosSystemsSurface: '#priority-bottom', __tezosSystemsPriority: 'interactive' });
+    const dialog = document.querySelector('#priority-dialog');
+    dialog.hidden = false;
+    activateOverlayDialog(dialog, { dialogSelector: dialog, close: () => deactivateOverlayDialog(dialog), label: 'Priority test' });
+    const foreground = fetch('https://api.tzkt.io/v1/head?overlay=chamber');
+    await Promise.all([background, foreground]);
+    const starts = window.__tzktThrottleStarts.map(entry => new URL(entry.url).searchParams.get('overlay'));
+    deactivateOverlayDialog(dialog);
+    dialog.hidden = true;
+    return starts;
+  });
+  assert(chamberStarts[0] === 'chamber', `Viewport priority: open chamber lost to dashboard work ${JSON.stringify(chamberStarts)}`);
+
+  await page.evaluate(() => {
+    const { scheduleViewportLoad, beginLoadIntent } = window.__loadTest;
+    window.__viewportRuns = [];
+    window.__releaseLoadIntent = beginLoadIntent('#priority-dialog');
+    scheduleViewportLoad('bottom', '#priority-bottom', () => window.__viewportRuns.push('bottom'));
+    scheduleViewportLoad('top', '#priority-top', () => window.__viewportRuns.push('top'));
+  });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert((await page.evaluate(() => window.__viewportRuns.length)) === 0, 'Viewport loading: optional work ran during a chamber open intent');
+  await page.evaluate(() => window.__releaseLoadIntent());
+  await page.waitForFunction(() => window.__viewportRuns.includes('bottom'));
+  assert((await page.evaluate(() => window.__viewportRuns.includes('top'))) === false, 'Viewport loading: far-off section started before the reader approached');
+  await page.evaluate(() => document.querySelector('#priority-top').scrollIntoView());
+  await page.waitForFunction(() => window.__viewportRuns.includes('top'));
+
+  await page.evaluate(() => {
+    const surface = document.querySelector('#priority-top');
+    surface.hidden = true;
+    window.__hiddenViewportLoad = window.__loadTest.scheduleViewportLoad('reopened', surface, () => window.__viewportRuns.push('reopened'));
+  });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  assert(!(await page.evaluate(() => window.__viewportRuns.includes('reopened'))), 'Viewport loading: hidden category started optional work');
+  const reused = await page.evaluate(() => {
+    const surface = document.querySelector('#priority-top');
+    surface.hidden = false;
+    return window.__hiddenViewportLoad === window.__loadTest.scheduleViewportLoad('reopened', surface, () => {});
+  });
+  assert(reused, 'Viewport loading: repeated visibility must share the queued work');
+  await page.waitForFunction(() => window.__viewportRuns.includes('reopened'));
+
+  const abortedStarts = await page.evaluate(async () => {
+    window.__tzktThrottleStarts.length = 0;
+    const controller = new AbortController();
+    const abandoned = fetch('https://api.tzkt.io/v1/head?cancelled=1', { signal: controller.signal })
+      .then(() => 'unexpected', error => error.name);
+    controller.abort();
+    await fetch('https://api.tzkt.io/v1/head?retained=1');
+    return { outcome: await abandoned, urls: window.__tzktThrottleStarts.map(entry => entry.url) };
+  });
+  assert(abortedStarts.outcome === 'AbortError' && !abortedStarts.urls.some(url => url.includes('cancelled=1')), 'Viewport priority: aborted queued work was still sent');
 
   await context.close();
   assert(issues.length === 0, `TzKT throttle browser issues:\n${issues.join('\n')}`);
@@ -36275,7 +36363,9 @@ async function smokeLiveNumberMotion(browser, baseUrl) {
 
 async function smokeLazyChamberLoading(browser, baseUrl) {
   const installLazyInit = async (context) => {
-    await installFeatureMocks(context);
+    // Opening the room may now finish before the close click: keep counts and
+    // paged receipts coherent instead of pairing a generic count with no rows.
+    await installFeatureMocks(context, { ledgerFlowMocks: true });
     await context.route(/^https:\/\/api\.tzkt\.io\/v1\/accounts\/tz[1-4][^/?]+(?:\?.*)?$/, async (route) => {
       const parsedUrl = new URL(route.request().url());
       const address = decodeURIComponent(parsedUrl.pathname.split('/').pop() || '');
@@ -37655,7 +37745,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'route-search-state', description: 'Alias transitions, bare routes, search relevance, Escape focus, query preservation, and Back/Forward state stay coherent', run: () => smokeRouteSearchState(browser, baseUrl) },
     { name: 'breakpoint-accessibility', description: 'Exact paired breakpoints, 200% reflow, forced colors, and reduced motion preserve shell/search/Chamber focus, containment, and horizontal fit', run: () => smokeBreakpointAccessibility(browser, baseUrl) },
     { name: 'cycle-milestone', description: 'Exact cycle milestones survive stale catalogs and quiet reconciliation while dead history breadcrumbs stay removed', run: () => smokeCycleMilestone(browser, baseUrl) },
-    { name: 'tzkt-throttle', description: 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second', run: () => smokeTzktThrottle(browser, baseUrl) },
+    { name: 'tzkt-throttle', description: 'TzKT pacing preserves deadlines and cancellation while visible facts and chamber intent reorder pending work', run: () => smokeTzktThrottle(browser, baseUrl) },
+    { name: 'viewport-loading', description: 'Desktop and phone essentials render before blocked history and retain reader state when enrichment finishes', run: () => smokeViewportLoading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'chamber-categories', description: 'Catalogued responsive topics and individually hideable Chambers with persistent Hide/Undo, recovery, sync, route reveal, and first-paint state', run: () => smokeChamberCategories(browser, baseUrl) },

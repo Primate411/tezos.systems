@@ -49,6 +49,14 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 
 ## Initial load budgets
 
+For viewport scheduling changes, run `tzkt-throttle`, `viewport-loading`, and
+`lazy-chamber-loading` twice with no assertion retries. They cover scroll and
+Chamber reprioritization, aborts and dispatch deadlines, delayed-history first
+paint on desktop/phone, and stable rows/focus/scroll as details finish. With
+`--artifacts-dir`, `viewport-loading` saves pending, essential, and enriched
+screenshots. Also capture timed cold loads: the state-based screenshots alone
+do not show how long a visitor sees each stage.
+
 Run `npm run measure:load:ci` before accepting startup or asset-loading changes.
 It starts a local server and measures desktop and phone views, anonymous and
 saved-wallet state, and cold, warm, and installed-worker caches. Each of the

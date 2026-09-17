@@ -179,7 +179,8 @@ async function fetchBakers() {
     try {
         while (true) {
             const resp = await fetch(
-                `${TZKT}/delegates?active=true&select=address,alias,stakingBalance,bakingPower,consensusAddress,externalStakedBalance,externalDelegatedBalance,numDelegators,stakersCount,stakedBalance,balance,software,firstActivity,firstActivityTime,limitOfStakingOverBaking,edgeOfBakingOverStaking,pendingStakingParameters&sort.desc=id&limit=${limit}&offset=${offset}`
+                `${TZKT}/delegates?active=true&select=address,alias,stakingBalance,bakingPower,consensusAddress,externalStakedBalance,externalDelegatedBalance,numDelegators,stakersCount,stakedBalance,balance,software,firstActivity,firstActivityTime,limitOfStakingOverBaking,edgeOfBakingOverStaking,pendingStakingParameters&sort.desc=id&limit=${limit}&offset=${offset}`,
+                { __tezosSystemsSurface: '#baker-directory-modal.active, #baker-directory-entry-card' }
             );
             if (!resp.ok) throw new Error(`Baker directory HTTP ${resp.status}`);
             const batch = await resp.json();

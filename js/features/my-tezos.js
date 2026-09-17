@@ -118,6 +118,7 @@ async function fetchTzktJson(url, attempts = 2) {
     return fetchWithRetry(url, {
         cache: 'no-store',
         memoryCache: false,
+        __tezosSystemsSurface: '#my-tezos-drawer.open',
         __tezosSystemsPriority: 'interactive'
     }, attempts);
 }
@@ -285,6 +286,7 @@ async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FET
             signal: controller.signal,
             cache: 'no-store',
             memoryCache: false,
+            __tezosSystemsSurface: '#my-tezos-drawer.open',
             __tezosSystemsPriority: 'interactive'
         }, 2);
     } catch {

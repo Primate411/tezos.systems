@@ -514,7 +514,7 @@ async function fetchBlocks(limit, { minLevel = null, retryAttempt = 0 } = {}) {
         params.set('level.ge', String(Math.max(0, Math.trunc(Number(minLevel)))));
     }
     const url = `${TZKT}/blocks?${params}`;
-    const response = await fetch(url, { cache: 'no-store' });
+    const response = await fetch(url, { cache: 'no-store', __tezosSystemsSurface: '#liquidity-baking-modal.active, #lb-entry-card' });
     if (!response.ok) {
         if ((response.status === 429 || response.status === 503 || response.status === 504) && retryAttempt < 2) {
             await new Promise((resolve) => setTimeout(resolve, retryDelayMs(response, retryAttempt)));

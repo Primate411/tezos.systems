@@ -125,9 +125,8 @@ function renderMetric(label, value) {
 }
 
 async function fetchJson(url) {
-    // Wallet-triggered recovery reads should not wait behind dashboard background TzKT fan-out.
-    const browserFetch = (typeof window !== 'undefined' && window.__tezosSystemsOriginalFetch) || fetch;
-    const response = await browserFetch(url, { cache: 'no-store' });
+    // User reads precede dashboard work while preserving the shared rate budget.
+    const response = await fetch(url, { cache: 'no-store', __tezosSystemsSurface: '#ctez-modal.active, #ctez-launcher', __tezosSystemsPriority: 'interactive' });
     if (!response.ok) {
         throw new Error(`TzKT returned HTTP ${response.status}`);
     }

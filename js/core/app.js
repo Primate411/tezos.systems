@@ -4,6 +4,7 @@
  */
 
 import './tzkt-throttle.js';
+import { beginLoadIntent, scheduleViewportLoad } from './load-priority.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { initShellLifecycle } from './shell-lifecycle.js';
 import { CHAMBER_FEATURES } from './chamber-features.mjs';
@@ -704,7 +705,9 @@ async function refreshInBackground({ includeHeavy = true } = {}) {
     debugLog(`🔄 Fetching ${includeHeavy ? 'full' : 'headline'} data in background...`);
     
     try {
-        if (includeHeavy) await updateUpgradeClock();
+        // Headline facts do not depend on the protocol-history request chain.
+        const upgradeWork = includeHeavy ? updateUpgradeClock() : Promise.resolve();
+        upgradeWork.catch(error => console.warn('Upgrade clock refresh failed:', error));
         const heroStats = await fetchHeroStats();
         // Silent failure (rate-limit / network): keep the last good UI, flag it.
         if (looksEmptyStats(heroStats)) {
@@ -1783,6 +1786,7 @@ function callLoadedChamberFeature(entryId, exportName, ...args) {
 
 async function openChamberFeature(entryId, ...args) {
     const config = CHAMBER_FEATURES[entryId];
+    const releaseLoadIntent = beginLoadIntent(`#${config.standalone.overlayId}`);
     const openEpoch = _chamberOpenEpoch;
     const openToken = Symbol(entryId);
     _openingChamberModules.set(entryId, openToken);
@@ -1805,6 +1809,7 @@ async function openChamberFeature(entryId, ...args) {
         }
         return result;
     } finally {
+        releaseLoadIntent();
         if (_openingChamberModules.get(entryId) === openToken) {
             _openingChamberModules.delete(entryId);
         }
@@ -1902,8 +1907,11 @@ function initLazyChamberLaunchers() {
                 if (!entry.isIntersecting) return;
                 const entryId = entry.target.dataset.chamberEntryId;
                 if (!entryId) return;
-                _lazyChamberObserver.unobserve(entry.target);
-                loadChamberFeature(entryId).catch((error) => console.warn(`Failed to hydrate ${entryId} Chamber launcher`, error));
+                scheduleViewportLoad(`chamber:${entryId}`, () => chamberEntryNode(entryId), () => {
+                    _lazyChamberObserver.unobserve(entry.target);
+                    return loadChamberFeature(entryId);
+                })
+                    .catch((error) => console.warn(`Failed to hydrate ${entryId} Chamber launcher`, error));
             });
         }, { rootMargin: '0px', threshold: 0.1 });
     }

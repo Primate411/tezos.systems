@@ -9,7 +9,8 @@ export const CHANGELOG = [
         entries: [
             { type: '⚡', text: 'Theme backgrounds load only when their selected theme needs them, reducing startup downloads while preserving previews and animation behavior' },
             { type: '🎨', text: 'Social previews make 30-day changes easier to read with larger pills, while lossless image compression reduces their download size' },
-            { type: '🔧', text: 'HEN restores its standalone header layout, recovers artwork promptly when a media host fails, and keeps saved collector details compact until opened' }
+            { type: '🔧', text: 'HEN restores its standalone header layout, recovers artwork promptly when a media host fails, and keeps saved collector details compact until opened' },
+            { type: '⚡', text: 'Visible facts load first from top to bottom, opened Chambers take priority, and headline stats and Live Head appear before slower history finishes' }
         ]
     },
     {

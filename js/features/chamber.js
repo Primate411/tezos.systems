@@ -160,7 +160,7 @@ function unlockPageScrollForChamber() {
 }
 
 async function fetchJson(url) {
-    const response = await fetch(url);
+    const response = await fetch(url, { __tezosSystemsSurface: '#chamber-modal.active, #chamber-entry-card' });
     if (!response.ok) throw new Error(`Governance request failed (${response.status}) for ${url}`);
     return response.json();
 }

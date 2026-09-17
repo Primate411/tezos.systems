@@ -167,7 +167,7 @@ function bakerLinks(address, name) {
 }
 
 async function fetchJson(url) {
-    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, 2);
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false, __tezosSystemsSurface: '#tz4-adoption-modal.active, [data-stat="tz4-adoption"]' }, 2);
 }
 
 async function fetchActiveBakersSnapshot() {

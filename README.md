@@ -290,6 +290,12 @@ tezos.systems/
    Only the selected animated theme's existing painter loads before home.
 2. `app.js` installs `js/core/tzkt-throttle.js` before feature startup so
    browser-side TzKT API fetches are queued at six request starts per second.
+   Pending requests follow the current viewport: visible facts precede detail
+   receipts, with top-to-bottom ordering and immediate priority for an opened
+   Chamber. Scrolling reorders work that has not started; pacing, cancellation,
+   and dispatch-based deadlines remain shared. Optional Chamber launchers hydrate
+   in small visible batches and yield while a room opens. Headline stats and the
+   first confirmed Live Head render before slower protocol and block history.
    Standalone landing, compare, and widget entry points import the same shim
    for their separate browser windows or iframes. Widget pages go through
    `widgets/runtime.js`, which also shares the dashboard theme metadata,

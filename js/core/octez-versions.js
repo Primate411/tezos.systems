@@ -15,6 +15,7 @@ async function fetchJson(url, retries = 2, { priority = 'normal' } = {}) {
     return fetchWithRetry(url, {
         cache: 'no-store',
         memoryCache: false,
+        __tezosSystemsSurface: '#network-health-modal.active, [data-stat="network-health"]',
         ...(priority === 'interactive' ? { __tezosSystemsPriority: 'interactive' } : {})
     }, retries + 1);
 }

@@ -214,7 +214,7 @@ let _statsPromise = null;
 export async function fetchSharedStats() {
     // Request lifetime owns deduplication; fetchWithRetry owns the data TTL.
     if (!_statsPromise) {
-        _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`, { validate: validateStatistics })
+        _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`, { validate: validateStatistics, __tezosSystemsSurface: '.top-continuity-row, #network-pulse-modal.active, #my-tezos-drawer.open' })
             .finally(() => { _statsPromise = null; });
     }
     return _statsPromise;
@@ -368,7 +368,7 @@ async function fetchText(url) {
 }
 
 async function fetchLiquidityBakingSubsidyState() {
-    const blocks = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`, { validate: validateLbBlocks });
+    const blocks = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`, { validate: validateLbBlocks, __tezosSystemsSurface: '.top-continuity-row, #network-pulse-modal.active, #my-tezos-drawer.open' });
     const latest = Array.isArray(blocks) ? blocks[0] : null;
     const ema = latest?.lbToggleEma == null || latest.lbToggleEma === '' ? NaN : Number(latest.lbToggleEma);
     const hasEma = Number.isFinite(ema);
@@ -455,7 +455,7 @@ async function _doFetchBakers() {
     // current baking power. TzKT exposes the active consensus key directly;
     // historical update_consensus_key ops can include keys that are still pending.
     const bakerUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&select=address,consensusAddress,bakingPower&limit=${FETCH_LIMITS.bakers}`;
-    const delegates = await fetchWithRetry(bakerUrl, { validate: validateBakers });
+    const delegates = await fetchWithRetry(bakerUrl, { validate: validateBakers, __tezosSystemsSurface: '.top-continuity-row, #network-pulse-modal.active, #my-tezos-drawer.open' });
     if (!Array.isArray(delegates)) {
         throw new Error('Unexpected active baker response');
     }

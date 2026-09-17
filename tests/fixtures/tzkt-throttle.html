@@ -21,7 +21,10 @@
     <script type="module" src="/js/core/tzkt-throttle.js"></script>
     <script type="module">
         import { fetchWithDeadline } from '/js/core/api.js';
+        import { scheduleViewportLoad, beginLoadIntent } from '/js/core/load-priority.js';
+        import { activateOverlayDialog, deactivateOverlayDialog } from '/js/ui/overlay-stack.js';
         window.__fetchWithDeadline = fetchWithDeadline;
+        window.__loadTest = { scheduleViewportLoad, beginLoadIntent, activateOverlayDialog, deactivateOverlayDialog };
     </script>
 </body>
 </html>

@@ -6,6 +6,8 @@
  * and lets every other network source keep its normal behavior.
  */
 
+import { currentLoadSurface, loadPriority } from './load-priority.js';
+
 export const TZKT_MAX_REQUESTS_PER_SECOND = 6;
 export const TZKT_MIN_REQUEST_SPACING_MS = 175;
 
@@ -13,6 +15,7 @@ const PATCH_FLAG = '__tezosSystemsTzktThrottleInstalled';
 const ORIGINAL_FETCH_KEY = '__tezosSystemsOriginalFetch';
 const DISPATCH_HOOK_KEY = '__tezosSystemsOnDispatch';
 const PRIORITY_KEY = '__tezosSystemsPriority';
+const SURFACE_KEY = '__tezosSystemsSurface';
 const TZKT_HOST_PATTERN = /(^|\.)api\.tzkt\.io$/;
 
 function getRequestUrl(resource) {
@@ -44,10 +47,11 @@ function createAbortError() {
 }
 
 function nativeFetchInit(init) {
-    if (!init || typeof init !== 'object' || (!(DISPATCH_HOOK_KEY in init) && !(PRIORITY_KEY in init))) return init;
+    if (!init || typeof init !== 'object' || (!(DISPATCH_HOOK_KEY in init) && !(PRIORITY_KEY in init) && !(SURFACE_KEY in init))) return init;
     const {
         [DISPATCH_HOOK_KEY]: _onDispatch,
         [PRIORITY_KEY]: _priority,
+        [SURFACE_KEY]: _surface,
         ...cleanInit
     } = init;
     return cleanInit;
@@ -56,10 +60,6 @@ function nativeFetchInit(init) {
 function notifyDispatch(init) {
     const callback = init?.[DISPATCH_HOOK_KEY];
     if (typeof callback === 'function') callback();
-}
-
-function requestPriority(init) {
-    return init?.[PRIORITY_KEY] === 'interactive' ? 1 : 0;
 }
 
 function installTzktThrottle(target) {
@@ -89,6 +89,15 @@ function installTzktThrottle(target) {
 
     function dispatchNext() {
         timer = null;
+        // Re-evaluate before every dispatch, including after scroll or an open.
+        const surfaces = new Map();
+        const scores = new Map(queue.map(entry => {
+            if (!surfaces.has(entry.surface)) surfaces.set(entry.surface, new Map());
+            const priorities = surfaces.get(entry.surface);
+            if (!priorities.has(entry.priority)) priorities.set(entry.priority, loadPriority(entry.surface, entry.priority));
+            return [entry, priorities.get(entry.priority)];
+        }));
+        queue.sort((a, b) => scores.get(b) - scores.get(a) || a.sequence - b.sequence);
         const entry = queue.shift();
         if (!entry) return;
 
@@ -113,7 +122,8 @@ function installTzktThrottle(target) {
                 init,
                 resolve,
                 reject,
-                priority: requestPriority(init),
+                priority: init?.[PRIORITY_KEY] || 'normal',
+                surface: init?.[SURFACE_KEY] || currentLoadSurface(),
                 sequence: sequence++,
                 started: false,
                 cleanup() {}
@@ -132,12 +142,7 @@ function installTzktThrottle(target) {
 
             if (signal) signal.addEventListener('abort', onAbort, { once: true });
 
-            const insertAt = queue.findIndex((queued) => (
-                queued.priority < entry.priority
-                || (queued.priority === entry.priority && queued.sequence > entry.sequence)
-            ));
-            if (insertAt < 0) queue.push(entry);
-            else queue.splice(insertAt, 0, entry);
+            queue.push(entry);
             schedule();
         });
     }
@@ -154,6 +159,7 @@ function installTzktThrottle(target) {
         patched: true,
         supportsDispatchHook: true,
         supportsPriority: true,
+        supportsViewportPriority: true,
         maxRequestsPerSecond: TZKT_MAX_REQUESTS_PER_SECOND,
         minSpacingMs: TZKT_MIN_REQUEST_SPACING_MS,
         isTzktApiRequest,

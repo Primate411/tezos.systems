@@ -1,5 +1,15 @@
 const RULES = [
   {
+    suites: /^viewport-loading$/,
+    files: ['js/core/load-priority.js', 'js/core/tzkt-throttle.js', 'js/core/app.js', 'js/core/api.js', 'js/features/network-health.js', 'tests/lib/viewport-loading-smoke.mjs'],
+    tags: ['startup', 'live-data', 'quiet-refresh'], risk: 'high'
+  },
+  {
+    suites: /^(tzkt-throttle|lazy-chamber-loading|network-health|network-health-inspector-refresh|optional-startup|hen-mode|hen-standalone|quiet-refresh|overlay-stack)$/,
+    files: ['js/core/load-priority.js', 'js/core/tzkt-throttle.js'],
+    tags: ['startup', 'live-data', 'navigation'], risk: 'high'
+  },
+  {
     suites: /^root-og$/,
     files: ['scripts/generate-og-image.js', 'og-image.png', 'tests/root-og-check.mjs', 'tests/lib/root-og-smoke.mjs', 'tests/fixtures/og-fonts/**', 'js/effects/valley-effects.js'],
     tags: ['share', 'visual'], risk: 'normal'
