@@ -4582,7 +4582,7 @@ async function assertChamberInfoTooltipsContained(page, label) {
 
   for (const selector of selectors) {
     const button = page.locator(`${selector} > .card-info-btn`);
-    await button.scrollIntoViewIfNeeded();
+    await button.evaluate((node) => node.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await page.waitForFunction(cardSelector => {
       const card = document.querySelector(cardSelector);
       return card && !card.hasAttribute('data-chamber-skeleton')
@@ -4591,7 +4591,16 @@ async function assertChamberInfoTooltipsContained(page, label) {
     await button.click();
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'
-    ), selector, { timeout: 5000 });
+    ), selector, { timeout: 5000 }).catch(async error => {
+      const state = await page.locator(selector).evaluate(card => ({
+        skeleton: card.hasAttribute('data-chamber-skeleton'),
+        busy: card.getAttribute('aria-busy'),
+        info: card.querySelector(':scope > .card-info-btn')?.outerHTML,
+        focus: document.activeElement?.outerHTML,
+        openDialogs: [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].filter(node => node.getClientRects().length).map(node => node.id)
+      }));
+      throw new Error(`${label}: ${selector} info tooltip did not open: ${JSON.stringify(state)}`, { cause: error });
+    });
     // Fonts and late card hydration can queue another placement after opening.
     // Read one settled receipt instead of sampling an arbitrary 350 ms later.
     const geometryHandle = await page.waitForFunction((cardSelector) => {
@@ -10628,7 +10637,10 @@ async function smokeStakingChamber(browser, baseUrl) {
   assert(response?.ok(), `${label}: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#chambers-grid > .chamber-category[data-chamber-category="capital"] .chamber-category-toggle').click();
   await page.locator('#staking-entry-card').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#staking-entry-card').scrollIntoViewIfNeeded();
+  // Entering the viewport hydrates and replaces the initial launcher skeleton.
+  // Scroll the current node synchronously instead of retaining it while waiting
+  // for layout stability; subsequent locators resolve the hydrated card afresh.
+  await page.locator('#staking-entry-card').evaluate((card) => card.scrollIntoView({ block: 'center', behavior: 'instant' }));
   await page.locator('#staking-entry-card').dispatchEvent('pointerenter');
   await page.waitForFunction(() => {
     const card = document.querySelector('#staking-entry-card');
@@ -16098,6 +16110,9 @@ async function smokeMyTezosViewLiveRefresh(browser, baseUrl) {
 
   await page.locator('#my-tezos-tab-story').click();
   await page.waitForFunction(() => document.querySelector('#portfolio-memory-status')?.dataset.state === 'complete', null, { timeout: 15000 });
+  // The transaction ledger can be complete before the account's Story arrives.
+  // Select published Story text, rather than the initial loading placeholder.
+  await page.locator('#my-tezos-story-content .my-tezos-story-card:not([aria-busy="true"])').waitFor({ state: 'visible', timeout: 15000 });
   const storyBefore = await page.evaluate(() => {
     const drawer = document.querySelector('#drawer-body');
     const content = document.querySelector('#my-tezos-story-content');
