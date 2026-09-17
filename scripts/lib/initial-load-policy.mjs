@@ -1,12 +1,8 @@
-import fs from 'node:fs/promises';
 import { CHAMBER_FEATURES } from '../../js/core/chamber-features.mjs';
 import { FUNDING_SOURCES, fundingPreviewPath } from '../../js/core/community-funding.mjs';
+import { getChamberCategories } from './chamber-catalog.mjs';
 
-// site-map.js is a browser ES module in a CommonJS package. Load its pure
-// catalog the same way as the route/search generators, without copying IDs.
-const siteMapSource = await fs.readFile(new URL('../../js/core/site-map.js', import.meta.url), 'utf8');
-const { CHAMBER_CATEGORY_META } = await import(`data:text/javascript;base64,${Buffer.from(siteMapSource).toString('base64')}`);
-const categories = CHAMBER_CATEGORY_META.map(category => ({ id: category.key, launcherIds: [...category.entryIds] }));
+const categories = getChamberCategories().map(category => ({ id: category.key, launcherIds: category.entryIds }));
 const launcherIds = categories.flatMap(category => category.launcherIds);
 const categoryIds = categories.map(category => category.id);
 

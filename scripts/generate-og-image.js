@@ -9,6 +9,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const assert = require('node:assert/strict');
+const sharp = require('sharp');
 const { launchChromium } = require('./lib/playwright-browser.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
@@ -231,7 +233,7 @@ function buildHTML(stats) {
     min-height: 121px;
     background: linear-gradient(145deg, rgba(35, 42, 27, 0.92), rgba(19, 24, 16, 0.88));
     border: 1px solid rgba(231, 182, 108, 0.38);
-    border-radius: 14px; padding: 17px 22px 15px;
+    border-radius: 14px; padding: 17px 12px 15px;
     box-shadow: 0 12px 30px rgba(8, 10, 7, 0.2);
   }
   .stat-label {
@@ -251,18 +253,18 @@ function buildHTML(stats) {
     color: #f4a083;
   }
   .stat-value-row {
-    display: flex; align-items: flex-end; justify-content: space-between;
-    min-width: 0; gap: 14px;
+    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+    min-width: 0; gap: 8px;
   }
   .stat-delta {
-    display: inline-flex; align-items: baseline; gap: 6px;
-    flex: 0 0 auto; margin-bottom: 3px; padding: 6px 9px 5px;
+    display: inline-flex; align-items: baseline; gap: 9px;
+    flex: 0 0 auto; margin-bottom: 3px; padding: 9px 13.5px 7.5px;
     border: 1px solid rgba(231, 182, 108, 0.28); border-radius: 999px;
     background: rgba(8, 12, 8, 0.48); color: #ead9b6;
-    font-size: 16px; line-height: 1; white-space: nowrap;
+    font-size: 24px; line-height: 1; white-space: nowrap;
   }
   .stat-delta strong { font-weight: 700; }
-  .stat-delta small { color: rgba(234, 217, 182, 0.68); font-size: 11px; letter-spacing: 0.7px; }
+  .stat-delta small { color: rgba(234, 217, 182, 0.68); font-size: 16.5px; letter-spacing: 0.7px; }
   .stat-delta.is-up strong { color: #c8e7b4; }
   .stat-delta.is-down strong { color: #f4a083; }
   .stat-delta.is-flat strong { color: #ead9b6; }
@@ -348,60 +350,137 @@ function localContentType(filePath) {
     return 'application/octet-stream';
 }
 
-async function main() {
-    console.log('Fetching live stats from TzKT...');
-    const stats = await fetchStats();
-    console.log('Stats:', JSON.stringify(stats));
+/** Re-encode truecolour PNG without quantizing colours or changing decoded pixels. */
+async function optimizePng(input) {
+    const before = await sharp(input).metadata();
+    if (before.format !== 'png' || before.depth !== 'uchar' || before.isPalette || ![3, 4].includes(before.channels) || before.pages > 1) {
+        throw new Error('Root OG compression requires an 8-bit truecolour PNG');
+    }
+    // Browser screenshots have no embedded profile/orientation metadata. Keep
+    // externally tagged images untouched rather than risk changing interpretation.
+    if (before.hasProfile || before.exif || before.xmp || before.iptc || before.orientation || (before.density !== undefined && before.density !== 72)) {
+        return { buffer: input, before: input.length, after: input.length, saved: 0 };
+    }
+    const candidate = await sharp(input)
+        .png({ compressionLevel: 9, adaptiveFiltering: true, palette: false })
+        .toBuffer();
+    const [original, optimized, after] = await Promise.all([
+        sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+        sharp(candidate).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+        sharp(candidate).metadata()
+    ]);
+    assert.deepEqual(optimized.info, original.info, 'Lossless PNG dimensions and channels must remain identical');
+    assert.ok(optimized.data.equals(original.data), 'Lossless PNG compression must preserve every decoded pixel');
+    for (const key of ['width', 'height', 'space', 'channels', 'depth', 'density', 'hasAlpha', 'hasProfile', 'icc', 'exif', 'xmp', 'iptc']) {
+        assert.deepEqual(after[key], before[key], `Lossless PNG compression must preserve ${key}`);
+    }
+    const buffer = candidate.length < input.length ? candidate : input;
+    return { buffer, before: input.length, after: buffer.length, saved: input.length - buffer.length };
+}
 
-    const html = buildHTML(stats);
-    const outputPath = path.join(PROJECT_ROOT, 'og-image.png');
-
-    console.log('Capturing with Playwright...');
-    const { chromium } = require('playwright');
-    let browser;
-
+/** Keep the last-good image intact until rendering, compression and validation succeed. */
+async function writeOgImage(outputPath, input) {
+    const metadata = await sharp(input).metadata();
+    if (metadata.width !== 1200 || metadata.height !== 630) throw new Error('Root OG image must remain 1200x630');
+    const result = await optimizePng(input);
+    const temporaryDirectory = await fs.promises.mkdtemp(path.join(path.dirname(outputPath), '.root-og-'));
     try {
-        browser = await launchChromium(chromium, { headless: true });
-        const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
+        const temporaryFile = path.join(temporaryDirectory, 'image.png');
+        await fs.promises.writeFile(temporaryFile, result.buffer);
+        await fs.promises.rename(temporaryFile, outputPath);
+    } finally {
+        await fs.promises.rm(temporaryDirectory, { recursive: true, force: true });
+    }
+    return { before: result.before, after: result.after, saved: result.saved };
+}
+
+/** Render fixed data through the real Valley scene; tests can provide local font routes. */
+async function renderOgImage(browser, stats, { html = buildHTML(stats), configurePage } = {}) {
+    const context = await browser.newContext({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    try {
+        if (configurePage) await configurePage(page);
         await page.route(`${OG_ORIGIN}/**`, async (route) => {
             const requestUrl = new URL(route.request().url());
             if (requestUrl.pathname === OG_PREVIEW_PATH) {
-                await route.fulfill({
-                    status: 200,
-                    contentType: 'text/html; charset=utf-8',
-                    body: html
-                });
+                await route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: html });
                 return;
             }
-
             const assetPath = path.resolve(PROJECT_ROOT, `.${decodeURIComponent(requestUrl.pathname)}`);
             if (!assetPath.startsWith(`${PROJECT_ROOT}${path.sep}`)) {
                 await route.fulfill({ status: 403, body: 'Forbidden' });
                 return;
             }
             try {
-                await route.fulfill({
-                    status: 200,
-                    contentType: localContentType(assetPath),
-                    body: fs.readFileSync(assetPath)
-                });
+                await route.fulfill({ status: 200, contentType: localContentType(assetPath), body: fs.readFileSync(assetPath) });
             } catch (_error) {
                 await route.fulfill({ status: 404, body: 'Not found' });
             }
         });
         await page.goto(`${OG_ORIGIN}${OG_PREVIEW_PATH}`, { waitUntil: 'networkidle', timeout: 15000 });
         await page.waitForSelector('html[data-og-ready="true"]', { timeout: 10000 });
-        await page.evaluate(() => document.fonts.ready);
-        await page.screenshot({ path: outputPath, type: 'png' });
+        const layout = await page.evaluate(async () => {
+            const fonts = await Promise.all([
+                document.fonts.load('900 64px "Orbitron"', 'TEZOS SYSTEMS'),
+                document.fonts.load('700 50px "Orbitron"', '0123456789.%'),
+                document.fonts.load('400 24px "Share Tech Mono"', '+−0123456789.%30D')
+            ]);
+            await document.fonts.ready;
+            if (fonts.some(faces => !faces.length || faces.some(face => face.status !== 'loaded'))) {
+                throw new Error('Root OG image requires its real Orbitron and Share Tech Mono fonts');
+            }
+            const box = element => {
+                const rect = element.getBoundingClientRect();
+                const style = getComputedStyle(element);
+                return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height,
+                    fontSize: Number.parseFloat(style.fontSize), fontFamily: style.fontFamily, text: element.textContent,
+                    scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
+            };
+            return {
+                width: innerWidth, height: innerHeight, documentWidth: document.documentElement.scrollWidth,
+                documentHeight: document.documentElement.scrollHeight,
+                fonts: fonts.flat().map(face => ({ family: face.family, weight: face.weight, status: face.status })),
+                canvas: box(document.getElementById('valley-background-canvas')),
+                header: box(document.querySelector('.header')), title: box(document.querySelector('.title')), footer: box(document.querySelector('.footer')),
+                cards: [...document.querySelectorAll('.stat-card')].map(card => ({
+                    card: box(card), label: box(card.querySelector('.stat-label')), value: box(card.querySelector('.stat-value')),
+                    delta: card.querySelector('.stat-delta') ? { ...box(card.querySelector('.stat-delta')),
+                        amount: box(card.querySelector('.stat-delta strong')), period: box(card.querySelector('.stat-delta small')) } : null
+                }))
+            };
+        });
+        assert.deepEqual(errors, [], 'Root OG renderer must not have uncaught browser errors');
+        const png = await page.screenshot({ type: 'png' });
+        return { png, layout };
     } finally {
-        if (browser) await browser.close();
+        await context.close();
     }
+}
 
-    console.log(`✅ OG image saved to ${outputPath}`);
+async function main() {
+    console.log('Fetching live stats from TzKT...');
+    const stats = await fetchStats();
+    console.log('Stats:', JSON.stringify(stats));
+    const outputPath = path.join(PROJECT_ROOT, 'og-image.png');
+    console.log('Capturing with Playwright...');
+    const { chromium } = require('playwright');
+    const browser = await launchChromium(chromium, { headless: true });
+    try {
+        const { png } = await renderOgImage(browser, stats);
+        const result = await writeOgImage(outputPath, png);
+        console.log(`✅ OG image saved to ${outputPath} (${result.before} -> ${result.after} bytes; lossless)`);
+    } finally {
+        await browser.close();
+    }
     console.log(`   Stats: ${stats.bakers} bakers, ${stats.issuance}% issuance, ${stats.tz4Pct}% tz4, ${stats.stakingRatio}% staked, ${stats.supply} supply`);
 }
 
-main().catch(err => {
-    console.error('Failed:', err);
-    process.exit(1);
-});
+module.exports = { buildHTML, optimizePng, renderOgImage, writeOgImage };
+if (require.main === module) {
+    main().catch(err => {
+        console.error('Failed:', err);
+        process.exitCode = 1;
+    });
+}

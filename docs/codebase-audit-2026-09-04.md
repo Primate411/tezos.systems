@@ -1,5 +1,12 @@
 # Codebase and data audit — 4–5 September 2026
 
+Historical record: inventory sizes, launcher/route counts, measurements, and
+release status below belong to the stated revisions. Use the current
+[README](../README.md#current-reality) and [QA guide](../QA.md#initial-load-budgets)
+for maintained behavior, measurement ownership, and release gates. HEN feed
+JavaScript is deferred but shared HEN CSS remains eager; historical query
+windows keep exact timestamps rather than capture-cadence rounding.
+
 Scope: the complete tracked site at `2f9b08d5`, followed by the safe changes on
 `audit/safe-codebase-cleanup-2026-09-04`. The main checkout contained unrelated
 edits and changed during inspection. Implementation and verification therefore

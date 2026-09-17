@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-17',
+        entries: [
+            { type: '🎨', text: 'Social previews make 30-day changes easier to read with larger pills, while lossless image compression reduces their download size' }
+        ]
+    },
+    {
         date: '2026-09-16',
         entries: [
             { type: '🔧', text: 'Recent baker changes preload only their confirmed membership; optional details wait for hover, focus, or opening so background work does not delay other live views' },

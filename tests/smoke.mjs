@@ -45,8 +45,10 @@ import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
+import { smokeRootOgImage } from './lib/root-og-smoke.mjs';
 import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
 import { decodeGeneratedTransport, encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
+import { getChamberCategories } from '../scripts/lib/chamber-catalog.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -324,57 +326,43 @@ const ETHERLINK_PROMOTION_LEDGER = [
   { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', votingPower: 25000000000000, vote: 'pass', level: 12345590 },
   { address: SAMPLE_ADDRESS, alias: 'QA Baker', votingPower: 30000000000000, vote: 'yea', level: 12345600 }
 ];
-const EXPECTED_CHAMBER_CATEGORIES = [
-  {
-    key: 'ecosystem',
-    label: 'Ecosystem',
-    question: 'How many addresses are active, and which apps are they using?',
-    cards: ['ecosystem-entry-card'],
-    layouts: ['featured']
-  },
-  {
-    key: 'network',
-    label: 'Network',
-    question: 'What is the chain doing now?',
-    cards: ['network-pulse-entry-card', 'network-health', 'tezlink-entry-card'],
-    layouts: ['featured', 'standard', 'standard']
-  },
-  {
-    key: 'capital',
-    label: 'Capital',
-    question: 'Where is value sitting and moving?',
-    cards: ['capital-entry-card', 'minerals-entry-card', 'uranium-entry-card', 'metals-entry-card', 'whale-watch-entry-card', 'staking-entry-card'],
-    layouts: ['featured', 'featured', 'featured', 'featured', 'wide', 'compact']
-  },
-  {
-    key: 'bakers',
-    label: 'Bakers',
-    question: 'Who is securing Tezos and upgrading its keys?',
-    cards: ['baker-directory-entry-card', 'tz4-adoption'],
-    layouts: ['wide', 'compact']
-  },
-  {
-    key: 'governance',
-    label: 'Governance',
-    question: 'What is Tezos deciding?',
-    cards: ['chamber-entry-card', 'etherlink-governance-entry-card', 'lb-entry-card'],
-    layouts: ['standard', 'standard', 'featured']
-  },
-  {
-    key: 'people',
-    label: 'People & Accounts',
-    question: 'Who is here, and what have they done?',
-    cards: ['ledger-flow-entry-card', 'tezos-domains-entry-card', 'maxis-entry-card', 'tezoscrp-entry-card', 'funding-entry-card'],
-    layouts: ['featured', 'featured', 'featured', 'featured', 'featured']
-  },
-  {
-    key: 'history',
-    label: 'History',
-    question: 'What happened before now?',
-    cards: ['protocol-history-entry-card', 'cycle-history-entry-card'],
-    layouts: ['standard', 'standard']
-  }
-];
+// The catalog owns topic copy, membership and ordering. This independent visual
+// contract still pins each room's actual DOM identity and intended density.
+const EXPECTED_CHAMBER_PRESENTATION = {
+  ecosystem: ['ecosystem-entry-card', 'featured'],
+  pulse: ['network-pulse-entry-card', 'featured'],
+  health: ['network-health', 'standard'],
+  tezosx: ['tezlink-entry-card', 'standard'],
+  capital: ['capital-entry-card', 'featured'],
+  minerals: ['minerals-entry-card', 'featured'],
+  uranium: ['uranium-entry-card', 'featured'],
+  metals: ['metals-entry-card', 'featured'],
+  whales: ['whale-watch-entry-card', 'wide'],
+  'staking-chamber': ['staking-entry-card', 'compact'],
+  leaderboard: ['baker-directory-entry-card', 'wide'],
+  tz4: ['tz4-adoption', 'compact'],
+  chamber: ['chamber-entry-card', 'standard'],
+  'l2-governance': ['etherlink-governance-entry-card', 'standard'],
+  'liquidity-baking': ['lb-entry-card', 'featured'],
+  'ledger-flow': ['ledger-flow-entry-card', 'featured'],
+  domains: ['tezos-domains-entry-card', 'featured'],
+  maxis: ['maxis-entry-card', 'featured'],
+  tezoscrp: ['tezoscrp-entry-card', 'featured'],
+  funding: ['funding-entry-card', 'featured'],
+  anthology: ['protocol-history-entry-card', 'standard'],
+  history: ['cycle-history-entry-card', 'standard']
+};
+const chamberCategories = getChamberCategories();
+const catalogChambers = chamberCategories.flatMap(category => category.entryIds);
+assert(Object.keys(EXPECTED_CHAMBER_PRESENTATION).length === catalogChambers.length
+  && new Set(catalogChambers).size === catalogChambers.length
+  && catalogChambers.every(id => Object.hasOwn(EXPECTED_CHAMBER_PRESENTATION, id)),
+  'Every canonical launcher needs an independently reviewed DOM/layout expectation');
+const EXPECTED_CHAMBER_CATEGORIES = chamberCategories.map(({ key, label, question, entryIds }) => ({
+  key, label, question,
+  cards: entryIds.map(id => EXPECTED_CHAMBER_PRESENTATION[id][0]),
+  layouts: entryIds.map(id => EXPECTED_CHAMBER_PRESENTATION[id][1])
+}));
 const EXPECTED_CHAMBER_ORDER = EXPECTED_CHAMBER_CATEGORIES.flatMap((category) => category.cards);
 const DEFAULT_EXPANDED_CHAMBER_CATEGORY = 'ecosystem';
 
@@ -4246,7 +4234,7 @@ async function assertChamberOrder(page, label) {
   );
   assert(
     chamberState.categories.length === EXPECTED_CHAMBER_CATEGORIES.length,
-    `${label}: expected seven Chamber categories, saw ${JSON.stringify(chamberState.categories)}`
+    `${label}: expected ${EXPECTED_CHAMBER_CATEGORIES.length} Chamber categories, saw ${JSON.stringify(chamberState.categories)}`
   );
   EXPECTED_CHAMBER_CATEGORIES.forEach((expected, index) => {
     const actual = chamberState.categories[index];
@@ -5917,6 +5905,7 @@ async function smokeAppShell(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `app shell: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('[data-footer-delegate]').waitFor({ state: 'attached', timeout: 15000 });
 
   const shell = await page.evaluate(async () => {
     const fetchText = async (pathname) => {
@@ -23274,11 +23263,11 @@ async function smokeUraniumChamber(browser, baseUrl) {
     showAllText: document.getElementById('chamber-category-show-all')?.textContent?.trim()
   }));
   assert(topicPanelState.homeRows === 6
-    && topicPanelState.topicGroups === 7
-    && topicPanelState.categoryRows === 7
-    && topicPanelState.roomRows === 22
-    && topicPanelState.roomCount === '22 shown'
-    && topicPanelState.categoryCount === '7 topics'
+    && topicPanelState.topicGroups === EXPECTED_CHAMBER_CATEGORIES.length
+    && topicPanelState.categoryRows === EXPECTED_CHAMBER_CATEGORIES.length
+    && topicPanelState.roomRows === EXPECTED_CHAMBER_ORDER.length
+    && topicPanelState.roomCount === `${EXPECTED_CHAMBER_ORDER.length} shown`
+    && topicPanelState.categoryCount === `${EXPECTED_CHAMBER_CATEGORIES.length} topics`
     && topicPanelState.controls.every((height) => height >= 44)
     && topicPanelState.showAllText === 'Show all Chambers',
   `Customize home topic disclosure failed ${JSON.stringify(topicPanelState)}`);
@@ -36244,11 +36233,11 @@ async function smokeLazyChamberLoading(browser, baseUrl) {
       localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     });
   };
-  const waitForLauncherShell = (page) => page.waitForFunction(() => (
-    document.querySelectorAll('#chambers-grid > .chamber-category').length === 7
-    && document.querySelectorAll('#chambers-grid .stat-card').length === 22
+  const waitForLauncherShell = (page) => page.waitForFunction(({ categoryCount, cardCount }) => (
+    document.querySelectorAll('#chambers-grid > .chamber-category').length === categoryCount
+    && document.querySelectorAll('#chambers-grid .stat-card').length === cardCount
     && document.querySelectorAll('#chambers-grid [data-chamber-skeleton]').length >= 15
-  ), null, { timeout: 15000 });
+  ), { categoryCount: EXPECTED_CHAMBER_CATEGORIES.length, cardCount: EXPECTED_CHAMBER_ORDER.length }, { timeout: 15000 });
 
   const issues = [];
   const context = await browser.newContext({
@@ -36601,10 +36590,10 @@ async function smokeChamberCategories(browser, baseUrl) {
   let response = await page.goto(`${baseUrl}/?theme=matrix#domains`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `Chamber categories direct hash failed with HTTP ${response?.status()}`);
   await page.locator('#tezos-domains-modal.active').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction((expectedCount) => (
-    document.querySelectorAll('#chambers-grid > .chamber-category').length === 7
-    && document.querySelectorAll('#chambers-grid .stat-card').length === expectedCount
-  ), EXPECTED_CHAMBER_ORDER.length, { timeout: 15000 });
+  await page.waitForFunction(({ categoryCount, cardCount }) => (
+    document.querySelectorAll('#chambers-grid > .chamber-category').length === categoryCount
+    && document.querySelectorAll('#chambers-grid .stat-card').length === cardCount
+  ), { categoryCount: EXPECTED_CHAMBER_CATEGORIES.length, cardCount: EXPECTED_CHAMBER_ORDER.length }, { timeout: 15000 });
   await assertChamberOrder(page, 'Chamber categories direct hash');
 
   const directHashState = await page.evaluate(() => ({
@@ -36685,10 +36674,10 @@ async function smokeChamberCategories(browser, baseUrl) {
       const staking = document.getElementById('staking-entry-card');
       if (grid && staking) grid.appendChild(staking);
     });
-    await page.waitForFunction(() => (
+    await page.waitForFunction((categoryCount) => (
       document.getElementById('staking-entry-card')?.closest('.chamber-category')?.dataset.chamberCategory === 'capital'
-      && document.querySelectorAll('#chambers-grid > .chamber-category').length === 7
-    ), null, { timeout: 5000 });
+      && document.querySelectorAll('#chambers-grid > .chamber-category').length === categoryCount
+    ), EXPECTED_CHAMBER_CATEGORIES.length, { timeout: 5000 });
   }
 
   const refreshState = await page.evaluate(() => {
@@ -36717,7 +36706,7 @@ async function smokeChamberCategories(browser, baseUrl) {
   assert(refreshState.selection === refreshState.expectedSelection && refreshState.selection.length > 0, `Chamber organization lost reader selection: ${JSON.stringify(refreshState)}`);
   assert(refreshState.scrollDelta <= 1, `Chamber organization moved page scroll: ${JSON.stringify(refreshState)}`);
   assert(refreshState.openCategories.join(',') === 'capital,people', `background refresh reset disclosure state: ${JSON.stringify(refreshState)}`);
-  assert(refreshState.categoryCount === 7 && refreshState.cardCount === EXPECTED_CHAMBER_ORDER.length, `late card organization duplicated categories or entries: ${JSON.stringify(refreshState)}`);
+  assert(refreshState.categoryCount === EXPECTED_CHAMBER_CATEGORIES.length && refreshState.cardCount === EXPECTED_CHAMBER_ORDER.length, `late card organization duplicated categories or entries: ${JSON.stringify(refreshState)}`);
   assert(refreshState.passiveAnimations.length === 0, `ordinary freshness/live cards still animate their perimeter: ${JSON.stringify(refreshState.passiveAnimations)}`);
 
   response = await page.goto(`${baseUrl}/history/?theme=matrix`, { waitUntil: 'domcontentloaded' });
@@ -36747,10 +36736,10 @@ async function smokeChamberCategories(browser, baseUrl) {
     attachIssueCollectors(layoutPage, `Chamber categories ${label}`, issues);
     const layoutResponse = await layoutPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
     assert(layoutResponse?.ok(), `Chamber categories ${label} failed with HTTP ${layoutResponse?.status()}`);
-    await layoutPage.waitForFunction((expectedCount) => (
-      document.querySelectorAll('#chambers-grid > .chamber-category').length === 7
-      && document.querySelectorAll('#chambers-grid .stat-card').length === expectedCount
-    ), EXPECTED_CHAMBER_ORDER.length, { timeout: 15000 });
+    await layoutPage.waitForFunction(({ categoryCount, cardCount }) => (
+      document.querySelectorAll('#chambers-grid > .chamber-category').length === categoryCount
+      && document.querySelectorAll('#chambers-grid .stat-card').length === cardCount
+    ), { categoryCount: EXPECTED_CHAMBER_CATEGORIES.length, cardCount: EXPECTED_CHAMBER_ORDER.length }, { timeout: 15000 });
     await assertChamberOrder(layoutPage, `Chamber categories ${label}`);
     const defaultDisclosureState = await layoutPage.evaluate(() => Array.from(
       document.querySelectorAll('#chambers-grid > .chamber-category'),
@@ -37608,7 +37597,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tzkt-throttle', description: 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second', run: () => smokeTzktThrottle(browser, baseUrl) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
-    { name: 'chamber-categories', description: 'Seven responsive topics and 22 individually hideable Chambers with persistent Hide/Undo, recovery, sync, route reveal, and first-paint state', run: () => smokeChamberCategories(browser, baseUrl) },
+    { name: 'chamber-categories', description: 'Catalogued responsive topics and individually hideable Chambers with persistent Hide/Undo, recovery, sync, route reveal, and first-paint state', run: () => smokeChamberCategories(browser, baseUrl) },
     { name: 'lazy-chamber-loading', description: 'Chamber code, projections, and CSS remain deferred until intent; hydration preserves focus; failed modules and styles retry without unstyled rooms', run: () => smokeLazyChamberLoading(browser, baseUrl) },
     { name: 'network-pulse-launcher', description: 'Network Pulse lower launcher row hydrates from collected history without opening the modal or enabling legacy full stats', run: () => smokeNetworkPulseLauncher(browser, baseUrl) },
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
@@ -37683,6 +37672,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'live-number-motion', description: 'Only factual live deltas animate, with concurrent quiet updates, newest-value cancellation, reduced motion, stable accessibility, and every theme personality', run: () => smokeLiveNumberMotion(browser, baseUrl) },
     { name: 'quiet-refresh', description: 'Background data reconciliation preserves page, rail, chamber, focus, selection, and animation state', run: () => smokeQuietRefresh(browser, baseUrl) },
     { name: 'live-time-labels', description: 'Unchanged time labels preserve text nodes and selection while age, countdown, duration, and stale transitions remain accurate', run: () => smokeLiveTimeLabels(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'root-og', description: 'Root social preview retains real fonts, readable enlarged change pills, bounded layout, and lossless PNG pixels', run: () => smokeRootOgImage(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
     { name: 'baker-directory', description: 'Complete paged active-baker set, search, factual signals, direct route, quiet reading state, and mobile geometry', run: () => smokeLeaderboardSignals(browser, baseUrl) },
     { name: 'baker-wallet-actions', description: 'Every canonical baker row exposes wallet-reviewed first-time delegation and exact Tezos stake operations', run: () => smokeBakerWalletActions(browser, baseUrl) },
     { name: 'whale-watch-chamber', description: 'Complete-window receipts, grouped flow legs, timestamp dormancy, receipt-backed awakenings, legacy giants alias, prepend anchoring, and mobile geometry', run: () => smokeWhaleWatchChamber(browser, baseUrl) },

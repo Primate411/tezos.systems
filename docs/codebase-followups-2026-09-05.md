@@ -1,5 +1,11 @@
 # Codebase audit follow-through — 5 September 2026
 
+Historical record: the measurements, suite counts, source reviews, and local
+verification status below describe this implementation checkpoint. They are
+not current performance or deployment claims. See the maintained
+[startup budget guide](../QA.md#initial-load-budgets) for current profiles,
+canonical catalog ownership, and release acceptance.
+
 This work addresses all nine deferred items from the full-codebase audit. The
 starting revision was `2e29e1b2b4464d61e9edad5c6039d38e15a249d6`, already published
 with 98 passing browser suites. Work began with another read-only review of the

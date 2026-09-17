@@ -74,6 +74,22 @@ bytes and 10% to JSON bytes, rounded up to KiB; request counts add the greater
 of three or 2%, and DOM counts add 10%. Keep its provenance and the budget's
 calibration metadata reviewable; neither file is automatically regenerated.
 
+Keep ownership explicit: `js/core/site-map.js` is the category catalog;
+`scripts/lib/chamber-catalog.mjs` reads it for both startup measurement and
+browser smoke. `initial-load-policy.mjs` owns readiness/resource rules,
+`initial-load-config.mjs` owns profiles, and `initial-load-report.mjs` owns
+aggregation/budget validation. The smoke suite keeps independently reviewed
+room DOM/layout expectations, but does not duplicate category copy or counts.
+After catalog-reader changes, run `node tests/initial-load-policy-check.mjs`
+and the `chamber-categories` browser suite. Existing policy tests reject missing,
+duplicate, misordered, and same-count substituted launcher IDs.
+
+Older optimization documents and baseline fixtures are dated receipts, not
+current measurements. In particular, HEN feed JavaScript is deferred while its
+shared stylesheet remains eager, and historical query windows retain exact
+timestamps rather than cadence rounding. Verify current behavior before
+implementing an old recommendation; do not change runtime to fit old prose.
+
 For the older blocked-upstream experiment, use
 `npm run measure:load -- --network blocked --runs 5`; an explicit `--base-url`
 uses an existing local server. `--mode installed-worker` and `--require-stable`
@@ -85,6 +101,14 @@ Its browser checks exercise the real runner, adverse requests, missing telemetry
 real cache receipts, budget failures, and cancellation cleanup; CI runs them
 before the budget matrix. The pure policy, fixture-response, and report checks run in
 `npm run test:static`, alongside local HTTP server/cache/proxy checks.
+
+## Root share image
+
+Run `npm run test:root-og` for lossless PNG and source contracts, and the
+`root-og` browser suite for actual fonts, 1200×630 geometry, enlarged 30-day
+change-pill typography, and clipping. The generator uses current observations;
+the tests use controlled source receipts. PNG optimization must preserve exact
+pixels and retain the original bytes whenever compression would grow the file.
 
 ## Unused-code review
 

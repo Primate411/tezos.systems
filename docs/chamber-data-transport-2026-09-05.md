@@ -1,5 +1,10 @@
 # Lossless Chamber transport — 5 September 2026
 
+Historical record: the dataset counts and byte/CPU measurements below describe
+the September 5–8 source snapshots and stated local conditions. They are not
+current startup totals or a production-speed promise. Current startup budgets
+and measurement ownership are documented in [QA](../QA.md#initial-load-budgets).
+
 The browser now reads independent versioned object-shape transports for Capital,
 Critical Minerals, Ecosystem Activity and all Maxis Passport shards. Expanded
 public artifacts remain unchanged. Transaction reconstruction state remains

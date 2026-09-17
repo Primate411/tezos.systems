@@ -1,5 +1,10 @@
 const RULES = [
   {
+    suites: /^root-og$/,
+    files: ['scripts/generate-og-image.js', 'og-image.png', 'tests/root-og-check.mjs', 'tests/lib/root-og-smoke.mjs', 'tests/fixtures/og-fonts/**', 'js/effects/valley-effects.js'],
+    tags: ['share', 'visual'], risk: 'normal'
+  },
+  {
     suites: /^live-time-labels$/,
     files: ['js/core/utils.js', 'tests/lib/live-time-label-smoke.mjs'],
     tags: ['live-data', 'quiet-refresh'], risk: 'high'

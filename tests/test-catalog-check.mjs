@@ -14,7 +14,7 @@ for (const entry of STATIC_CHECKS) {
 const listed = execFileSync(process.execPath, ['tests/run-static.mjs', '--list'], { cwd: root, encoding: 'utf8' }).trim().split('\n');
 assert.deepEqual(listed, STATIC_CHECKS.map(entry => [entry.script, ...entry.args].join(' ')), 'CLI listing and execution use the same catalog');
 for (const required of [
-    'static-checks', 'smoke-harness-check', 'scheduled-refresh-check', 'source-payload-check', 'unused-code-check',
+    'static-checks', 'smoke-harness-check', 'scheduled-refresh-check', 'source-payload-check', 'unused-code-check', 'root-og-check',
     'widget-refresh-check', 'generated-transport-check', 'service-worker-cache-check',
     'initial-load-policy-check', 'initial-load-network-check', 'initial-load-report-check', 'initial-load-server-check'
 ]) {
@@ -24,6 +24,7 @@ const packageJson = JSON.parse(await fs.readFile(new URL('package.json', root), 
 assert.equal(packageJson.scripts['test:static'], 'node tests/run-static.mjs');
 assert.equal(packageJson.scripts['audit:unused'], 'node scripts/audit-unused-code.mjs');
 assert.equal(packageJson.scripts['test:unused-code'], 'node tests/unused-code-check.mjs');
+assert.equal(packageJson.scripts['test:root-og'], 'node tests/root-og-check.mjs');
 assert.equal(packageJson.scripts.test, 'npm run test:static && npm run test:smoke:ci');
 assert.equal(packageJson.scripts['test:initial-load'], 'node tests/initial-load-check.mjs && node tests/initial-load-cancellation-check.mjs');
 assert.equal(packageJson.scripts['measure:load:ci'], 'node scripts/measure-initial-load.mjs --matrix --runs 3 --warmup-runs 1 --budgets tests/fixtures/initial-load-budgets.json --output test-artifacts/initial-load/report.json');

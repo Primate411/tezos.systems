@@ -90,10 +90,23 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
 - My Tezos prewarms its styles on launcher intent and waits for them before
   opening. Chart.js and its date adapter load through one retryable loader only
   when History, a visible My Tezos chart, or protocol impact needs them.
+- HEN's feed JavaScript loads on entry or launcher intent through
+  `js/core/hen-init.js`. Its shared `css/hen-mode.min.css` remains an eager
+  stylesheet in the dashboard and generated route shells: it also styles the
+  gift tray, recovery links, launchers, and theme. Deferring that CSS requires
+  separating those shared rules first.
+- Historical queries preserve exact rolling range boundaries; they are not
+  rounded to a capture interval. `js/core/api.js` shares in-flight paginated
+  requests and caches completed receipts by range (and table/selection for
+  domain history). Request deduplication does not change the requested window.
 - Chamber share images use their route identity and canonical aliases. The
   Protocol Anthology uses its own archive artwork; unavailable governance
   percentages and closing dates remain unavailable rather than becoming zero
   or a live timestamp.
+- The root share image remains 1200×630 and is generated from current source
+  observations. Its 30-day change pills use 24px values and 16.5px labels.
+  Lossless PNG optimization preserves every pixel and keeps the original
+  encoding when the optimized candidate would be larger.
 - Critical first-paint skeletons are authored in `css/loading.css` and served
   from its generated `css/loading.min.css` output.
 - Live time labels retain their text nodes when the displayed value is unchanged;
@@ -469,7 +482,7 @@ inline modal styles in `js/core/app.js`.
   missed baker; missing identities remain unavailable. These pills are not
   activity-filtered, and the inspector preserves the full per-round identities,
   TzKT/My Tezos links, and the same reading lock as the rest of the receipt.
-- Explore's seven topics and all 22 individual Chamber launchers are independently
+- Explore's catalogued topics and individual Chamber launchers are independently
   hideable. Topic headers and Chamber cards provide quick eye-off actions with
   Undo, while **Choose Explore Chambers** in Customize home keeps a compact
   topic-first manager with individual room switches and one Show all recovery.
@@ -487,7 +500,7 @@ inline modal styles in `js/core/app.js`.
   and recovery open only when requested. Its mobile corner gift launcher owns a
   dedicated in-flow slot beside the top price rail and scrolls away with that
   rail instead of painting over telemetry or the centered wordmark.
-- Explore Tezos is visible by default and organizes all 22 room launchers into
+- Explore Tezos is visible by default and organizes its catalogued room launchers into
   seven question-led topics: Ecosystem, Network, Capital, Bakers, Governance,
   People & Accounts, and History. ctez Oven Exit and KT1 Multisig Recovery stay off the
   default topic grid and open from Explore's collapsed Recovery tools drawer or
@@ -1927,6 +1940,16 @@ The gate checks aggregate decoded JavaScript, CSS, JSON and total page resource
 bytes, same-origin page request count, and DOM count against
 `tests/fixtures/initial-load-budgets.json`.
 It also retains the forbidden eager-resource and duplicate-module checks.
+`js/core/site-map.js` owns topic labels, membership, and order. Measurement and
+browser smoke read that metadata through `scripts/lib/chamber-catalog.mjs`;
+`scripts/lib/initial-load-policy.mjs` derives launcher/category readiness and
+owns the startup resource policy. Browser smoke retains separate DOM/layout
+expectations and compares the rendered page with the catalog. Do not copy a
+launcher count from an older audit into a current readiness check.
+`scripts/lib/initial-load-config.mjs` owns profile definitions, while
+`scripts/lib/initial-load-report.mjs` owns aggregation and budget validation.
+The dedicated Chamber boot and generated-transport tools measure different
+workloads; their results are not interchangeable with the startup release gate.
 Navigation timings, layout shift and long tasks remain diagnostics; machine
 speed does not decide this release gate. Budget changes require explicit review
 alongside the reason for growth, rather than automatic baseline regeneration.
@@ -1963,7 +1986,9 @@ worker separately. `npm run measure:load:stable -- --base-url
 http://127.0.0.1:9000 --runs 5` first records one explicit, unscored
 browser-process warm-up navigation for the plan's stated warm-CPU profile, then
 exits non-zero unless every adjacent pair of the five measured clean-profile
-runs stays within the plan's 5% decoded-byte and 15% responsiveness limits.
+runs stays within the historical plan's 5% decoded-byte and 15% responsiveness
+limits. This optional stability experiment is separate from the current
+per-run release budgets; it is not a production-speed requirement.
 Responsiveness stability uses Total Blocking Time—the sum of each long task's
 milliseconds beyond the browser's 50ms budget—so a task that merely crosses
 the reporting threshold by 1ms does not masquerade as 50ms of new blocking.

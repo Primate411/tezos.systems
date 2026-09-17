@@ -8,8 +8,21 @@ import {
   validateInitialLoadReadiness
 } from '../scripts/lib/initial-load-policy.mjs';
 import { FUNDING_SOURCES, fundingPreviewPath } from '../js/core/community-funding.mjs';
+import { getChamberCategories } from '../scripts/lib/chamber-catalog.mjs';
 
 const expectations = getInitialLoadExpectations();
+const categories = getChamberCategories();
+assert.deepEqual(expectations.categories, categories.map(category => ({ id: category.key, launcherIds: category.entryIds })),
+  'startup expectations share the canonical category reader with browser smoke');
+assert(categories.every(category => category.label && category.question && category.entryIds.length),
+  'the shared reader retains presentation metadata and nonempty membership');
+assert.equal(new Set(categories.flatMap(category => category.entryIds)).size, expectations.launcherCount,
+  'every canonical launcher belongs to exactly one topic');
+const mutatedCategories = getChamberCategories();
+mutatedCategories[0].label = 'Mutated label';
+mutatedCategories[0].entryIds.push('not-a-room');
+mutatedCategories.reverse();
+assert.deepEqual(getChamberCategories(), categories, 'metadata, nested membership and order are independent snapshots');
 const ready = () => ({
   mainVisible: true,
   dashboardReady: true,
