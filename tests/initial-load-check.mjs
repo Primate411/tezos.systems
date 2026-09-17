@@ -155,13 +155,17 @@ try {
   });
 
   await measure('unmapped-source-request', {
-    initScript: afterDashboardReady(() => { fetch('https://api.tzkt.io/v1/__initial_load_unmapped__').catch(() => {}); }),
+    // Inject at the fixture transport so viewport prioritization cannot leave
+    // the deliberate fault queued beyond this test's observation window.
+    initScript: afterDashboardReady(() => {
+      window.__tezosSystemsOriginalFetch('https://api.tzkt.io/v1/__initial_load_unmapped__').catch(() => {});
+    }),
     failure: /Unexpected fixture requests:.*__initial_load_unmapped__/i
   });
 
   await measure('unfinished-source-request', {
     initScript: afterDashboardReady(() => {
-      fetch('https://api.tzkt.io/v1/__initial_load_pending__', {
+      window.__tezosSystemsOriginalFetch('https://api.tzkt.io/v1/__initial_load_pending__', {
         method: 'POST', duplex: 'half',
         // A real streaming request whose body never completes must remain an
         // observed unfinished attempt, rather than disappearing from the gate.
