@@ -44,6 +44,7 @@ import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
+import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
 import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
 import { decodeGeneratedTransport, encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
 
@@ -37681,6 +37682,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'live-number-motion', description: 'Only factual live deltas animate, with concurrent quiet updates, newest-value cancellation, reduced motion, stable accessibility, and every theme personality', run: () => smokeLiveNumberMotion(browser, baseUrl) },
     { name: 'quiet-refresh', description: 'Background data reconciliation preserves page, rail, chamber, focus, selection, and animation state', run: () => smokeQuietRefresh(browser, baseUrl) },
+    { name: 'live-time-labels', description: 'Unchanged time labels preserve text nodes and selection while age, countdown, duration, and stale transitions remain accurate', run: () => smokeLiveTimeLabels(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
     { name: 'baker-directory', description: 'Complete paged active-baker set, search, factual signals, direct route, quiet reading state, and mobile geometry', run: () => smokeLeaderboardSignals(browser, baseUrl) },
     { name: 'baker-wallet-actions', description: 'Every canonical baker row exposes wallet-reviewed first-time delegation and exact Tezos stake operations', run: () => smokeBakerWalletActions(browser, baseUrl) },
     { name: 'whale-watch-chamber', description: 'Complete-window receipts, grouped flow legs, timestamp dormancy, receipt-backed awakenings, legacy giants alias, prepend anchoring, and mobile geometry', run: () => smokeWhaleWatchChamber(browser, baseUrl) },

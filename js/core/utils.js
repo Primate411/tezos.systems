@@ -250,7 +250,8 @@ export function formatLiveCountdown(value, options = {}) {
 function applyLiveText(element, text) {
     const prefix = element.dataset.livePrefix || '';
     const suffix = element.dataset.liveSuffix || '';
-    element.textContent = `${prefix}${text}${suffix}`;
+    const label = `${prefix}${text}${suffix}`;
+    if (element.textContent !== label) element.textContent = label;
 }
 
 export function refreshLiveTimeLabels(root = document) {

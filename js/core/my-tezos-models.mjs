@@ -46,24 +46,6 @@ export function myTezosAccountKey(layer, address) {
     return normalizedAddress ? `${normalizedLayer}:${normalizedAddress}` : '';
 }
 
-export function normalizeAccountRef(value) {
-    const layer = value?.layer === 'l2' || value?.network === MY_TEZOS_L2_NETWORK ? 'l2' : 'l1';
-    const address = layer === 'l2'
-        ? normalizeEtherlinkAddress(value?.address)
-        : String(value?.address || '').trim();
-    const valid = layer === 'l2' ? isEtherlinkAddress(address) : isMyTezosL1Address(address);
-    if (!valid) return null;
-    return {
-        layer,
-        network: layer === 'l2' ? MY_TEZOS_L2_NETWORK : MY_TEZOS_L1_NETWORK,
-        address,
-        label: typeof value?.label === 'string' && value.label.trim()
-            ? value.label.trim().slice(0, 80)
-            : null,
-        included: value?.included !== false
-    };
-}
-
 export function normalizeLinkedL2Accounts(values, { now = Date.now() } = {}) {
     if (!Array.isArray(values)) return [];
     const normalized = [];

@@ -432,10 +432,6 @@ export function deactivateOverlayDialog(overlay, {
     return true;
 }
 
-export function isTopOverlay(overlay) {
-    return topState()?.overlay === overlay;
-}
-
 export function activeOverlayCount() {
     if (pruneStack()) syncOverlayEnvironment();
     return overlayStack.length;

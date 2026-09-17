@@ -11,7 +11,8 @@ export const CHANGELOG = [
             { type: '🎨', text: 'The Baker set popup now shows opaque loading bubbles while its list, history changes, names, event times, size, and first-bake details are pending' },
             { type: '🎨', text: 'Pending text across My Tezos, Chambers, tools, previews, and widgets now shows opaque loading bubbles, with existing themed effects preserved and browser checks for loading and completion' },
             { type: '🔧', text: 'Release checks now measure desktop and phone startup with saved-wallet and cache states, preventing unreviewed growth in page downloads and elements' },
-            { type: '🔧', text: 'Maintenance checks now recognize the site’s pages, widgets, and lazy-loaded features, making future unused-code cleanup safer' }
+            { type: '🔧', text: 'Maintenance checks now recognize the site’s pages, widgets, and lazy-loaded features, making future unused-code cleanup safer' },
+            { type: '⚡', text: 'Removed unused helpers and old welcome-screen styles; live time labels now preserve unchanged text while countdowns and freshness indicators keep updating' }
         ]
     },
     {

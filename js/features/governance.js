@@ -6,7 +6,6 @@
 import { API_URLS } from '../core/config.js';
 import { loadDataAsset } from '../core/data-assets.js';
 import { fetchCurrentVotingPeriod } from '../core/api.js';
-import { countProtocolUpgrades } from '../core/protocol-count.js';
 
 const TZKT_BASE = API_URLS.tzkt;
 
@@ -317,14 +316,6 @@ export async function fetchVotingStatus() {
         console.error('Failed to fetch voting status:', error);
         return buildVotingStatusFromReport(await loadGovernanceReport());
     }
-}
-
-/**
- * Get upgrade count (named protocols from Athens onwards)
- */
-export async function getUpgradeCount() {
-    const protocols = await fetchProtocols();
-    return countProtocolUpgrades(protocols);
 }
 
 /**

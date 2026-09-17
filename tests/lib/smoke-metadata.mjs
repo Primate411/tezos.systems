@@ -1,4 +1,9 @@
 const RULES = [
+  {
+    suites: /^live-time-labels$/,
+    files: ['js/core/utils.js', 'tests/lib/live-time-label-smoke.mjs'],
+    tags: ['live-data', 'quiet-refresh'], risk: 'high'
+  },
   { suites: /^text-loading-/, files: ['js/ui/text-loading.js', 'js/ui/chamber-skeleton.js', 'css/loading*', 'js/features/**', 'widgets/**', 'tests/lib/text-loading-smoke.mjs'], tags: ['loading', 'live-data', 'responsive'], risk: 'high' },
   {
     suites: /^baker-roster-loading$/,

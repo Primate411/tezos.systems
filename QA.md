@@ -127,6 +127,15 @@ configuration hints. [Knip configuration](https://knip.dev/overview/configuratio
 and [compiler adapters](https://knip.dev/features/compilers) describe the supported
 interfaces; the lockfile pins the analyzed version.
 
+## Shared live time labels
+
+For the shared time updater, run `node tests/smoke.mjs --only live-time-labels
+--repeat-each 2 --retry-failures 0 --hermetic --isolate-suites`. It uses a controlled
+clock and real DOM observations to verify unchanged-text suppression, text-node
+and selection preservation, age/countdown/duration boundaries, and stale state.
+Pair first-visit style cleanup with `first-visit-tour,themes` and inspect desktop
+and mobile rendering; unused selectors alone are not visual-regression proof.
+
 ## My Tezos loading geometry
 
 Run `my-tezos-baker-incidents` for receipt identity, finality, cycle rollover,

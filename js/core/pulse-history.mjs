@@ -128,10 +128,6 @@ export function readCachedPulseHistoryReceipt() {
     return cachedCoreReceipt();
 }
 
-export function readCachedPulseHistoryRows() {
-    return readCachedPulseHistoryReceipt()?.rows || [];
-}
-
 export async function getPulseHistoryReceipt({ force = false } = {}) {
     const now = Date.now();
     const cached = cachedCoreReceipt(now);
@@ -169,11 +165,6 @@ export async function getPulseHistoryRows(options) {
 
 export function readCachedPulseDomainReceipt() {
     return cachedDomainReceipt();
-}
-
-export function readCachedPulseDomainRows() {
-    const receipt = readCachedPulseDomainReceipt();
-    return Object.fromEntries(DOMAIN_KEYS.map(key => [key, receipt?.sources?.[key]?.rows || []]));
 }
 
 export async function getPulseDomainReceipt({ force = false } = {}) {

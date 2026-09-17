@@ -159,30 +159,6 @@ export function normalizeTzktAccountOperation(operation, {
     });
 }
 
-export function rewardRecordToActivity(record, timestamp = Date.now()) {
-    const estimated = record?.confidence === 'estimated' || record?.role === 'delegator-estimate';
-    return createActivity({
-        id: `activity:${record.id}`,
-        accountKey: record.accountKey,
-        layer: 'l1',
-        kind: 'reward',
-        direction: 'in',
-        timestamp,
-        groupKey: record.id,
-        amount: Number(record.earned) || 0,
-        asset: { type: 'xtz', symbol: 'XTZ', decimals: 6 },
-        confidence: estimated ? 'estimated' : 'exact',
-        summary: estimated ? `Estimated protocol reward · cycle ${record.cycle}` : `Protocol reward · cycle ${record.cycle}`,
-        sourceReceipts: [createSourceReceipt({
-            provider: 'TzKT',
-            sourceUrl: `https://tzkt.io/${encodeURIComponent(record.address || '')}/rewards`,
-            fetchedAt: new Date(record.updatedAt || Date.now()).toISOString(),
-            coverage: { state: 'complete', pages: 1, items: 1 },
-            confidence: estimated ? 'estimated' : 'exact'
-        })]
-    });
-}
-
 export function aggregateMyTezosActivities(values, ownedAddresses = []) {
     return dedupeMyTezosActivities(
         values,

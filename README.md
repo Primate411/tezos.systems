@@ -96,6 +96,9 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
   or a live timestamp.
 - Critical first-paint skeletons are authored in `css/loading.css` and served
   from its generated `css/loading.min.css` output.
+- Live time labels retain their text nodes when the displayed value is unchanged;
+  countdowns, age boundaries, and stale indicators continue to advance normally.
+  The `live-time-labels` browser suite checks these transitions and reader state.
 - Shared hook wrapper: `.githooks/pre-commit`; enable it once per clone with
   `npm run install-hooks`.
 - README sync guard: pre-commit blocks when staged changes touch

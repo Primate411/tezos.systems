@@ -126,11 +126,6 @@ export function setToastGate(promise) {
     drainQueue();
 }
 
-export function settleToastGate() {
-    gateSettled = true;
-    drainQueue();
-}
-
 export function enqueueToast({ priority = 4, show, duration = 6000 } = {}) {
     if (typeof show !== 'function') return;
     queue.push({

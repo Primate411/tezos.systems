@@ -748,20 +748,6 @@ export function navigateSiteMapEntry(entryOrId, { replace = false } = {}) {
     return true;
 }
 
-export function siteMapSearchText(entry) {
-    return [
-        entry.id,
-        entry.title,
-        entry.detail,
-        entry.group,
-        entry.href,
-        entry.hash,
-        ...(entry.hashAliases || []),
-        ...(entry.paths || []),
-        ...(entry.keywords || [])
-    ].filter(Boolean).join(' ').toLowerCase();
-}
-
 function normalizedSearchValue(value) {
     return String(value || '')
         .trim()

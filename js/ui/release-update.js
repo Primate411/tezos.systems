@@ -334,10 +334,6 @@ export function expandReleaseUpdateDock({ moveFocus = false } = {}) {
     setCollapsed(false, { moveFocus });
 }
 
-export function isReleaseUpdateDockCollapsed() {
-    return Boolean(dock && !dock.hidden && dock.classList.contains('is-collapsed'));
-}
-
 export function hideReleaseUpdateDock() {
     if (!dock) return;
     requestedVisible = false;
