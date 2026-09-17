@@ -86,6 +86,47 @@ real cache receipts, budget failures, and cancellation cleanup; CI runs them
 before the budget matrix. The pure policy, fixture-response, and report checks run in
 `npm run test:static`, alongside local HTTP server/cache/proxy checks.
 
+## Unused-code review
+
+Run `npm run audit:unused`. Read `test-artifacts/unused-code/report.md` for
+candidates and `report.json` for exact checkout/tool provenance and category
+counts. The raw Knip output is retained beside them. This command is read-only:
+findings exit successfully, while invalid configuration, tool failures, or
+malformed reports fail and replace any earlier success report. CI uploads the
+same informational artifact; it is not a Pages dependency or a zero-findings gate.
+
+`knip.config.js` delegates to `scripts/lib/knip-config.mjs`. The adapters exist
+only in Knip's view of the source. They extract local HTML scripts (including
+widget inline modules), normalize browser cache queries/root paths, and model
+the named chamber catalog and bounded lazy-loading patterns. The Maxis version
+registries retain their reviewed public APIs through an analysis-only bridge;
+other implementation exports remain candidates. Existing package
+commands, workflows, static-check and scheduled-lane catalogs, hooks, and
+generator dispatchers supply tooling roots. Only the favicon generator and
+standalone rendered-transport check are explicitly listed as manual CLIs.
+Do not mark all JavaScript files as entries or add broad ignore patterns.
+
+Treat every finding as a review lead. Runtime and test reachability are combined;
+test-only references can retain runtime code. Indirect namespace access can
+either retain extra exports or hide real consumers from static analysis;
+review new dispatch patterns when they are introduced. Actual CLI entry-file
+exports use Knip's default exemption.
+Catalog-only chamber modules retain unused-export analysis. An unused export
+may still be called inside its file: removing its implementation can break the
+site. Computed/global APIs and external consumers still need manual checks.
+This audit makes no claims about unused CSS, images, data, or frozen archives.
+
+Run `npm run test:unused-code` after changing analysis rules. Its real Knip
+fixtures retain live browser/widget/chamber/tooling paths while detecting
+deliberate orphan files, unused exports, and an unused dependency. Negative
+checks cover broken configuration, malformed output, tool failure, unsupported
+flags, and source immutability. The shared static gate runs these checks; it
+does not assert that the repository has zero findings. For adapter changes,
+also run `npx --no-install knip --no-progress --no-exit-code` and review any
+configuration hints. [Knip configuration](https://knip.dev/overview/configuration)
+and [compiler adapters](https://knip.dev/features/compilers) describe the supported
+interfaces; the lockfile pins the analyzed version.
+
 ## My Tezos loading geometry
 
 Run `my-tezos-baker-incidents` for receipt identity, finality, cycle rollover,

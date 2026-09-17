@@ -28,8 +28,11 @@ export async function smokeStandaloneChamberLifecycle(browser, baseUrl, { instal
         const response = await route.fetch(); await gate; await route.fulfill({ response });
       });
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-      const topic = page.locator('[data-chamber-category="capital"] .chamber-category-toggle');
+      // DOMContentLoaded can precede the dashboard's synchronous disclosure
+      // wiring. Await that control only; Search remains held behind the gate.
+      const topic = page.locator('[data-chamber-category="capital"] .chamber-category-toggle[data-chamber-category-wired="1"]');
       await topic.click();
+      assert.notEqual(await page.evaluate(() => document.documentElement.dataset.dashboardReady), 'true', 'Early interaction must still run before deferred Search completes');
       assert.equal(await topic.getAttribute('aria-expanded'), 'true', 'Home topic responds while feature graph is still loading');
       // A reader can type before Search's deferred module has attached listeners.
       await page.locator('#hero-search-input').fill('governance');

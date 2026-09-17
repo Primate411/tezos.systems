@@ -111,6 +111,13 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
   assertion retries still fail the gate. Milestone checks wait for the declared
   opacity transition to settle, and mobile ticker checks use a visibly reachable
   echo with a real hit test and touchscreen tap.
+- Unused-code review: `npm run audit:unused` writes an informational Knip report
+  to `test-artifacts/unused-code/`. Its configuration follows HTML scripts,
+  named chamber APIs, lazy imports, generator dispatchers, and the static-test
+  catalog. Candidate counts do not block CI or Pages; analyzer failures remain
+  visible. Run `npm run test:unused-code` when changing this configuration or
+  wrapper; the same fixture checks run in the static gate. See `QA.md` for scope
+  and the manual review required before deleting code.
 
 ## Project Structure
 

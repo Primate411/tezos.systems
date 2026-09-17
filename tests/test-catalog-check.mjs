@@ -14,7 +14,7 @@ for (const entry of STATIC_CHECKS) {
 const listed = execFileSync(process.execPath, ['tests/run-static.mjs', '--list'], { cwd: root, encoding: 'utf8' }).trim().split('\n');
 assert.deepEqual(listed, STATIC_CHECKS.map(entry => [entry.script, ...entry.args].join(' ')), 'CLI listing and execution use the same catalog');
 for (const required of [
-    'static-checks', 'smoke-harness-check', 'scheduled-refresh-check', 'source-payload-check',
+    'static-checks', 'smoke-harness-check', 'scheduled-refresh-check', 'source-payload-check', 'unused-code-check',
     'widget-refresh-check', 'generated-transport-check', 'service-worker-cache-check',
     'initial-load-policy-check', 'initial-load-network-check', 'initial-load-report-check', 'initial-load-server-check'
 ]) {
@@ -22,6 +22,8 @@ for (const required of [
 }
 const packageJson = JSON.parse(await fs.readFile(new URL('package.json', root), 'utf8'));
 assert.equal(packageJson.scripts['test:static'], 'node tests/run-static.mjs');
+assert.equal(packageJson.scripts['audit:unused'], 'node scripts/audit-unused-code.mjs');
+assert.equal(packageJson.scripts['test:unused-code'], 'node tests/unused-code-check.mjs');
 assert.equal(packageJson.scripts.test, 'npm run test:static && npm run test:smoke:ci');
 assert.equal(packageJson.scripts['test:initial-load'], 'node tests/initial-load-check.mjs && node tests/initial-load-cancellation-check.mjs');
 assert.equal(packageJson.scripts['measure:load:ci'], 'node scripts/measure-initial-load.mjs --matrix --runs 3 --warmup-runs 1 --budgets tests/fixtures/initial-load-budgets.json --output test-artifacts/initial-load/report.json');
@@ -37,6 +39,10 @@ const jobSource = name => {
     return ciWorkflow.slice(start + marker.length).split(/\n  [a-z][a-z0-9-]*:\n/)[0];
 };
 const initialLoadJob = jobSource('initial-load');
+const unusedCodeJob = jobSource('unused-code');
+assert.match(unusedCodeJob, /run: npm run audit:unused/, 'CI produces the informational unused-code report');
+assert.match(unusedCodeJob, /if: always\(\)\s+uses: actions\/upload-artifact@v5\s+with:\s+name: unused-code\s+path: test-artifacts\/unused-code\n/, 'audit evidence uploads even when analysis fails');
+assert(!unusedCodeJob.includes('continue-on-error:'), 'analyzer failures remain visible instead of being swallowed');
 assert.match(initialLoadJob, /\n    needs: static-contracts\n/, 'load measurement follows static validation');
 const harnessStep = initialLoadJob.indexOf('run: npm run test:initial-load');
 const measurementStep = initialLoadJob.indexOf('run: npm run measure:load:ci');
@@ -45,4 +51,5 @@ assert(initialLoadJob.includes('run: node scripts/resolve-playwright-version.mjs
 assert.match(initialLoadJob, /if: always\(\)\s+uses: actions\/upload-artifact@v5\s+with:\s+name: initial-load\s+path: test-artifacts\/initial-load\n/, 'load reports upload on measurement failure');
 const deployNeeds = jobSource('deploy-pages').match(/\n    needs: \[([^\]]+)\]/)?.[1].split(',').map(value => value.trim());
 assert(deployNeeds?.includes('browser-smoke') && deployNeeds.includes('initial-load'), 'Pages requires both the full smoke catalog and the load budget gate');
+assert(!deployNeeds.includes('unused-code'), 'the informational findings are not a Pages deployment gate');
 console.log('ok - shared static catalog, local/hosted entry points, load artifacts and Pages dependency gates');
