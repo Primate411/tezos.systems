@@ -3983,6 +3983,9 @@ function renderDrawerMilestoneLine(signals = getLiveCandidateSignals(lastStats |
 function renderToDrawer(cycle, sentences, loading = false) {
   const container = document.getElementById('drawer-network');
   if (!container) return;
+  // My Tezos owns this nested report. Retain it during the surrounding context
+  // reconciliation; its own renderer updates the same nodes immediately after.
+  const awayMarkup = container.querySelector('[data-network-away-slot]')?.innerHTML || '';
   const profile = getCurrentMyTezosProfile();
   const data = window._myTezosData || {};
   const portfolio = personalPortfolioSnapshot(data);
@@ -4027,7 +4030,7 @@ function renderToDrawer(cycle, sentences, loading = false) {
             ${signals.map((signal, index) => renderSignalCard(signal, index, data, portfolio, relevanceContext)).join('')}
           </div>
           ${loading ? '' : renderDrawerMilestoneLine()}
-          <div class="network-away-slot" data-network-away-slot data-quiet-key="network-away-slot"></div>
+          <div class="network-away-slot" data-network-away-slot data-quiet-key="network-away-slot">${awayMarkup}</div>
         </section>
       </div>
     </section>

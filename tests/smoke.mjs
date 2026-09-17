@@ -1806,6 +1806,7 @@ async function installFeatureMocks(context, options = {}) {
   let myTezosXTransactionCycles = 0;
   const isDrawerOpenForRequest = async (request) => {
     if (!myTezosLiveRefresh) return false;
+    if (typeof options.myTezosLiveRefresh === 'function') return options.myTezosLiveRefresh();
     try {
       return await request.frame().evaluate(() => document.querySelector('#my-tezos-drawer')?.classList.contains('open') === true);
     } catch {
@@ -4582,6 +4583,11 @@ async function assertChamberInfoTooltipsContained(page, label) {
   for (const selector of selectors) {
     const button = page.locator(`${selector} > .card-info-btn`);
     await button.scrollIntoViewIfNeeded();
+    await page.waitForFunction(cardSelector => {
+      const card = document.querySelector(cardSelector);
+      return card && !card.hasAttribute('data-chamber-skeleton')
+        && card.querySelector(':scope > .card-info-btn')?.dataset.chamberInfoWired === '1';
+    }, selector, { timeout: 10000 });
     await button.click();
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'
@@ -13411,7 +13417,8 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context, { myTezosLiveRefresh: true });
+  let advanceDrawerSource = false;
+  await installFeatureMocks(context, { myTezosLiveRefresh: () => advanceDrawerSource });
   await context.addInitScript((address) => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
@@ -13458,6 +13465,10 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `my tezos drawer live refresh: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  // A closed saved-account drawer deliberately yields to visible Home facts.
+  await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos drawer live refresh drawer');
 
   try {
     await page.waitForFunction((address) => {
@@ -13474,9 +13485,7 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
     throw new Error(`my tezos drawer initial load did not settle ${JSON.stringify({ state, issues })}\n${error.message}`);
   }
 
-  await page.locator('#my-tezos-btn').click();
-  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
-  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos drawer live refresh drawer');
+  advanceDrawerSource = true;
   try {
     await page.waitForFunction(() => {
       const data = window._myTezosData;

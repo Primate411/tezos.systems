@@ -296,6 +296,8 @@ tezos.systems/
    and dispatch-based deadlines remain shared. Optional Chamber launchers hydrate
    in small visible batches and yield while a room opens. Headline stats and the
    first confirmed Live Head render before slower protocol and block history.
+   Later history and account-context updates retain the current head and nested
+   reading surfaces, including the My Tezos away report.
    Standalone landing, compare, and widget entry points import the same shim
    for their separate browser windows or iframes. Widget pages go through
    `widgets/runtime.js`, which also shares the dashboard theme metadata,
