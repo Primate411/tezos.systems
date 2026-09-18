@@ -431,3 +431,47 @@ export function calculatePercentage(part, total) {
     }
     return (part / total) * 100;
 }
+
+/** Reconcile matching controls after structural changes, never live-text ticks.
+ * MutationObserver already batches synchronous writes. Visit each affected owner
+ * once per delivery and search only inserted subtrees after the initial scan.
+ */
+export function observeElementChanges(root, selector, reconcile) {
+    const observer = new MutationObserver((mutations) => {
+        const owners = new Set();
+        const added = new Set();
+        for (const mutation of mutations) {
+            let structural = false;
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType !== 1) continue;
+                structural = true;
+                added.add(node);
+            }
+            if (!structural) {
+                for (const node of mutation.removedNodes) {
+                    if (node.nodeType === 1) { structural = true; break; }
+                }
+            }
+            if (!structural) continue;
+            const owner = mutation.target.closest?.(selector);
+            if (owner) owners.add(owner);
+        }
+        for (const node of added) {
+            if (!root.contains(node)) continue;
+            // Nested insertions in one delivery are covered by their outer root.
+            let parent = node.parentElement;
+            while (parent && !added.has(parent)) parent = parent.parentElement;
+            if (parent) continue;
+            if (node.matches(selector)) owners.add(node);
+            if (node.firstElementChild) {
+                node.querySelectorAll(selector).forEach(owner => owners.add(owner));
+            }
+        }
+        for (const owner of owners) {
+            if (root.contains(owner)) reconcile(owner);
+        }
+    });
+    root.querySelectorAll(selector).forEach(reconcile);
+    observer.observe(root, { childList: true, subtree: true });
+    return observer;
+}

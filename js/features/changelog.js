@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-18',
+        entries: [
+            { type: '⚡', text: 'Live updates spend less time checking header links and history controls, while late-loaded and replaced controls remain ready to use' }
+        ]
+    },
+    {
         date: '2026-09-17',
         entries: [
             { type: '⚡', text: 'Theme backgrounds load only when their selected theme needs them, reducing startup downloads while preserving previews and animation behavior' },

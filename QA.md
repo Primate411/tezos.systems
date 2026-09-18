@@ -172,6 +172,14 @@ interfaces; the lockfile pins the analyzed version.
 
 ## Shared live time labels
 
+For header copy links and card history wiring, run `node tests/smoke.mjs --only
+dom-affordances --repeat-each 2 --retry-failures 0 --hermetic --isolate-suites`.
+This checks zero selector scans on text-only changes, bounded structural work,
+late/nested insertion, removed or cloned controls, copy/history actions, and
+desktop/mobile focus, selection, and node identity. Pair with `overlay-stack`,
+`cycle-history-chamber`, `lazy-chamber-loading`, `standalone-chamber-lifecycle`,
+`quiet-refresh`, and the desktop/mobile feature workflows.
+
 For the shared time updater, run `node tests/smoke.mjs --only live-time-labels
 --repeat-each 2 --retry-failures 0 --hermetic --isolate-suites`. It uses a controlled
 clock and real DOM observations to verify unchanged-text suppression, text-node

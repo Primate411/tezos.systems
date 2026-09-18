@@ -114,6 +114,9 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
 - Live time labels retain their text nodes when the displayed value is unchanged;
   countdowns, age boundaries, and stale indicators continue to advance normally.
   The `live-time-labels` browser suite checks these transitions and reader state.
+- Header copy links and card history controls ignore text-only mutations and
+  reconcile only affected owners and inserted subtrees. The `dom-affordances`
+  browser suite covers late insertion, replaced controls, and retained reader state.
 - Shared hook wrapper: `.githooks/pre-commit`; enable it once per clone with
   `npm run install-hooks`.
 - README sync guard: pre-commit blocks when staged changes touch
@@ -2414,11 +2417,9 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v622`, including the full-viewport Index
-  Chamber search, theme
-  bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
-  Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
-  Minerals lazy CSS loaders.
+- Read the current shared stamp from `js/core/asset-version.js`; root and
+  generated route shells, the service worker, theme bundles, and shared lazy
+  stylesheet loaders must agree with it.
 - Current Tezos Domains lazy CSS stamp: `v321`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes commit-relevant generated

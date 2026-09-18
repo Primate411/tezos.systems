@@ -1,5 +1,10 @@
 const RULES = [
   {
+    suites: /^dom-affordances$/,
+    files: ['js/core/utils.js', 'js/core/app.js', 'js/features/history.js', 'tests/lib/dom-affordances-smoke.mjs'],
+    tags: ['navigation', 'history', 'quiet-refresh'], risk: 'high'
+  },
+  {
     suites: /^viewport-loading$/,
     files: ['js/core/load-priority.js', 'js/core/tzkt-throttle.js', 'js/core/app.js', 'js/core/api.js', 'js/features/network-health.js', 'tests/lib/viewport-loading-smoke.mjs'],
     tags: ['startup', 'live-data', 'quiet-refresh'], risk: 'high'

@@ -48,6 +48,7 @@ import {
     escapeHtml,
     debugLog,
     startLiveTimeTicker,
+    observeElementChanges,
     debounce
 } from './utils.js';
 import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from './quiet-refresh.js';
@@ -7107,19 +7108,18 @@ function initDeepLinkAffordances() {
         }
     }
 
-    function attachHeaderButtons() {
-        headerLinks.forEach(({ selector, hash, label }) => {
-            const header = document.querySelector(selector);
-            if (!header || header.querySelector(`.section-copy-link[data-copy-hash="${hash}"]`)) return;
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'section-copy-link';
-            button.dataset.copyHash = hash;
-            button.setAttribute('aria-label', `Copy ${label} link`);
-            button.title = `Copy ${label} link`;
-            button.textContent = '🔗';
-            (header.querySelector('[data-section-actions]') || header).appendChild(button);
-        });
+    function attachHeaderButton(header) {
+        if (header.closest('#screenshot-wrapper')) return;
+        const { hash, label } = headerLinks.find(({ selector }) => header.matches(selector));
+        if (header.querySelector(`.section-copy-link[data-copy-hash="${hash}"]`)) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'section-copy-link';
+        button.dataset.copyHash = hash;
+        button.setAttribute('aria-label', `Copy ${label} link`);
+        button.title = `Copy ${label} link`;
+        button.textContent = '🔗';
+        (header.querySelector('[data-section-actions]') || header).appendChild(button);
     }
 
     document.addEventListener('click', (event) => {
@@ -7130,9 +7130,7 @@ function initDeepLinkAffordances() {
         copyHash(button.dataset.copyHash, button);
     }, true);
 
-    attachHeaderButtons();
-    const observer = new MutationObserver(() => attachHeaderButtons());
-    observer.observe(document.body, { childList: true, subtree: true });
+    observeElementChanges(document.body, headerLinks.map(link => link.selector).join(','), attachHeaderButton);
 }
 
 // ==========================================

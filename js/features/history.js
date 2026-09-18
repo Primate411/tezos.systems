@@ -14,7 +14,7 @@ import {
 import { versionedAsset } from '../core/asset-version.js';
 import { ensureChartLibraries } from '../ui/chart-loader.js';
 import { navigateSiteMapEntry } from '../core/site-map.js';
-import { debugLog } from '../core/utils.js';
+import { debugLog, observeElementChanges } from '../core/utils.js';
 import { getCurrentTheme } from '../ui/theme.js';
 import {
     activateChamberDialog,
@@ -2310,18 +2310,21 @@ const CARD_HISTORY_RANGES = [
 
 let cardHistoryRequestId = 0;
 let cardHistoryObserver = null;
+const wiredHistoryButtons = new WeakSet();
 
 function getCardHistorySelector(cardId, config) {
     return config.selector || `[data-stat="${cardId}"]`;
 }
 
-function attachCardHistoryButton(cardId, config, root = document) {
-    const selector = getCardHistorySelector(cardId, config);
-    const card = root.querySelector?.(selector) || document.querySelector(selector);
-    if (!card || card.dataset.cardHistoryWired === '1') return;
-
+function attachCardHistoryButton(card) {
+    if (card.closest('#screenshot-wrapper, .chamber-share-source-card')) return;
+    const cardId = card.dataset.stat || card.id;
+    const config = CARD_METRICS[cardId];
+    if (!config) return;
+    let btn = card.querySelector(':scope > .card-history-btn');
+    if (btn && wiredHistoryButtons.has(btn)) return;
     card.dataset.cardHistoryWired = '1';
-    const btn = document.createElement('button');
+    btn ||= document.createElement('button');
     btn.className = 'card-history-btn';
     btn.type = 'button';
     btn.innerHTML = '📊';
@@ -2332,7 +2335,8 @@ function attachCardHistoryButton(cardId, config, root = document) {
         e.stopPropagation();
         openCardHistoryModal(cardId);
     });
-    card.appendChild(btn);
+    wiredHistoryButtons.add(btn);
+    if (btn.parentElement !== card) card.appendChild(btn);
 }
 
 function countMetricPoints(data, metric) {
@@ -2358,19 +2362,12 @@ async function fetchCardHistoryData(config, range) {
  * Add history buttons to stat cards with sparklines
  */
 export function addCardHistoryButtons() {
-    Object.entries(CARD_METRICS).forEach(([cardId, config]) => {
-        attachCardHistoryButton(cardId, config);
-    });
-
     if (cardHistoryObserver) return;
-    const root = document.getElementById('chambers-grid') || document.body;
-    cardHistoryObserver = new MutationObserver((mutations) => {
-        if (!mutations.some(mutation => mutation.addedNodes.length)) return;
-        Object.entries(CARD_METRICS).forEach(([cardId, config]) => {
-            attachCardHistoryButton(cardId, config);
-        });
-    });
-    cardHistoryObserver.observe(root, { childList: true, subtree: true });
+    const selector = Object.entries(CARD_METRICS)
+        .map(([cardId, config]) => getCardHistorySelector(cardId, config)).join(',');
+    // Stats also live outside the Chamber grid, which can itself be replaced.
+    // The shared observer searches only structural changes after its first scan.
+    cardHistoryObserver = observeElementChanges(document.body, selector, attachCardHistoryButton);
 }
 
 /**

@@ -45,6 +45,7 @@ import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
+import { smokeDomAffordances } from './lib/dom-affordances-smoke.mjs';
 import { smokeRootOgImage } from './lib/root-og-smoke.mjs';
 import { smokeThemeEffectsLazy } from './lib/theme-effects-lazy-smoke.mjs';
 import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
@@ -14028,16 +14029,20 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   assert(response?.ok(), `my tezos baker capacity: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#my-tezos-btn').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker capacity drawer');
+  await page.locator('#my-tezos-tab-baker-signal').click();
+  // Capacity joins several paced TzKT reads; cold fixture completion can exceed
+  // 15 seconds. Keep exact value checks and a bounded source-completion wait.
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('.capacity-bar-card')).some((card) => (
       card.textContent.includes('Delegation Capacity')
       && card.textContent.includes('107.7%')
       && card.textContent.includes('-45,000 ꜩ free')
     ));
-  }, null, { timeout: 15000 });
+  }, null, { timeout: 30000 });
 
   const capacityState = await page.evaluate(() => {
     const card = Array.from(document.querySelectorAll('.capacity-bar-card'))
@@ -37875,6 +37880,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'live-number-motion', description: 'Only factual live deltas animate, with concurrent quiet updates, newest-value cancellation, reduced motion, stable accessibility, and every theme personality', run: () => smokeLiveNumberMotion(browser, baseUrl) },
     { name: 'quiet-refresh', description: 'Background data reconciliation preserves page, rail, chamber, focus, selection, and animation state', run: () => smokeQuietRefresh(browser, baseUrl) },
     { name: 'live-time-labels', description: 'Unchanged time labels preserve text nodes and selection while age, countdown, duration, and stale transitions remain accurate', run: () => smokeLiveTimeLabels(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'dom-affordances', description: 'Header links and card history attach only to affected elements, survive replacement, and preserve reader state', run: () => smokeDomAffordances(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'root-og', description: 'Root social preview retains real fonts, readable enlarged change pills, bounded layout, and lossless PNG pixels', run: () => smokeRootOgImage(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
     { name: 'baker-directory', description: 'Complete paged active-baker set, search, factual signals, direct route, quiet reading state, and mobile geometry', run: () => smokeLeaderboardSignals(browser, baseUrl) },
     { name: 'baker-wallet-actions', description: 'Every canonical baker row exposes wallet-reviewed first-time delegation and exact Tezos stake operations', run: () => smokeBakerWalletActions(browser, baseUrl) },
