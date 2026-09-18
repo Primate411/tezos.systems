@@ -15,6 +15,8 @@ const ENTER_FRAME_COUNT = 2;
 let dock = null;
 let card = null;
 let pill = null;
+let compactControls = null;
+let actions = null;
 let title = null;
 let detail = null;
 let releaseMeta = null;
@@ -86,11 +88,17 @@ function setCollapsed(collapsed, { moveFocus = false } = {}) {
     dock.classList.toggle('is-collapsed', collapsed);
     card.hidden = collapsed;
     pill.hidden = !collapsed;
+    compactControls.hidden = !collapsed;
+    pill.setAttribute('aria-expanded', String(!collapsed));
+    if (collapsed && actionButton.parentElement !== compactControls) compactControls.append(actionButton);
+    else if (!collapsed && actionButton.parentElement !== actions) actions.prepend(actionButton);
     scheduleSafeAreaReservation();
 
     if (!moveFocus) return;
     const focusTarget = collapsed ? pill : actionButton;
-    window.requestAnimationFrame(() => focusTarget?.focus({ preventScroll: true }));
+    window.requestAnimationFrame(() => {
+        if (!dock.hidden) focusTarget?.focus({ preventScroll: true });
+    });
 }
 
 function clearSafeAreaReservation() {
@@ -138,10 +146,16 @@ function ensureDock() {
     pill.className = 'release-update-pill';
     pill.type = 'button';
     pill.hidden = true;
-    pill.innerHTML = '<span class="release-update-symbol" aria-hidden="true">››</span><span data-release-update-pill-label>Update transmission</span>';
+    pill.innerHTML = '<span class="release-update-symbol" aria-hidden="true">››</span><span data-release-update-pill-label>Update transmission</span><span aria-hidden="true">⌃</span>';
+    pill.setAttribute('aria-label', 'Update transmission — see what changed');
+    pill.setAttribute('aria-controls', 'release-update-card');
+    compactControls = document.createElement('div');
+    compactControls.className = 'release-update-controls';
+    compactControls.append(pill);
 
     card = document.createElement('div');
     card.className = 'release-update-card';
+    card.id = 'release-update-card';
 
     const transmissionHeader = document.createElement('div');
     transmissionHeader.className = 'release-update-transmission-header';
@@ -174,7 +188,7 @@ function ensureDock() {
     detail.className = 'release-update-detail';
     copy.append(title, detail);
 
-    const actions = document.createElement('div');
+    actions = document.createElement('div');
     actions.className = 'release-update-actions';
 
     actionButton = document.createElement('button');
@@ -190,15 +204,13 @@ function ensureDock() {
 
     actions.append(actionButton, laterButton);
     card.append(transmissionHeader, icon, copy, actions);
-    dock.append(card, pill);
+    dock.append(card, compactControls);
     document.body.appendChild(dock);
 
-    actionButton.addEventListener('click', () => {
+    const runAction = () => {
         if (actionButton.disabled || typeof currentAction !== 'function') return;
-        dock.dataset.state = 'updating';
-        actionButton.disabled = true;
-        actionButton.textContent = currentPendingLabel;
-        Promise.resolve(currentAction()).catch(() => {
+        setReleaseUpdateDockState({ state: 'updating' });
+        Promise.resolve().then(() => currentAction()).catch(() => {
             setReleaseUpdateDockState({
                 state: 'error',
                 title: 'Update needs another try',
@@ -206,7 +218,8 @@ function ensureDock() {
                 actionLabel: 'Try again'
             });
         });
-    });
+    };
+    actionButton.addEventListener('click', runAction);
 
     laterButton.addEventListener('click', () => {
         setCollapsed(true, { moveFocus: true });
@@ -261,7 +274,11 @@ export function setReleaseUpdateDockState({
     if (canDefer !== undefined) laterButton.hidden = !canDefer;
 
     actionButton.disabled = state === 'updating';
-    if (state === 'updating') actionButton.textContent = currentPendingLabel;
+    laterButton.disabled = actionButton.disabled;
+    dock.setAttribute('aria-busy', String(actionButton.disabled));
+    if (state === 'updating') {
+        actionButton.textContent = currentPendingLabel;
+    }
     scheduleSafeAreaReservation();
 }
 

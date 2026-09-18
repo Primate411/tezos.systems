@@ -6280,7 +6280,8 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
       theme: 'clean',
       reducedMotion: 'reduce',
       edge: 12
-    }
+    },
+    { label: 'small phone clean', viewport: { width: 320, height: 740 }, theme: 'clean', reducedMotion: 'reduce', edge: 12 }
   ]) {
     const context = await browser.newContext({
       viewport: testCase.viewport,
@@ -6331,7 +6332,13 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
       const dock = document.querySelector('[data-release-update-dock]');
       const pill = dock?.querySelector('.release-update-pill');
       const rect = dock?.getBoundingClientRect();
+      const action = dock?.querySelector('[data-release-update-action]');
+      const actionRect = action?.getBoundingClientRect();
+      const pillRect = pill?.getBoundingClientRect();
       return {
+        adjacent: actionRect?.left >= pillRect?.right && Math.abs(actionRect?.top - pillRect?.top) <= 1,
+        actionText: action?.textContent,
+        disclosureText: pill?.textContent,
         cardHidden: dock?.querySelector('.release-update-card')?.hidden ?? false,
         collapsed: dock?.classList.contains('is-collapsed') || false,
         height: rect?.height || 0,
@@ -6341,13 +6348,14 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
         viewportWidth: innerWidth
       };
     });
-    assert(compactArrival.collapsed
+    assert(compactArrival.adjacent && compactArrival.actionText === 'Update & reload' && /Update transmission/.test(compactArrival.disclosureText) && compactArrival.collapsed
       && compactArrival.cardHidden
       && !compactArrival.pillHidden
       && compactArrival.pillHeight >= 44
       && compactArrival.height <= 48
-      && (compactArrival.viewportWidth > 600 || compactArrival.width < compactArrival.viewportWidth - 80),
+      && (compactArrival.viewportWidth > 600 || compactArrival.width <= compactArrival.viewportWidth - 24),
     `release update dock ${testCase.label}: a routine update must arrive as the compact transmission pill ${JSON.stringify(compactArrival)}`);
+    if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `release-update-compact-${testCase.theme}-${testCase.viewport.width}.png`) });
     await page.evaluate(() => window.__releaseUpdateUi.expandReleaseUpdateDock());
     await page.waitForFunction(() => !document.querySelector('[data-release-update-dock]')?.classList.contains('is-collapsed'));
     const initial = await page.evaluate(({ edge, mobile, reducedMotion }) => {
@@ -6429,13 +6437,8 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
       const action = document.querySelector('[data-release-update-action]');
       if (action) getComputedStyle(action).backgroundColor;
     });
-    await page.waitForFunction(() => {
-      const dock = document.querySelector('[data-release-update-dock]');
-      const card = dock?.querySelector('.release-update-card');
-      const action = dock?.querySelector('[data-release-update-action]');
-      return /239, 35, 60/.test(action ? getComputedStyle(action).backgroundColor : '')
-        && /239, 35, 60/.test(card ? getComputedStyle(card).borderColor : '');
-    }, null, { timeout: 1000 });
+    await page.locator('[data-release-update-action]').evaluate(element =>
+      Promise.all(element.getAnimations().map(animation => animation.finished)));
     const errorPalette = await page.evaluate(() => {
       const dock = document.querySelector('[data-release-update-dock]');
       const card = dock?.querySelector('.release-update-card');
@@ -6488,7 +6491,7 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
 
     const pill = page.locator('.release-update-pill');
     assert(await pill.count() === 1, `release update dock ${testCase.label}: expected one collapsed update pill`);
-    await pill.click();
+    await page.getByRole('button', { name: 'Update transmission — see what changed', exact: true }).click();
     await page.waitForFunction(() => document.activeElement?.matches('[data-release-update-action]'));
     const replay = await page.evaluate(() => {
       const ui = window.__releaseUpdateUi;
@@ -6554,18 +6557,23 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
 
     const action = page.locator('[data-release-update-action]');
     assert(await action.count() === 1, `release update dock ${testCase.label}: expected one primary update action`);
+    await page.locator('[data-release-update-later]').click();
     await action.click();
+    // A second click must not dispatch the same update again.
+    await action.evaluate(button => button.click());
     const updating = await page.evaluate(() => {
       const dock = document.querySelector('[data-release-update-dock]');
       const action = dock?.querySelector('[data-release-update-action]');
       return {
         actionCount: window.__releaseUpdateActions || 0,
-        disabled: action?.disabled || false,
+        disabled: action?.disabled,
+        pillText: dock?.querySelector('[data-release-update-pill-label]')?.textContent || '',
+        collapsed: dock?.classList.contains('is-collapsed'),
         state: dock?.dataset.state || '',
         text: action?.textContent || ''
       };
     });
-    assert(updating.actionCount === 1 && updating.disabled && updating.state === 'updating' && updating.text === 'Updating…', `release update dock ${testCase.label}: primary progress state failed ${JSON.stringify(updating)}`);
+    assert(updating.collapsed && updating.pillText === 'Update transmission' && updating.actionCount === 1 && updating.disabled && updating.state === 'updating' && updating.text === 'Updating…', `release update dock ${testCase.label}: primary progress state failed ${JSON.stringify(updating)}`);
 
     await page.evaluate(() => {
       window.__releaseUpdateUi.setReleaseUpdateDockState({
@@ -6602,10 +6610,24 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
   }
 
   let serviceWorkerVersion = 1;
+  let renderedVersion = 1;
+  let serviceWorkerRevision = 0;
+  let releaseActivation = null;
   const lifecycleServer = createServer(async (request, response) => {
     try {
       const requestUrl = request.url || '/';
       const pathname = new URL(requestUrl, 'http://127.0.0.1').pathname;
+      if (pathname === '/__release-activation') {
+        if (new URL(requestUrl, 'http://127.0.0.1').searchParams.get('version') === '3') {
+          releaseActivation = () => response.writeHead(200).end('ready');
+        } else response.writeHead(200).end('ready');
+        return;
+      }
+      if (pathname === '/version.json') {
+        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify(version));
+        return;
+      }
       if (pathname === '/sw.js') {
         response.writeHead(200, {
           'Cache-Control': 'no-store',
@@ -6614,19 +6636,24 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
         });
         response.end(`
           const VERSION = ${serviceWorkerVersion};
+          const REVISION = ${serviceWorkerRevision};
           self.addEventListener('install', () => {});
           self.addEventListener('message', (event) => {
-            if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+            if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
+            if (event.data?.type === 'GET_RELEASE_VERSION') event.ports[0]?.postMessage({ type: 'RELEASE_VERSION', version: String(VERSION) });
           });
           self.addEventListener('activate', (event) => {
-            event.waitUntil(self.clients.claim());
+            event.waitUntil(fetch('/__release-activation?version=' + VERSION).then(() => self.clients.claim()));
           });
         `);
         return;
       }
 
       const upstream = await fetch(`${baseUrl}${requestUrl}`);
-      const body = Buffer.from(await upstream.arrayBuffer());
+      let body = Buffer.from(await upstream.arrayBuffer());
+      if (/text\/html/i.test(upstream.headers.get('content-type') || '')) {
+        body = Buffer.from(body.toString().replace(/\?v=\d+/g, '?v=' + renderedVersion));
+      }
       response.statusCode = upstream.status;
       for (const header of ['cache-control', 'content-type', 'etag', 'last-modified']) {
         const value = upstream.headers.get(header);
@@ -6671,12 +6698,36 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
   assert(response?.ok(), `release update lifecycle: sibling load failed with HTTP ${response?.status()}`);
   await siblingPage.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 10000 });
 
+  // A controller can survive navigation before this document has initialized.
+  // Drain both startup update checks before changing the fixture worker bytes;
+  // otherwise update() may join an in-flight check that still fetched version 1.
+  for (const page of [updatingPage, siblingPage]) {
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
+    await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+  }
+
   serviceWorkerVersion = 2;
   await updatingPage.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     await registration.update();
   });
-  await updatingPage.locator('[data-release-update-dock].is-visible').waitFor({ state: 'visible', timeout: 10000 });
+  try {
+    await updatingPage.locator('[data-release-update-dock].is-visible').waitFor({ state: 'visible', timeout: 10000 });
+  } catch (error) {
+    const state = await updatingPage.evaluate(async () => {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const dock = document.querySelector('[data-release-update-dock]');
+      return {
+        ready: document.documentElement.dataset.dashboardReady,
+        visibility: document.visibilityState,
+        installing: registration?.installing?.state,
+        waiting: registration?.waiting?.state,
+        active: registration?.active?.state,
+        dock: dock?.outerHTML
+      };
+    });
+    throw new Error(`release update lifecycle: prompt missing ${JSON.stringify(state)}`, { cause: error });
+  }
   const waitingState = await updatingPage.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     return {
@@ -6691,18 +6742,17 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
     && /System transmission · incoming/i.test(waitingState.transmission)
     && waitingState.waiting === 'installed', `release update lifecycle: waiting worker did not produce the release transmission with current change context ${JSON.stringify(waitingState)}`);
 
-  await updatingPage.locator('.release-update-pill').click();
+  await updatingPage.getByRole('button', { name: 'Update transmission — see what changed', exact: true }).click();
   await updatingPage.locator('[data-release-update-later]').click();
-  await updatingPage.waitForFunction(() => document.querySelector('[data-release-update-dock]')?.classList.contains('is-collapsed'));
+  await updatingPage.locator('[data-release-update-dock]').waitFor({ state: 'hidden' });
   response = await updatingPage.goto(`${lifecycleBaseUrl}/uranium/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `release update lifecycle: deferred Uranium navigation failed with HTTP ${response?.status()}`);
   await updatingPage.locator('#uranium-modal.active').waitFor({ state: 'visible', timeout: 15000 });
-  await updatingPage.locator('[data-release-update-dock]').waitFor({ state: 'attached', timeout: 10000 });
-  await updatingPage.waitForFunction(() => document.querySelector('[data-release-update-dock]')?.hidden === true);
+  await updatingPage.evaluate(() => navigator.serviceWorker.ready);
   const deferredRouteState = await updatingPage.evaluate(() => ({
     chamberActive: Boolean(document.querySelector('#uranium-modal.active')),
     deadline: Number(sessionStorage.getItem('tezos-systems-release-update-deferred-until-v1')),
-    dockHidden: document.querySelector('[data-release-update-dock]')?.hidden ?? false,
+    dockHidden: document.querySelector('[data-release-update-dock]')?.hidden ?? true,
     pathname: location.pathname
   }));
   assert(deferredRouteState.chamberActive
@@ -6712,31 +6762,77 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
 
   await updatingPage.locator('#uranium-modal .chamber-close').click();
   await updatingPage.waitForFunction(() => !document.querySelector('#uranium-modal.active'));
+  assert(await updatingPage.locator('[data-release-update-dock]:not([hidden])').count() === 0, 'release update lifecycle: Later must remain dismissed after closing a Chamber');
+  // Expire this tab's deferral, as a later visit would, without a real 30-minute wait.
+  await updatingPage.evaluate(() => sessionStorage.removeItem('tezos-systems-release-update-deferred-until-v1'));
+  await updatingPage.reload({ waitUntil: 'domcontentloaded' });
   await updatingPage.locator('[data-release-update-dock].is-visible').waitFor({ state: 'visible', timeout: 10000 });
-  await updatingPage.waitForFunction(() => document.querySelector('[data-release-update-dock]')?.classList.contains('is-collapsed'));
-  await updatingPage.locator('.release-update-pill').click();
-
+  // Repeated visible-tab checks must leave the same prompt and focus intact.
+  await updatingPage.getByRole('button', { name: 'Update transmission — see what changed', exact: true }).click();
+  await updatingPage.evaluate(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  assert(await updatingPage.locator('.release-update-card').isVisible(), 'release update lifecycle: duplicate checks collapsed the open details');
+  // Use a fresh document to verify the default one-click action.
+  await updatingPage.reload({ waitUntil: 'domcontentloaded' });
   const lifecycleAction = updatingPage.locator('[data-release-update-action]');
-  await Promise.all([
-    updatingPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }),
-    lifecycleAction.click()
-  ]);
+  await lifecycleAction.waitFor({ state: 'visible' });
+  // Build 2 is waiting, but build 3 arrives before the click. One action must
+  // discover and activate 3 without reloading onto 2 and asking again.
+  serviceWorkerVersion = 3;
+  renderedVersion = 3;
+  let updateNavigations = 0;
+  updatingPage.on('framenavigated', frame => { if (frame === updatingPage.mainFrame()) updateNavigations += 1; });
+  const finishedNavigation = updatingPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await lifecycleAction.click();
+  // A worker activation receipt, not elapsed time, releases this held update.
+  while (!releaseActivation) {
+    await updatingPage.waitForFunction(async () => (await navigator.serviceWorker.getRegistration())?.active?.state === 'activating');
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  await updatingPage.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  assert(updateNavigations === 0 && await lifecycleAction.isDisabled() && await lifecycleAction.textContent() === 'Updating…', 'release update lifecycle: pending activation must remain one action without a Reload step');
+  releaseActivation();
+  await finishedNavigation;
+  assert(updateNavigations === 1, 'release update lifecycle: one click must navigate exactly once');
   await updatingPage.waitForFunction(() => Boolean(navigator.serviceWorker.controller), null, { timeout: 10000 });
   const activatedState = await updatingPage.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     return {
       dockCount: document.querySelectorAll('[data-release-update-dock]:not([hidden])').length,
-      waiting: registration.waiting?.state || ''
+      waiting: registration.waiting?.state || '',
+      version: await new Promise(resolve => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = event => resolve(event.data.version);
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_RELEASE_VERSION' }, [channel.port2]);
+      })
     };
   });
-  assert(activatedState.dockCount === 0 && !activatedState.waiting, `release update lifecycle: primary tab did not finish on the active worker ${JSON.stringify(activatedState)}`);
+  assert(activatedState.version === '3' && activatedState.dockCount === 0 && !activatedState.waiting, `release update lifecycle: primary tab did not finish on the active worker ${JSON.stringify(activatedState)}`);
 
   await siblingPage.locator('[data-release-update-dock].is-visible').waitFor({ state: 'visible', timeout: 10000 });
   const siblingState = await siblingPage.evaluate(() => ({
     action: document.querySelector('[data-release-update-action]')?.textContent || '',
     title: document.querySelector('.release-update-title')?.textContent || ''
   }));
-  assert(siblingState.title === 'Update applied in another tab' && siblingState.action === 'Reload this tab', `release update lifecycle: sibling tab did not receive a reload-safe cross-tab notice ${JSON.stringify(siblingState)}`);
+  assert(siblingState.title === 'Update applied in another tab' && siblingState.action === 'Update & reload', `release update lifecycle: sibling tab did not receive a reload-safe cross-tab notice ${JSON.stringify(siblingState)}`);
+  await Promise.all([
+    siblingPage.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }),
+    siblingPage.locator('[data-release-update-action]').click()
+  ]);
+  await siblingPage.evaluate(() => navigator.serviceWorker.ready);
+  assert(await siblingPage.locator('[data-release-update-dock]:not([hidden])').count() === 0, 'release update lifecycle: sibling reload repeated the notice');
+  // A changed worker file for the very same rendered asset version must not
+  // start the user's update/reload/update loop again.
+  serviceWorkerRevision += 1;
+  await updatingPage.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+  await updatingPage.waitForFunction(async () => (await navigator.serviceWorker.getRegistration())?.waiting?.state === 'installed');
+  await updatingPage.evaluate(async () => {
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+  assert(updateNavigations === 1 && await updatingPage.locator('[data-release-update-dock]:not([hidden])').count() === 0, 'release update lifecycle: the already-loaded build asked for another click');
   await lifecycleContext.close();
   await new Promise((resolve, reject) => lifecycleServer.close(error => error ? reject(error) : resolve()));
 
@@ -37796,7 +37892,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'visit-signal-bloom', description: 'Rare visit landmarks bloom as theme-aware, shareable, reduced-motion-safe hidden signals without same-day replay', run: () => smokeVisitSignalBloom(browser, baseUrl) },
     { name: 'home-layout', description: 'Six device-local Home switches, inline Hide/Undo, persistence, tab sync, deep-link recovery, tour preview, Live Pulse gating, and responsive accessibility', run: () => smokeHomeLayout(browser, baseUrl) },
     { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
-    { name: 'release-update', description: 'Persistent desktop/mobile release dock, Later pill, activation fallback, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
+    { name: 'release-update', description: 'One-click desktop/mobile release dock, Later dismissal, activation recovery, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
     { name: 'hero-landscape', description: 'Compact network metrics share the mainnet-age row at intermediate widths and stack without clipping on tablets and phones', run: () => smokeHeroIntermediate(browser, baseUrl) },
     { name: 'hero-command-bar-first-paint', description: 'The no-JavaScript Live Head command shell paints with stable geometry and truthful loading state', run: () => smokeHeroCommandBar(browser, baseUrl, 'first-paint') },
     { name: 'hero-command-bar-desktop', description: 'Desktop Index Chamber launches synchronously with its Index Loom, routed full-height results, accessible isolation, and exact reader-state restoration', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },

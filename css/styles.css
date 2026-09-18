@@ -8536,6 +8536,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 .release-update-dock[hidden],
 .release-update-card[hidden],
 .release-update-pill[hidden],
+.release-update-controls[hidden],
 .release-update-later[hidden] {
     display: none !important;
 }
@@ -8683,7 +8684,8 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
     transform: translateY(-1px);
 }
 
-.release-update-action:disabled {
+.release-update-action:disabled,
+.release-update-later:disabled {
     cursor: wait;
     opacity: 0.76;
     transform: none;
@@ -8731,6 +8733,17 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 .release-update-symbol {
     font-size: 0.88rem;
     font-weight: 900;
+}
+
+.release-update-controls {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.release-update-controls .release-update-action {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .release-update-dock.is-collapsed {
@@ -8824,6 +8837,15 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
     .release-update-dock.is-collapsed .release-update-pill {
         width: auto;
         max-width: 100%;
+    }
+
+    .release-update-controls .release-update-pill,
+    .release-update-controls .release-update-action {
+        width: auto;
+        padding: 9px 8px;
+        font-size: 0.58rem;
+        letter-spacing: 0.01em;
+        gap: 5px;
     }
 }
 

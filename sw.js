@@ -6,7 +6,7 @@
  * so installing an update does not download the whole site.
  */
 
-const CACHE_NAME = 'tezos-systems-v658';
+const CACHE_NAME = 'tezos-systems-v659';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 const CURRENT_CACHES = new Set([CACHE_NAME, RUNTIME_CACHE]);
 
@@ -202,7 +202,10 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-    if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+    if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
+    if (event.data?.type === 'GET_RELEASE_VERSION') {
+        event.ports[0]?.postMessage({ type: 'RELEASE_VERSION', version: CACHE_NAME.replace('tezos-systems-v', '') });
+    }
 });
 
 self.addEventListener('activate', (event) => {

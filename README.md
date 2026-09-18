@@ -2277,8 +2277,10 @@ Current smoke suites:
   whole-pixel health lines and unscaled margin pills at 1×/2× on desktop/mobile)
 - `first-visit-tour`
 - `app-shell`
-- `release-update` (covers the compact-by-default update pill, explicit
-  expansion, Later behavior, activation fallback, and cross-tab worker state)
+- `release-update` (covers one-click update/reload from the compact notice,
+  a separate expandable transmission, a 30-minute Later dismissal across routes,
+  newest-worker installation/activation in one action, same-build repeat suppression,
+  and reader-controlled reloads in other tabs)
 - `hero-command-bar-first-paint`, `hero-command-bar-desktop`, and
   `hero-command-bar-mobile` (independent first-paint, desktop interaction, and
   mobile geometry failure domains)
@@ -2551,9 +2553,11 @@ and heartbeat affordance from the dashboard polish pass.
 - Service worker cache can hide changes during QA. Hard refresh or unregister
   the service worker if local behavior looks stale.
 - A newly installed service worker waits in a compact bottom-center System
-  Transmission. The reader can expand it to see the latest change and accept
-  Update & reload; it never takes control automatically, preventing both a
-  blocked reading surface and a mid-session HTML/module split.
+  Transmission with an adjacent Update & reload button. Expanding the
+  transmission is optional; the action checks for the newest worker, waits for
+  installation and activation, then reloads once. A worker matching the asset
+  version already rendered by the document does not prompt again. Other tabs
+  retain control over their own reload.
   Offline navigations deliberately render `offline.html`; the shell/runtime
   cache is an asset accelerator, not an offline copy of live telemetry.
 - `index.html` serves `css/styles.min.css`; editing only `css/styles.css` is
