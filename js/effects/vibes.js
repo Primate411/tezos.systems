@@ -192,13 +192,6 @@ function checkStreakUnlocks() {
     // Streak 7: ultra mode unlocked without Konami
     if (count >= 7) {
         document.body.classList.add('streak-ultra-unlocked');
-        // Show subtle badge
-        var badge = document.createElement('div');
-        badge.className = 'streak-badge';
-        badge.innerHTML = '<span class="streak-fire">\u{1F525}</span><span class="streak-count">' + count + '</span>';
-        badge.title = count + '-cycle streak! Ultra mode unlocked.';
-        var header = document.querySelector('.header-actions') || document.querySelector('header');
-        if (header) header.appendChild(badge);
     }
 
     // Streak 30: secret theme unlock
@@ -236,10 +229,6 @@ function injectStyles() {
         // Heartbeat mode (streak 3+)
         '.streak-heartbeat .breathing-card{animation:cardHeartbeat 0.833s ease-in-out infinite}',
         '@keyframes cardHeartbeat{0%,100%{transform:scale(1)}15%{transform:scale(1.003)}30%{transform:scale(1)}45%{transform:scale(1.002)}}',
-        // Streak badge
-        '.streak-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:100px;background:rgba(255,107,43,0.15);font-size:11px;margin-left:8px;cursor:default}',
-        '.streak-fire{font-size:12px}',
-        '.streak-count{font-family:Orbitron,monospace;font-weight:700;color:var(--accent)}',
 
         // 1. Briefing card depth hierarchy — deeper tint, softer glow
         '.daily-briefing-section{background:rgba(0,0,0,0.35)!important;border-color:rgba(255,255,255,0.04)!important;box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 1px rgba(255,255,255,0.06)!important}',

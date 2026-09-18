@@ -8,7 +8,8 @@ export const CHANGELOG = [
         date: '2026-09-18',
         entries: [
             { type: '⚡', text: 'Live updates spend less time checking header links and history controls, while late-loaded and replaced controls remain ready to use' },
-            { type: '⚡', text: 'HEN feed styles load only when opened, and Network Health keeps its live clocks and finality without repainting hidden clock markup' }
+            { type: '⚡', text: 'HEN feed styles load only when opened, and Network Health keeps its live clocks and finality without repainting hidden clock markup' },
+            { type: '🎨', text: 'Removed the fire streak badge beneath the uptime display to keep the header aligned; streak notifications remain available' }
         ]
     },
     {

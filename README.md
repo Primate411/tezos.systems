@@ -329,6 +329,7 @@ tezos.systems/
    anniversary, network-moment, and cycle toasts go through a shared priority
    queue after the hero arrival settles so first-load signals do not stack over
    one another.
+   Streak notifications remain transient; no persistent fire/count badge is added to the header.
 7. Sparkline cards draw their series from historical snapshots, then align the
    final point with the latest live stat so chart endpoints and card values
    agree.
