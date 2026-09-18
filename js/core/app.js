@@ -1,3 +1,4 @@
+import { publishDashboardContinuity } from './chain-continuity.js';
 /**
  * Tezos Systems - Main Application
  * Dashboard for Tezos network statistics
@@ -30,7 +31,6 @@ import {
 } from '../ui/chamber-categories.js';
 import { flipCard, revealStat, showLoading, showError } from '../ui/animations.js';
 import {
-    blockTick,
     cancelFresh,
     initDataMagic,
     prefersReducedMotion,
@@ -3421,13 +3421,6 @@ const TOP_CONTINUITY_EXPLANATIONS = {
 };
 
 function initUptimeClock() {
-    const counterEl = document.getElementById('uptime-counter');
-    const blockNumEl = document.getElementById('uptime-block-number');
-    const blockAgeEl = document.getElementById('uptime-block-age');
-    const pulseDot = document.getElementById('uptime-pulse-dot');
-    const bakersEl = document.getElementById('uptime-bakers');
-    const stakedEl = document.getElementById('uptime-staked');
-    const issuanceEl = document.getElementById('uptime-issuance');
     const topContinuityPanel = document.getElementById('top-continuity-panel');
     const topContinuityHistory = document.getElementById('top-continuity-history');
     const topContinuityProof = topContinuityHistory?.closest('.top-uptime-cluster');
@@ -3442,9 +3435,8 @@ function initUptimeClock() {
     const topContinuityMilestoneCopy = document.getElementById('top-continuity-milestone-copy');
     const topContinuityMilestoneLink = document.getElementById('top-continuity-milestone-link');
     const topContinuityMilestoneLinkLabel = document.getElementById('top-continuity-milestone-link-label');
-    const uptimeClock = document.getElementById('uptime-clock');
 
-    if (!counterEl) {
+    if (!topContinuityPanel) {
         settleHeroArrival();
         return;
     }
@@ -3454,7 +3446,6 @@ function initUptimeClock() {
     const UPTIME_MILESTONE_SEEN_KEY = 'tezos-systems-uptime-milestone-seen-v1';
     const UPTIME_MILESTONE_SEEN_LIMIT = 64;
     let lastBlockLevel = 0;
-    let lastBlockTime = null;
     let recentBlockTimes = []; // last N block timestamps for finality avg
     let chainBakersText = '';
     let cachedFinalitySeconds = NaN;
@@ -3915,8 +3906,6 @@ function initUptimeClock() {
     }
 
     function setChainText(id, text) {
-        const el = document.getElementById(id);
-        if (el && text) setMagicNumber(el, text);
         (chainMetricAliases[id] || []).forEach((targetId) => {
             setTopContinuityText(targetId, text);
         });
@@ -4855,6 +4844,12 @@ function initUptimeClock() {
     }
 
     function syncChainProofMetrics() {
+        publishDashboardContinuity({
+            bakers: chainBakersText,
+            finality: chainFinalityText === '~12s' ? '' : chainFinalityText,
+            staked: chainStakedText,
+            issuance: chainIssuanceText
+        });
         setChainText('chain-uptime-bakers', chainBakersText);
         setChainText('chain-uptime-finality', chainFinalityText);
         setChainText('chain-uptime-staked', chainStakedText);
@@ -4867,8 +4862,6 @@ function initUptimeClock() {
         syncUptimeMilestoneCelebration(activeMilestone);
         topContinuityHistory?.classList.toggle('is-anniversary', active);
         topContinuityPanel?.classList.toggle('has-anniversary', active);
-        uptimeClock?.classList.toggle('is-anniversary', active);
-        counterEl?.classList.toggle('is-anniversary', active);
 
         if (topContinuityClaim) {
             const claim = active ? anniversary.claimText : 'Zero outages';
@@ -4892,60 +4885,23 @@ function initUptimeClock() {
         topContinuityHistory.setAttribute('aria-label', `${milestoneLead}${myth} ${action}`);
     }
 
-    // Tick the uptime counter every second — fixed-width digits
+    // Keep the visible day count, anniversary and milestone state current.
+    // Network Health owns its visible seconds clock; no hidden clock is painted.
     function tickUptime() {
         const now = Date.now();
-        const elapsed = getCalendarElapsedTime(now);
-        const { years, days, hours, totalDays } = elapsed;
-        const mins = elapsed.minutes;
-        const secs = elapsed.seconds;
-        const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
-        // Wrap each character in a fixed-width span to prevent layout shift
-        const html = str.split('').map(ch =>
-            /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
-        ).join('');
-        if (counterEl) counterEl.innerHTML = html;
-        const chainCounterEl = document.getElementById('chain-uptime-counter');
-        if (chainCounterEl) chainCounterEl.innerHTML = html;
+        const { totalDays } = getCalendarElapsedTime(now);
         setTopContinuityRuntime(totalDays);
         const upgradeCount = state.currentStats?.protocolCount || countProtocolUpgrades(state.protocols || []);
         applyUptimeAnniversaryState(getTezosUptimeAnniversary(now), totalDays, upgradeCount);
-        syncChainProofMetrics();
     }
 
-    // Tick block age
-    function tickBlockAge() {
-        if (!lastBlockTime) return;
-        const ago = Math.floor((Date.now() - lastBlockTime) / 1000);
-        if (blockAgeEl) {
-            if (ago < 60) {
-                blockAgeEl.textContent = `${ago}s ago`;
-            } else {
-                blockAgeEl.textContent = `${Math.floor(ago / 60)}m ago`;
-            }
-        }
-        // Status based on block age
-        if (pulseDot) {
-            if (ago > 120) {
-                pulseDot.style.color = '#ff4444';
-                pulseDot.title = `Last block ${ago}s ago — possible issue`;
-                pulseDot.classList.add('stale');
-            } else if (ago > 18) {
-                pulseDot.style.color = '#ff4444';
-                pulseDot.title = `Block ${ago}s old — slight delay`;
-                pulseDot.classList.add('stale');
-            } else {
-                pulseDot.style.color = '';
-                pulseDot.title = 'Network healthy — blocks on schedule';
-                pulseDot.classList.remove('stale');
-            }
-        }
-    }
-
-    // Start ticking
     tickUptime();
+    // Preserve first-arrival ordering, then publish before lazy Chambers open.
+    syncChainProofMetrics();
     setInterval(() => { if (document.visibilityState !== 'visible') return; tickUptime(); }, 1000);
-    setInterval(() => { if (document.visibilityState !== 'visible') return; tickBlockAge(); }, 1000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') tickUptime();
+    });
 
     // Fast block poller via Octez RPC (real-time, every 6s)
     async function pollBlock() {
@@ -4958,21 +4914,14 @@ function initUptimeClock() {
 
             if (level && level !== lastBlockLevel) {
                 lastBlockLevel = level;
-                lastBlockTime = new Date(timestamp).getTime();
-                recentBlockTimes.push(lastBlockTime);
+                recentBlockTimes.push(new Date(timestamp).getTime());
                 if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
-                if (blockNumEl) {
-                    blockNumEl.textContent = level.toLocaleString();
-                    blockTick(blockNumEl); // heartbeat: mechanical up-tick each new block
-                }
                 const cb = document.getElementById('cycle-chip-block');
                 if (cb) cb.textContent = level.toLocaleString();
 
                 // Update finality: Tenderbake = 2 confirmations on top of block
                 // So finality ≈ 2 × avg block time
-                const finalityEl = document.getElementById('uptime-finality');
-                const chainFinalityEl = document.getElementById('chain-uptime-finality');
-                if ((finalityEl || chainFinalityEl) && recentBlockTimes.length >= 3) {
+                if (recentBlockTimes.length >= 3) {
                     const first = recentBlockTimes[0];
                     const last = recentBlockTimes[recentBlockTimes.length - 1];
                     const avgBlockTime = (last - first) / (recentBlockTimes.length - 1);
@@ -4983,15 +4932,7 @@ function initUptimeClock() {
                     finalityButton?.removeAttribute('aria-busy');
                     if (finalityButton) finalityButton.title = 'Live Tenderbake finality estimate from recent block cadence.';
                     try { localStorage.setItem(FINALITY_CACHE_KEY, String(finality)); } catch (_) {}
-                    if (finalityEl) setMagicNumber(finalityEl, finalityText);
-                    setChainText('chain-uptime-finality', finalityText);
-                }
-
-                // Flash the pulse dot
-                if (pulseDot) {
-                    pulseDot.classList.remove('flash');
-                    void pulseDot.offsetWidth;
-                    pulseDot.classList.add('flash');
+                    syncChainProofMetrics();
                 }
 
                 // Notify pulse viz of new block
@@ -5015,38 +4956,15 @@ function initUptimeClock() {
         // Block data now comes from RPC poller above — only use this for hero metrics
         if (data.blockLevel && data.blockLevel !== lastBlockLevel) {
             lastBlockLevel = data.blockLevel;
-            lastBlockTime = data.blockTime ? new Date(data.blockTime).getTime() : Date.now();
-            if (blockNumEl) blockNumEl.textContent = data.blockLevel.toLocaleString();
             const cb2 = document.getElementById('cycle-chip-block');
             if (cb2) cb2.textContent = data.blockLevel.toLocaleString();
-
-            if (pulseDot) {
-                pulseDot.classList.remove('flash');
-                void pulseDot.offsetWidth;
-                pulseDot.classList.add('flash');
-            }
         }
-        if (data.activeBakers && bakersEl) {
-            const bakersText = data.activeBakers.toLocaleString();
-            chainBakersText = bakersText;
-            setMagicNumber(bakersEl, bakersText);
-            setChainText('chain-uptime-bakers', bakersText);
-        } else if (data.activeBakers) {
-            chainBakersText = data.activeBakers.toLocaleString();
-            setChainText('chain-uptime-bakers', chainBakersText);
-        }
-        if (data.stakedRatio) {
-            const stakedText = data.stakedRatio.toFixed(1) + '%';
-            chainStakedText = stakedText;
-            if (stakedEl) setMagicNumber(stakedEl, stakedText);
-            setChainText('chain-uptime-staked', stakedText);
-        }
+        if (data.activeBakers) chainBakersText = data.activeBakers.toLocaleString();
+        if (data.stakedRatio) chainStakedText = data.stakedRatio.toFixed(1) + '%';
         if (data.currentIssuanceRate !== undefined) {
-            const issuanceText = formatPercentage(Number(data.currentIssuanceRate), 2);
-            chainIssuanceText = issuanceText;
-            if (issuanceEl) setMagicNumber(issuanceEl, issuanceText);
-            setChainText('chain-uptime-issuance', issuanceText);
+            chainIssuanceText = formatPercentage(Number(data.currentIssuanceRate), 2);
         }
+        syncChainProofMetrics();
         if (TOP_CONTINUITY_TREND_METRICS[explainActiveKey]) {
             renderTopContinuityTrends();
         }

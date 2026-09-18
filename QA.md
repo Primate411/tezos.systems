@@ -94,8 +94,8 @@ and the `chamber-categories` browser suite. Existing policy tests reject missing
 duplicate, misordered, and same-count substituted launcher IDs.
 
 Older optimization documents and baseline fixtures are dated receipts, not
-current measurements. In particular, HEN feed JavaScript is deferred while its
-shared stylesheet remains eager, and historical query windows retain exact
+current measurements. In particular, HEN feed JavaScript and feed CSS are deferred while shared
+theme/control styles remain eager, and historical query windows retain exact
 timestamps rather than cadence rounding. Verify current behavior before
 implementing an old recommendation; do not change runtime to fit old prose.
 
@@ -169,6 +169,18 @@ also run `npx --no-install knip --no-progress --no-exit-code` and review any
 configuration hints. [Knip configuration](https://knip.dev/overview/configuration)
 and [compiler adapters](https://knip.dev/features/compilers) describe the supported
 interfaces; the lockfile pins the analyzed version.
+
+## Continuity and HEN loading
+
+Run `chain-continuity` and `hen-styles-lazy` twice with no assertion retries.
+They cover absence of hidden clock trees, independent live finality, visible
+clock node/focus/selection/scroll preservation, hidden/closed gating, immediate
+visibility catch-up, and standalone-to-home ownership. HEN checks cover no feed
+CSS before intent, concurrent and cancelled opens, no unstyled activation,
+retry after a stylesheet failure, and both direct-entry forms. Pair with
+`network-health`, `hen-mode`, `hen-standalone`, `optional-startup`,
+`standalone-chamber-completion`, `quiet-refresh`, and `cycle-milestone`.
+Use the complete initial-load matrix for the net payload/request impact.
 
 ## Shared live time labels
 

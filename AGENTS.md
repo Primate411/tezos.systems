@@ -77,7 +77,8 @@ the highest-risk gotchas.
 - `css/network-health.css`: lazy Network Health Consensus Lens and Nakamoto panel styles.
 - `css/minerals-chamber.css`: lazy Critical Minerals atlas, supply, market, and proofbook styles.
 - `css/tezoscrp.css`: lazy TezosCRP Recognition Hall styles.
-- `css/hen-mode.css`: HEN overlay styles.
+- `css/hen-mode.css`: shared HEN tokens, gifts, corner controls, and price-bar styles.
+- `css/hen-feed.css`: HEN feed/overlay styles, loaded on intent before activation.
 - `css/landing.css`: landing and SEO page styles.
 - `css/site-map.css`: shared complete-map, standalone circulation, and chamber
   wayfinder styles.
@@ -88,6 +89,9 @@ the highest-risk gotchas.
 - `js/core/config.js`: endpoints, refresh intervals, constants, Supabase anon
   config, chain comparison data.
 - `js/core/storage.js`: localStorage/sessionStorage wrappers.
+- `js/core/chain-continuity.js`: explicit dashboard continuity observations shared
+  with Network Health. A null snapshot leaves standalone Health responsible for
+  its own sources; never restore hidden DOM nodes as the ownership interface.
 - `js/core/release-radar.mjs`: validated, expiring Release Radar receipt schema
   and Live Pulse signal builder. The browser renders reviewed evidence; it does
   not infer release readiness from repository activity.

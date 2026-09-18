@@ -244,17 +244,6 @@ function injectStyles() {
         // 1. Briefing card depth hierarchy — deeper tint, softer glow
         '.daily-briefing-section{background:rgba(0,0,0,0.35)!important;border-color:rgba(255,255,255,0.04)!important;box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 1px rgba(255,255,255,0.06)!important}',
 
-        // 2. Uptime clock scanline + animated border pulse
-        '.uptime-clock{overflow:hidden}',
-        '.uptime-clock::after{content:\'\';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.015) 2px,rgba(255,255,255,0.015) 4px);pointer-events:none;z-index:1}',
-
-
-
-        // 3. Stake/Bake CTA buttons — more prominent
-
-        // 4. Matrix rain glass interaction — removed (caused halo artifacts)
-
-
         ].join('\n');
     document.head.appendChild(s);
 }
@@ -275,14 +264,6 @@ export function initVibes() {
 
     // Streak unlocks
     checkStreakUnlocks();
-
-    // 2. Uptime clock: add pulse border element
-    var uptimeClock = document.querySelector('.uptime-clock');
-    if (uptimeClock) {
-        var pulse = document.createElement('div');
-        pulse.className = 'uptime-live-pulse';
-        uptimeClock.appendChild(pulse);
-    }
 
     // Init audio context on first interaction
     document.addEventListener('click', function() {

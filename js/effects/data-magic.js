@@ -10,7 +10,6 @@
  *   • focusReveal  — understated blur-to-sharp reveal (classic themes)
  *   • revealValue  — theme-aware dispatch across the theme personalities
  *   • pulseFresh   — one-shot accent shimmer sweep signalling "this value just updated"
- *   • blockTick    — mechanical up-tick for the block-height number (the chain's heartbeat)
  *   • initDataMagic — themechange tracking + a sparse decorative ambient pulse
  *
  * Every theme carries an effect personality. Matrix, HEN, NERV, and Bubblegum
@@ -857,7 +856,6 @@ function isMagicDisabled(el) {
         '[data-health-age]',
         '#hero-chain-uptime-counter',
         '#chain-uptime-counter',
-        '.uptime-counter',
         '.loading',
         '.error-state'
     ].join(', ')));
@@ -1025,19 +1023,6 @@ export function cancelFresh(el) {
     el.classList.remove('dm-fresh');
 }
 
-/**
- * Mechanical up-tick for the block-height number on each new block.
- * The signature "chain is breathing" micro-moment.
- */
-export function blockTick(el) {
-    if (!el || prefersReducedMotion()) return;
-    injectStyles();
-    el.classList.remove('dm-block-tick');
-    void el.offsetWidth;
-    el.classList.add('dm-block-tick');
-    setTimeout(() => el.classList.remove('dm-block-tick'), 500);
-}
-
 // ─── MAGIC OBSERVER ───
 // Auto-reveal for text that other features write in place (or re-render via
 // innerHTML): governance descriptions, briefing hot-today values, chamber
@@ -1051,7 +1036,6 @@ const MAGIC_EXCLUDE = [
     '[data-health-age]',
     '#hero-chain-uptime-counter',
     '#chain-uptime-counter',
-    '.uptime-counter',
     '.loading',
     '.error-state'
 ].join(', ');
@@ -1427,10 +1411,6 @@ export function injectStyles() {
             'background:linear-gradient(105deg,transparent 30%,rgba(var(--accent-rgb,0,212,255),0.14) 50%,transparent 70%);' +
             'background-size:220% 100%;animation:dmShimmer 0.9s ease-out forwards;z-index:2}',
         '@keyframes dmShimmer{0%{background-position:180% 0;opacity:0}15%{opacity:1}100%{background-position:-80% 0;opacity:0}}',
-        // Block heartbeat tick — quick upward mechanical nudge + accent flash
-        '.dm-block-tick{animation:dmBlockTick 0.45s cubic-bezier(0.22,1,0.36,1)}',
-        '@keyframes dmBlockTick{0%{transform:translateY(0.35em);opacity:0.35;filter:brightness(1.6)}' +
-            '55%{transform:translateY(-0.06em)}100%{transform:translateY(0);opacity:1;filter:brightness(1)}}',
         // Understated blur-to-sharp reveal (classic themes + aurora/void)
         '.dm-focus-in{animation:dmFocusIn var(--dm-focus-ms,500ms) cubic-bezier(0.22,1,0.36,1)}',
         '@keyframes dmFocusIn{0%{filter:blur(10px) brightness(1.45);opacity:0.08;' +
@@ -1520,7 +1500,7 @@ export function injectStyles() {
         '@keyframes dmLockChar{0%{opacity:0.12;transform:scaleX(0.58);color:#ffc000}' +
             '66%{opacity:1;transform:scaleX(1.08);color:#fff1a8}100%{opacity:1;transform:scaleX(1);color:inherit}}',
         // Honour reduced motion globally for this layer
-        '@media (prefers-reduced-motion: reduce){.dm-fresh::after,.dm-block-tick,.dm-focus-in,.dm-crt,.dm-jitter,.dm-pop,' +
+        '@media (prefers-reduced-motion: reduce){.dm-fresh::after,.dm-focus-in,.dm-crt,.dm-jitter,.dm-pop,' +
             '.dm-aurora-resolve,.dm-kindle-reveal,.dm-sweep-lock,.dm-sweep-lock::after,.dm-delta-tick::after,.dm-delta-char,' +
             '.dm-sonar-echo,.dm-sonar-echo::before,.dm-sonar-echo::after,.dm-mycelial-char,.dm-target-lock::before,' +
             '.dm-target-lock::after,.dm-lock-char{animation:none!important}}',

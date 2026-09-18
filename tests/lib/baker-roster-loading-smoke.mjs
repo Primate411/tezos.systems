@@ -40,7 +40,9 @@ async function smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsD
     });
     const page = await context.newPage();
     await page.goto(`${baseUrl}/?theme=dark`, { waitUntil: 'load' });
-    await page.locator('.top-continuity-stat[data-card-history="total-bakers"]').click();
+    // The load event precedes the dashboard's asynchronous feature wiring.
+    // Keep source receipts blocked, but wait for this interaction to be ready.
+    await page.locator('.top-continuity-stat[data-card-history="total-bakers"][data-top-continuity-history-pill-wired="1"]').click();
     await page.locator('.top-continuity-baker-loading').waitFor();
     await assertTextBubbles(page, '.top-continuity-baker-loading [data-baker-loading]', { count: 30 });
     await assertTextBubbles(page, '[data-top-continuity-horizons] [data-baker-loading="trend"]', { count: 3 });

@@ -1,5 +1,15 @@
 const RULES = [
   {
+    suites: /^chain-continuity$/,
+    files: ['js/core/chain-continuity.js', 'js/core/anniversary.js', 'js/core/app.js', 'js/features/network-health.js', 'tests/lib/continuity-hen-smoke.mjs'],
+    tags: ['live-data', 'quiet-refresh', 'navigation'], risk: 'high'
+  },
+  {
+    suites: /^hen-styles-lazy$/,
+    files: ['js/core/hen-init.js', 'css/hen-mode*', 'css/hen-feed*', 'hen/index.html', 'tests/lib/continuity-hen-smoke.mjs'],
+    tags: ['startup', 'visual', 'navigation'], risk: 'high'
+  },
+  {
     suites: /^dom-affordances$/,
     files: ['js/core/utils.js', 'js/core/app.js', 'js/features/history.js', 'tests/lib/dom-affordances-smoke.mjs'],
     tags: ['navigation', 'history', 'quiet-refresh'], risk: 'high'
@@ -97,7 +107,7 @@ const RULES = [
   },
   {
     suites: /^(optional-startup|hen-mode|hen-standalone)$/,
-    files: ['js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js', 'css/protocol-anthology.css', 'hen/index.html', 'css/hen-mode*', 'css/shell-extras*'],
+    files: ['js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js', 'css/protocol-anthology.css', 'hen/index.html', 'css/hen-mode*', 'css/hen-feed*', 'css/shell-extras*'],
     tags: ['shell', 'navigation'],
     risk: 'high'
   },

@@ -2652,7 +2652,7 @@ async function checkSelectorContracts() {
   const siteMapCss = await readText('css/site-map.css');
   const shellExtrasCss = await readText('css/shell-extras.css');
   const loadingCss = await readText('css/loading.css');
-  const henModeCss = await readText('css/hen-mode.css');
+  const henModeCss = (await readText('css/hen-mode.css')) + (await readText('css/hen-feed.css'));
   const henMode = await readText('js/features/hen-mode.js');
   const henInit = await readText('js/core/hen-init.js');
   const henPage = await readText('hen/index.html');
@@ -3193,8 +3193,8 @@ async function checkSelectorContracts() {
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
     ['HEN standalone canonical URL', '<link rel="canonical" href="https://tezos.systems/hen/">', henPage],
     ['HEN standalone live overlay', 'id="hen-overlay"', henPage],
-    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=82', henPage],
-    ['HEN CSS cache stamp', 'css/hen-mode.min.css?v=99', index],
+    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=83', henPage],
+    ['HEN CSS cache stamp', 'css/hen-mode.min.css?v=100', index],
     ['HEN JS cache stamp', '/js/features/hen-mode.js?v=98', henInit],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],
@@ -3579,7 +3579,7 @@ async function checkSelectorContracts() {
     ['Network Health Passing Blocks Setup styling', '.health-block-filter-toggle.live-head-filter-toggle', networkHealthCss],
     ['network health continuity panel styles', '.health-continuity-panel', styles],
     ['network health continuity runtime styles', '.health-continuity-runtime', styles],
-    ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],
+    ['visible chain uptime reconciliation', 'quietlySyncHtml(clock, healthChainAge())', health],
     ['top continuity counter updater', 'setTopContinuityRuntime(totalDays);', app],
     ['top continuity decrypt duration', 'TOP_CONTINUITY_SHUFFLE_MS = 1500', app],
     ['top continuity Protocol Anthology launcher wiring', 'openProtocolHistoryChamber();', app],
@@ -4588,7 +4588,7 @@ async function checkUxAuditContracts() {
   const landingCss = await readText('css/landing.css');
   const siteNav = await readText('js/landing/site-nav.js');
   const liveData = await readText('js/landing/live-data.js');
-  const henCss = await readText('css/hen-mode.css');
+  const henCss = (await readText('css/hen-mode.css')) + (await readText('css/hen-feed.css'));
   const henPage = await readText('hen/index.html');
   const tezosCrp = await readText('js/features/tezoscrp.js');
   const changelog = await readText('js/features/changelog.js');
@@ -4689,10 +4689,34 @@ async function checkUxAuditContracts() {
     fail('RPC polling and first-visit surfaces must respect document visibility and toast occupancy');
   }
   if (index.includes('<script defer src="js/features/hen-mode.js')
-    || !index.includes('<script src="js/core/hen-init.js?v=82" defer></script>')
-    || !index.includes('<link rel="stylesheet" href="css/hen-mode.min.css?v=99">')) {
+    || !index.includes('<script src="js/core/hen-init.js?v=83" defer></script>')
+    || !index.includes('<link id="hen-shared-css" rel="stylesheet" href="css/hen-mode.min.css?v=100">')) {
     fail('HEN feed runtime must load on intent while shared theme and launcher styles remain eager');
   }
+  const henSharedCss = await readText('css/hen-mode.css');
+  const henFeedCss = await readText('css/hen-feed.css');
+  const henInit = await readText('js/core/hen-init.js');
+  const health = await readText('js/features/network-health.js');
+  if (index.includes('href="css/hen-feed.min.css')
+    || !henSharedCss.includes('.hen-overlay { display: none; }')
+    || !henSharedCss.includes('.corner-gift-tray') || !henSharedCss.includes('.hen-theme-flash')
+    || henSharedCss.includes('.hen-grid {') || !henFeedCss.includes('.hen-grid {')
+    || !henInit.includes('Promise.all([loadHenMode(), loadHenStyles(), domReady])')
+    || !henInit.includes('shared.after(link)')
+    || !CSS_TARGETS.includes('css/hen-feed.min.css')) {
+    fail('HEN feed CSS must be generated, deferred, cascade-stable and ready before activation; shared controls and dormant hiding stay eager');
+  } else pass('HEN feed CSS is separated from eager shared controls and gates activation');
+  const uptime = app.slice(app.indexOf('function initUptimeClock()'), app.indexOf('function setupEventListeners()'));
+  if (/id="uptime-(?:clock|counter|bakers|finality|staked|issuance)"/.test(index)
+    || /getElementById\('uptime-(?:counter|bakers|finality|staked|issuance)'\)/.test(health + uptime)
+    || !uptime.includes('publishDashboardContinuity({')
+    || !uptime.includes('if (recentBlockTimes.length >= 3)')
+    || !uptime.includes("window.dispatchEvent(new Event('block-pulse'))")
+    || !health.includes('const standalone = !readDashboardContinuity()')
+    || !health.includes("clock?.closest('#network-health-modal.active')")
+    || !health.includes('quietlySyncHtml(clock, healthChainAge())')) {
+    fail('Continuity must use explicit dashboard observations, independent finality sampling, visible quiet clocks and standalone source ownership');
+  } else pass('Continuity observations and finality no longer depend on hidden clock DOM');
   if (!index.includes('id="portfolio-import-file" type="file" accept="application/json,.json" aria-label="Import My Tezos portfolio JSON file"')
     || !index.includes('id="hen-cli-input" class="hen-cli-input" type="text" aria-label="HEN command input"')) {
     fail('file import and HEN command inputs must retain explicit accessible names');
@@ -6515,7 +6539,7 @@ async function checkStylesheetFreshness() {
   pass(`lazy surface CSS bundles and pre-commit coverage checked: ${lazySurfaceSources.length}`);
 
   const sourceCss = await readText('css/styles.css');
-  const henCss = await readText('css/hen-mode.css');
+  const henCss = (await readText('css/hen-mode.css')) + (await readText('css/hen-feed.css'));
   const parseVariables = (block = '') => Object.fromEntries(
     Array.from(block.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi), (match) => [match[1], match[2].trim()])
   );

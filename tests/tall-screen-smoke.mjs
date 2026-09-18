@@ -22,6 +22,21 @@ async function checkMasthead(page, deviceScaleFactor, artifactsDir) {
         const pills = [...document.querySelectorAll('.top-continuity-stat')];
         const visible = [...document.querySelectorAll('.header .title, .header-protocol-chip, .header-nav-btn, .top-continuity-stat, #top-continuity-history')];
         const titleRow = document.querySelector('.header-title-row');
+        const textFits = el => {
+          if (el.id !== 'top-continuity-history') return el.scrollWidth <= el.clientWidth + 1;
+          // The milestone outline deliberately extends 0.38rem beyond this
+          // overflow-visible button. Measure its text, not that decoration.
+          const box = el.getBoundingClientRect();
+          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+          let node;
+          while ((node = walker.nextNode())) {
+            if (!node.textContent.trim()) continue;
+            const range = document.createRange(); range.selectNodeContents(node);
+            const text = range.getBoundingClientRect();
+            if (text.width && (text.left < box.left - 1 || text.right > box.right + 1)) return false;
+          }
+          return true;
+        };
         return {
           title: rect('.header .title'), brand: rect('.header-title-row'), headerLeft: rect('.header-left'), protocol: rect('.header-protocol-chip'),
           controls: rect('.header .controls'), age: rect('#top-continuity-history'), summary: rect('.top-continuity-row'),
@@ -30,7 +45,11 @@ async function checkMasthead(page, deviceScaleFactor, artifactsDir) {
             bottom: el.getBoundingClientRect().bottom, width: el.getBoundingClientRect().width })),
           overflow: document.documentElement.scrollWidth - innerWidth,
           titleGap: parseFloat(getComputedStyle(titleRow).columnGap),
-          textFits: visible.every(el => el.scrollWidth <= el.clientWidth + 1),
+          textFits: visible.every(textFits),
+          overflowingText: visible.filter(el => !textFits(el)).map(el => ({
+            id: el.id, className: el.className, text: el.textContent,
+            scrollWidth: el.scrollWidth, clientWidth: el.clientWidth
+          })),
           controlsFit: visible.every(el => el.getBoundingClientRect().left >= 0 && el.getBoundingClientRect().right <= innerWidth),
           navOrder: [...document.querySelectorAll('.header-nav-btn')].map(el => el.id)
         };

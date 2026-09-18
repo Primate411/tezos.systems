@@ -1788,17 +1788,7 @@ body::before {
     white-space: nowrap;
 }
 
-.uptime-digit {
-    display: inline-block;
-    width: 0.82em;
-    text-align: center;
-}
 
-.uptime-sep {
-    display: inline-block;
-    width: 0.5em;
-    text-align: center;
-}
 
 .uptime-pulse-dot {
     position: relative;
@@ -2025,16 +2015,7 @@ body::before {
     border-color: rgba(0, 255, 0, 0.3);
 }
 /* Matrix uptime clock — Nebuchadnezzar cold-world island */
-[data-theme="matrix"] .uptime-clock { background: linear-gradient(135deg, rgba(0, 80, 180, 0.15) 0%, rgba(0, 120, 255, 0.08) 100%); border-color: rgba(0, 120, 255, 0.4); box-shadow: 0 0 35px rgba(0, 120, 255, 0.15), 0 0 60px rgba(0, 80, 180, 0.08), inset 0 1px 0 rgba(255,255,255,0.06); }
-[data-theme="matrix"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #0078ff, transparent); opacity: 0.6; }
-[data-theme="matrix"] .uptime-counter { color: #0078ff; text-shadow: 0 0 25px rgba(0, 120, 255, 0.4); }
-[data-theme="matrix"] .uptime-tagline { color: #00a0ff; text-shadow: 0 0 8px #00a0ff, 0 0 20px #00a0ff; }
-[data-theme="matrix"] .uptime-metric-value { color: rgba(180, 210, 255, 0.9); }
-[data-theme="matrix"] .uptime-metric-label { color: rgba(0, 150, 255, 0.6); }
-[data-theme="matrix"] .uptime-block-pulse { color: rgba(0, 150, 255, 0.6); }
 [data-theme="matrix"] .uptime-pulse-dot { color: #0078ff; background: #0078ff; box-shadow: 0 0 6px rgba(0, 120, 255, 0.6); }
-[data-theme="matrix"] .uptime-metrics { border-top-color: rgba(0, 120, 255, 0.1); }
-[data-theme="matrix"] .uptime-block-pulse { border-top-color: rgba(0, 120, 255, 0.08); }
 
 [data-theme="matrix"] .badge-text {
     color: #00ff00;
@@ -10585,10 +10566,6 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="default"] .glass-button.has-pulse::after { background: #5B8DEF; box-shadow: 0 0 6px rgba(91, 141, 239, 0.6); }
 
 /* Uptime clock */
-[data-theme="default"] .uptime-clock { background: linear-gradient(135deg, rgba(40, 60, 140, 0.12) 0%, rgba(91, 141, 239, 0.06) 100%); border-color: rgba(91, 141, 239, 0.3); box-shadow: 0 0 30px rgba(91, 141, 239, 0.08); }
-[data-theme="default"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #5B8DEF, transparent); opacity: 0.4; }
-[data-theme="default"] .uptime-counter { color: #5B8DEF; text-shadow: 0 0 20px rgba(91, 141, 239, 0.4); }
-[data-theme="default"] .uptime-tagline { color: #7BA4F4; }
 [data-theme="default"] .uptime-pulse-dot { color: #5B8DEF; background: #5B8DEF; box-shadow: 0 0 6px rgba(91, 141, 239, 0.6); }
 
 /* Cards & comparison */
@@ -10617,12 +10594,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="void"] .glass-button:hover { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 0 12px rgba(139, 92, 246, 0.12); }
 [data-theme="void"] .glass-button.has-pulse::after { background: #8B5CF6; box-shadow: 0 0 6px rgba(139, 92, 246, 0.6); }
 
-[data-theme="void"] .uptime-clock { background: linear-gradient(135deg, rgba(80, 40, 160, 0.15) 0%, rgba(139, 92, 246, 0.06) 100%); border-color: rgba(139, 92, 246, 0.35); box-shadow: 0 0 35px rgba(139, 92, 246, 0.1); }
-[data-theme="void"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #8B5CF6, transparent); opacity: 0.5; }
-[data-theme="void"] .uptime-counter { color: #8B5CF6; text-shadow: 0 0 25px rgba(139, 92, 246, 0.5); }
-[data-theme="void"] .uptime-tagline { color: #A078FF; text-shadow: 0 0 8px rgba(139, 92, 246, 0.4); }
 [data-theme="void"] .uptime-pulse-dot { color: #8B5CF6; background: #8B5CF6; box-shadow: 0 0 6px rgba(139, 92, 246, 0.6); }
-[data-theme="void"] .uptime-metrics { border-top-color: rgba(139, 92, 246, 0.1); }
 
 [data-theme="void"] .comparison-winner { color: #8B5CF6; text-shadow: 0 0 6px rgba(139, 92, 246, 0.4); }
 [data-theme="void"] .comparison-card:hover { border-color: rgba(139, 92, 246, 0.25); box-shadow: 0 0 20px rgba(139, 92, 246, 0.06); }
@@ -10650,12 +10622,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="signal"] .glass-button:hover { background: rgba(0, 228, 160, 0.1); border-color: rgba(0, 228, 160, 0.25); box-shadow: 0 0 12px rgba(0, 228, 160, 0.1); }
 [data-theme="signal"] .glass-button.has-pulse::after { background: #00E4A0; box-shadow: 0 0 6px rgba(0, 228, 160, 0.6); }
 
-[data-theme="signal"] .uptime-clock { background: linear-gradient(135deg, rgba(0, 80, 60, 0.15) 0%, rgba(0, 228, 160, 0.06) 100%); border-color: rgba(0, 228, 160, 0.3); box-shadow: 0 0 30px rgba(0, 228, 160, 0.08); }
-[data-theme="signal"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #00E4A0, transparent); opacity: 0.4; }
-[data-theme="signal"] .uptime-counter { color: #00E4A0; text-shadow: 0 0 25px rgba(0, 228, 160, 0.5); }
-[data-theme="signal"] .uptime-tagline { color: #30F0B0; text-shadow: 0 0 8px rgba(0, 228, 160, 0.4); }
 [data-theme="signal"] .uptime-pulse-dot { color: #00E4A0; background: #00E4A0; box-shadow: 0 0 6px rgba(0, 228, 160, 0.6); }
-[data-theme="signal"] .uptime-metrics { border-top-color: rgba(0, 228, 160, 0.1); }
 
 [data-theme="signal"] .comparison-winner { color: #00E4A0; text-shadow: 0 0 6px rgba(0, 228, 160, 0.4); }
 [data-theme="signal"] .comparison-card:hover { border-color: rgba(0, 228, 160, 0.2); box-shadow: 0 0 20px rgba(0, 228, 160, 0.05); }
@@ -10683,12 +10650,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="nerv"] .glass-button:hover { background: rgba(255, 152, 48, 0.1); border-color: rgba(255, 152, 48, 0.3); box-shadow: 0 0 12px rgba(255, 152, 48, 0.12); }
 [data-theme="nerv"] .glass-button.has-pulse::after { background: #FF9830; box-shadow: 0 0 6px rgba(255, 152, 48, 0.6); }
 
-[data-theme="nerv"] .uptime-clock { background: linear-gradient(135deg, rgba(120, 60, 0, 0.15) 0%, rgba(255, 152, 48, 0.06) 100%); border-color: rgba(255, 152, 48, 0.35); box-shadow: 0 0 35px rgba(255, 152, 48, 0.1); }
-[data-theme="nerv"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #FF9830, transparent); opacity: 0.5; }
-[data-theme="nerv"] .uptime-counter { color: #FF9830; text-shadow: 0 0 25px rgba(255, 152, 48, 0.5); }
-[data-theme="nerv"] .uptime-tagline { color: #FFB060; text-shadow: 0 0 8px rgba(255, 152, 48, 0.4); }
 [data-theme="nerv"] .uptime-pulse-dot { color: #FF9830; background: #FF9830; box-shadow: 0 0 6px rgba(255, 152, 48, 0.6); }
-[data-theme="nerv"] .uptime-metrics { border-top-color: rgba(255, 152, 48, 0.1); }
 
 [data-theme="nerv"] .comparison-winner { color: #FF9830; text-shadow: 0 0 6px rgba(255, 152, 48, 0.4); }
 [data-theme="nerv"] .comparison-card:hover { border-color: rgba(255, 152, 48, 0.25); box-shadow: 0 0 20px rgba(255, 152, 48, 0.06); }
@@ -10719,8 +10681,6 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="clean"] .hero-cta-primary { background: #2563EB; color: white; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25); }
 [data-theme="clean"] .hero-cta-primary:hover { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35); }
 [data-theme="clean"] .capacity-bar-fill { background: linear-gradient(90deg, #1D4ED8, #2563EB); }
-[data-theme="clean"] .uptime-clock { background: white; border-color: rgba(37, 99, 235, 0.15); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
-[data-theme="clean"] .uptime-counter { color: #2563EB; }
 [data-theme="clean"] .modal-large { background: white; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12); }
 [data-theme="clean"] .settings-dropdown { background: white; border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
 
@@ -10732,8 +10692,6 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="dark"] .stat-card:hover { border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 0 12px rgba(255, 255, 255, 0.02); }
 [data-theme="dark"] .comparison-card { border: 1px solid rgba(255, 255, 255, 0.05); }
 [data-theme="dark"] .settings-dropdown { background: #141414; border-color: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .uptime-clock { border-color: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .uptime-counter { color: #F0F0F0; }
 [data-theme="dark"] .capacity-bar-fill { background: linear-gradient(90deg, #606060, #D0D0D0); }
 [data-theme="dark"] .modal-large { background: #141414; border-color: rgba(255, 255, 255, 0.08); }
 
@@ -10748,14 +10706,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="abyss"] .glass-button.has-pulse::after { background: #00E5FF; box-shadow: 0 0 6px rgba(0, 229, 255, 0.6); }
 
 /* Uptime clock — cold blue glow */
-[data-theme="abyss"] .uptime-clock { background: linear-gradient(135deg, rgba(0, 100, 180, 0.15) 0%, rgba(0, 229, 255, 0.06) 100%); border-color: rgba(0, 229, 255, 0.35); box-shadow: 0 0 35px rgba(0, 229, 255, 0.12), 0 0 60px rgba(0, 140, 200, 0.06), inset 0 1px 0 rgba(0, 229, 255, 0.08); }
-[data-theme="abyss"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #00E5FF, transparent); opacity: 0.5; }
-[data-theme="abyss"] .uptime-counter { color: #00E5FF; text-shadow: 0 0 25px rgba(0, 229, 255, 0.5); }
-[data-theme="abyss"] .uptime-tagline { color: #40D0FF; text-shadow: 0 0 8px rgba(0, 229, 255, 0.4); }
-[data-theme="abyss"] .uptime-metric-value { color: rgba(150, 220, 255, 0.9); }
-[data-theme="abyss"] .uptime-metric-label { color: rgba(0, 180, 220, 0.6); }
 [data-theme="abyss"] .uptime-pulse-dot { color: #00E5FF; background: #00E5FF; box-shadow: 0 0 6px rgba(0, 229, 255, 0.6); }
-[data-theme="abyss"] .uptime-metrics { border-top-color: rgba(0, 229, 255, 0.1); }
 
 /* Comparison cards */
 [data-theme="abyss"] .comparison-card { border-color: rgba(0, 229, 255, 0.1); }
@@ -10797,14 +10748,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="moss"] .glass-button.has-pulse::after { background: #50E850; box-shadow: 0 0 6px rgba(80, 232, 80, 0.6); }
 
 /* Uptime clock — organic glow */
-[data-theme="moss"] .uptime-clock { background: linear-gradient(135deg, rgba(30, 100, 30, 0.15) 0%, rgba(80, 232, 80, 0.06) 100%); border-color: rgba(80, 232, 80, 0.3); box-shadow: 0 0 35px rgba(80, 232, 80, 0.1), 0 0 60px rgba(40, 160, 40, 0.05), inset 0 1px 0 rgba(80, 232, 80, 0.06); }
-[data-theme="moss"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #50E850, transparent); opacity: 0.4; }
-[data-theme="moss"] .uptime-counter { color: #50E850; text-shadow: 0 0 25px rgba(80, 232, 80, 0.5); }
-[data-theme="moss"] .uptime-tagline { color: #70F070; text-shadow: 0 0 8px rgba(80, 232, 80, 0.4); }
-[data-theme="moss"] .uptime-metric-value { color: rgba(160, 240, 150, 0.9); }
-[data-theme="moss"] .uptime-metric-label { color: rgba(60, 180, 50, 0.6); }
 [data-theme="moss"] .uptime-pulse-dot { color: #50E850; background: #50E850; box-shadow: 0 0 6px rgba(80, 232, 80, 0.6); }
-[data-theme="moss"] .uptime-metrics { border-top-color: rgba(80, 232, 80, 0.1); }
 
 /* Comparison cards */
 [data-theme="moss"] .comparison-card { border-color: rgba(80, 232, 80, 0.1); }
@@ -10920,19 +10864,8 @@ body[data-theme="valley"]::after {
     text-shadow: 0 0 10px rgba(231, 182, 108, 0.24);
 }
 
-[data-theme="valley"] .uptime-clock {
-    background: var(--uptime-badge-bg);
-    border-color: var(--uptime-badge-border);
-    box-shadow: var(--uptime-badge-shadow);
-}
 
-[data-theme="valley"] .uptime-clock::before {
-    background: linear-gradient(90deg, transparent, #E7B66C, transparent);
-    opacity: 0.32;
-}
 
-[data-theme="valley"] .uptime-counter,
-[data-theme="valley"] .uptime-tagline,
 [data-theme="valley"] .comparison-winner,
 [data-theme="valley"] .giant-balance .xtz {
     color: #F3C47A;
@@ -11000,14 +10933,7 @@ body[data-theme="valley"]::after {
 [data-theme="warzone"] .glass-button.has-pulse::after { background: #FFC000; box-shadow: 0 0 6px rgba(255, 192, 0, 0.6); }
 
 /* Uptime clock — tactical amber */
-[data-theme="warzone"] .uptime-clock { background: linear-gradient(135deg, rgba(100, 80, 0, 0.15) 0%, rgba(255, 192, 0, 0.06) 100%); border-color: rgba(255, 192, 0, 0.35); box-shadow: 0 0 35px rgba(255, 192, 0, 0.1), 0 0 60px rgba(200, 150, 0, 0.05), inset 0 1px 0 rgba(255, 192, 0, 0.06); }
-[data-theme="warzone"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #FFC000, transparent); opacity: 0.4; }
-[data-theme="warzone"] .uptime-counter { color: #FFC000; text-shadow: 0 0 25px rgba(255, 192, 0, 0.5); }
-[data-theme="warzone"] .uptime-tagline { color: #FFD040; text-shadow: 0 0 8px rgba(255, 192, 0, 0.4); }
-[data-theme="warzone"] .uptime-metric-value { color: rgba(255, 220, 140, 0.9); }
-[data-theme="warzone"] .uptime-metric-label { color: rgba(200, 160, 40, 0.6); }
 [data-theme="warzone"] .uptime-pulse-dot { color: #FFC000; background: #FFC000; box-shadow: 0 0 6px rgba(255, 192, 0, 0.6); }
-[data-theme="warzone"] .uptime-metrics { border-top-color: rgba(255, 192, 0, 0.1); }
 
 /* Comparison cards */
 [data-theme="warzone"] .comparison-card { border-color: rgba(255, 192, 0, 0.1); }
@@ -11066,9 +10992,6 @@ body[data-theme="valley"]::after {
 /* --- Upgrade clock --- */
 [data-theme="void"] .upgrade-number { background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%); -webkit-background-clip: text; background-clip: text; }
 [data-theme="void"] .upgrade-badge { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); }
-[data-theme="void"] .uptime-clock { background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%); border-color: rgba(139, 92, 246, 0.2); box-shadow: 0 0 20px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.03); }
-[data-theme="void"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #8B5CF6, transparent); }
-[data-theme="void"] .uptime-tagline { color: #8B5CF6; }
 [data-theme="void"] .uptime-pulse-dot { color: #8B5CF6; }
 [data-theme="void"] .badge-text { color: #8B5CF6; }
 [data-theme="void"] .voting-dot { background: #8B5CF6; }
@@ -11078,9 +11001,6 @@ body[data-theme="valley"]::after {
 
 [data-theme="ember"] .upgrade-number { background: linear-gradient(135deg, #FF9F43 0%, #E55039 100%); -webkit-background-clip: text; background-clip: text; }
 [data-theme="ember"] .upgrade-badge { background: rgba(255, 159, 67, 0.1); border-color: rgba(255, 159, 67, 0.3); }
-[data-theme="ember"] .uptime-clock { background: linear-gradient(135deg, rgba(255, 159, 67, 0.08) 0%, rgba(229, 80, 57, 0.05) 100%); border-color: rgba(255, 159, 67, 0.2); box-shadow: 0 0 20px rgba(255, 159, 67, 0.08), inset 0 1px 0 rgba(255,255,255,0.03); }
-[data-theme="ember"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #FF9F43, transparent); }
-[data-theme="ember"] .uptime-tagline { color: #FF9F43; }
 [data-theme="ember"] .uptime-pulse-dot { color: #FF9F43; }
 [data-theme="ember"] .badge-text { color: #FF9F43; }
 [data-theme="ember"] .voting-dot { background: #FF9F43; }
@@ -11090,9 +11010,6 @@ body[data-theme="valley"]::after {
 
 [data-theme="signal"] .upgrade-number { background: linear-gradient(135deg, #00FFC8 0%, #00B894 100%); -webkit-background-clip: text; background-clip: text; }
 [data-theme="signal"] .upgrade-badge { background: rgba(0, 255, 200, 0.1); border-color: rgba(0, 255, 200, 0.3); }
-[data-theme="signal"] .uptime-clock { background: linear-gradient(135deg, rgba(0, 255, 200, 0.08) 0%, rgba(0, 184, 148, 0.05) 100%); border-color: rgba(0, 255, 200, 0.2); box-shadow: 0 0 20px rgba(0, 255, 200, 0.08), inset 0 1px 0 rgba(255,255,255,0.03); }
-[data-theme="signal"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #00FFC8, transparent); }
-[data-theme="signal"] .uptime-tagline { color: #00FFC8; }
 [data-theme="signal"] .uptime-pulse-dot { color: #00FFC8; }
 [data-theme="signal"] .badge-text { color: #00FFC8; }
 [data-theme="signal"] .voting-dot { background: #00FFC8; }
@@ -11644,21 +11561,7 @@ body[data-theme="valley"]::after {
 /* Upgrade clock / timeline */
 [data-theme="clean"] .upgrade-number { background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); -webkit-background-clip: text; background-clip: text; }
 [data-theme="clean"] .upgrade-badge { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.2); }
-[data-theme="clean"] .uptime-clock { background: linear-gradient(135deg, rgba(37, 99, 235, 0.06) 0%, rgba(29, 78, 216, 0.03) 100%); border-color: rgba(37, 99, 235, 0.15); box-shadow: 0 0 20px rgba(37, 99, 235, 0.06), inset 0 1px 0 rgba(255,255,255,0.05); }
-[data-theme="clean"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #2563EB, transparent); }
-[data-theme="clean"] .uptime-tagline { color: #2563EB; }
 [data-theme="clean"] .uptime-pulse-dot { color: #2563EB; }
-[data-theme="clean"] .uptime-counter {
-    color: #2563EB;
-    text-shadow: none;
-}
-[data-theme="clean"] .uptime-metric-value {
-    color: #1A1D26;
-    text-shadow: none;
-}
-[data-theme="clean"] .uptime-metric-label {
-    color: #64748B;
-}
 [data-theme="clean"] .badge-text { color: #2563EB; }
 [data-theme="clean"] .voting-dot { background: #2563EB; }
 [data-theme="clean"] .voting-progress-bar { background: linear-gradient(90deg, #2563EB, #1D4ED8); }
@@ -12639,11 +12542,7 @@ body {
 /* Upgrade clock elements */
 [data-theme="dark"] .upgrade-number { background: linear-gradient(135deg, #C8C8C8 0%, #B0B0B0 100%); -webkit-background-clip: text; background-clip: text; }
 [data-theme="dark"] .upgrade-badge { background: rgba(200, 200, 200, 0.08); border-color: rgba(200, 200, 200, 0.2); }
-[data-theme="dark"] .uptime-clock { background: linear-gradient(135deg, rgba(200, 200, 200, 0.05) 0%, rgba(180, 180, 180, 0.03) 100%); border-color: rgba(200, 200, 200, 0.15); box-shadow: 0 0 20px rgba(200, 200, 200, 0.04), inset 0 1px 0 rgba(255,255,255,0.04); }
-[data-theme="dark"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #C8C8C8, transparent); opacity: 0.25; }
-[data-theme="dark"] .uptime-tagline { color: #C8C8C8; }
 [data-theme="dark"] .uptime-pulse-dot { color: #C8C8C8; }
-[data-theme="dark"] .uptime-counter { text-shadow: none; }
 [data-theme="dark"] .badge-text { color: #C8C8C8; }
 [data-theme="dark"] .voting-dot { background: #C8C8C8; }
 [data-theme="dark"] .voting-progress-bar { background: linear-gradient(90deg, #C8C8C8, #B0B0B0); }
@@ -13154,9 +13053,6 @@ body {
 
 [data-theme="bubblegum"] .upgrade-number { background: linear-gradient(135deg, #FF69B4 0%, #FF85C8 100%); -webkit-background-clip: text; background-clip: text; }
 [data-theme="bubblegum"] .upgrade-badge { background: rgba(255, 105, 180, 0.1); border-color: rgba(255, 105, 180, 0.3); }
-[data-theme="bubblegum"] .uptime-clock { background: linear-gradient(135deg, rgba(255, 105, 180, 0.08) 0%, rgba(255, 133, 200, 0.05) 100%); border-color: rgba(255, 105, 180, 0.2); box-shadow: 0 0 20px rgba(255, 105, 180, 0.08), inset 0 1px 0 rgba(255,255,255,0.03); }
-[data-theme="bubblegum"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #FF69B4, transparent); }
-[data-theme="bubblegum"] .uptime-tagline { color: #FF69B4; }
 [data-theme="bubblegum"] .uptime-pulse-dot { color: #FF69B4; }
 [data-theme="bubblegum"] .badge-text { color: #FF69B4; }
 [data-theme="bubblegum"] .voting-dot { background: #FF69B4; }
@@ -22035,7 +21931,6 @@ body[data-theme="nerv"]::before {
 /* ── Typography: monospace dominates ── */
 [data-theme="nerv"] .stat-value,
 [data-theme="nerv"] .metric-value,
-[data-theme="nerv"] .uptime-counter,
 [data-theme="nerv"] .chain-value,
 [data-theme="nerv"] .comparison-value,
 [data-theme="nerv"] .baker-stat-value,
@@ -22162,33 +22057,6 @@ body[data-theme="nerv"]::before {
 }
 
 /* ── Uptime clock: NERV instrument panel ── */
-[data-theme="nerv"] .uptime-clock {
-    background: rgba(8, 8, 6, 0.95);
-    border: 1px solid rgba(255, 152, 48, 0.25);
-    border-top: 2px solid rgba(255, 152, 48, 0.6);
-    box-shadow: 0 0 30px rgba(255, 152, 48, 0.08), inset 0 1px 0 rgba(255, 152, 48, 0.1);
-}
-[data-theme="nerv"] .uptime-clock::before {
-    background: linear-gradient(90deg, transparent, rgba(255, 152, 48, 0.4), transparent);
-    opacity: 0.3;
-}
-[data-theme="nerv"] .uptime-tagline {
-    color: #FF9830;
-    text-shadow: 0 0 10px rgba(255, 152, 48, 0.5);
-    font-family: 'IBM Plex Mono', monospace !important;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-[data-theme="nerv"] .uptime-metric-value {
-    color: #E0E0D8;
-    font-family: 'IBM Plex Mono', monospace !important;
-}
-[data-theme="nerv"] .uptime-metric-label {
-    color: rgba(255, 152, 48, 0.5);
-    font-family: 'IBM Plex Mono', monospace !important;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
 [data-theme="nerv"] .uptime-pulse-dot {
     color: #FF9830;
     background: #FF9830;

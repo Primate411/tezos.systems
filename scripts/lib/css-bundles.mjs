@@ -6,6 +6,7 @@ export const LAZY_SURFACE_STYLES = [
   'community-funding.css',
   'ecosystem.css',
   'history-chamber.css',
+  'hen-feed.css',
   'leaderboard.css',
   'ledger-flow.css',
   'maxis.css',

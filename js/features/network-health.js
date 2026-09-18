@@ -7,6 +7,7 @@ import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-access
 
 import { API_URLS, REFRESH_INTERVALS } from '../core/config.js';
 import { getCalendarElapsedTime } from '../core/anniversary.js';
+import { readDashboardContinuity, subscribeDashboardContinuity } from '../core/chain-continuity.js';
 import { classifyOctezVersion, fetchOctezVersions, octezVersionsFallback } from '../core/octez-versions.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { escapeHtml, formatFreshnessStamp, refreshDataFreshnessStates, setDataFreshnessState } from '../core/utils.js';
@@ -308,8 +309,7 @@ function healthAgeAttr(timestamp) {
 }
 
 function refreshHealthAgeLabels(root = document) {
-    const standaloneClock = root.querySelector('#chain-uptime-counter[data-health-own-clock]');
-    if (standaloneClock) standaloneClock.textContent = healthChainAge();
+    refreshContinuityProof(root);
     const pauseLiveHead = liveHeadReadingPaused();
     root.querySelectorAll('[data-health-age]').forEach((element) => {
         if (pauseLiveHead && element.closest('#live-head')) return;
@@ -329,7 +329,14 @@ function startHealthAgeTicker() {
     ageTimer = window.setInterval(() => {
         if (document.visibilityState === 'visible') refreshHealthAgeLabels(document);
     }, AGE_TICK_INTERVAL);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshHealthAgeLabels(document);
+    });
 }
+
+subscribeDashboardContinuity(() => {
+    if (document.visibilityState === 'visible') refreshContinuityProof();
+});
 
 function confirmLiveHeadObservation(data) {
     const level = Number(data?.blocks?.[0]?.level);
@@ -4413,7 +4420,7 @@ function updateHealthVerdictPanel(data) {
 
 async function fetchNetworkHealthChamberData() {
     const requestOptions = { priority: 'interactive' };
-    const standalone = !document.getElementById('uptime-counter');
+    const standalone = !readDashboardContinuity();
     const [chainHealthBlocks, cycleTiming, currentCycle, nakamoto, continuity] = await Promise.all([
         fetchRecentBlocks(CHAIN_HEALTH_BLOCK_LIMIT, requestOptions),
         fetchCycleTiming(requestOptions),
@@ -4789,7 +4796,26 @@ function renderHealthScorePanel(data) {
 
 function healthChainAge() {
     const age = getCalendarElapsedTime();
-    return `${age.years}y ${age.days}d ${age.hours}h ${age.minutes}m ${age.seconds}s`;
+    if (!readDashboardContinuity()) {
+        return `${age.years}y ${age.days}d ${age.hours}h ${age.minutes}m ${age.seconds}s`;
+    }
+    const text = `${age.years}y ${age.days}d ${String(age.hours).padStart(2, '0')}h ${String(age.minutes).padStart(2, '0')}m ${String(age.seconds).padStart(2, '0')}s`;
+    return [...text].map(character => `<span class="${/\d/.test(character) ? 'uptime-digit' : 'uptime-sep'}">${character}</span>`).join('');
+}
+
+function refreshContinuityProof(root = document) {
+    const clock = root.querySelector('#chain-uptime-counter');
+    // Closed Chambers retain their last DOM but do no clock work.
+    if (!clock?.closest('#network-health-modal.active')) return;
+    quietlySyncHtml(clock, healthChainAge());
+    const snapshot = readDashboardContinuity();
+    if (!snapshot) return;
+    for (const [metric, text] of Object.entries(snapshot)) {
+        const element = document.getElementById(`chain-uptime-${metric}`);
+        if (element && text && element.textContent !== text) {
+            quietlySyncHtml(element, escapeHtml(text));
+        }
+    }
 }
 
 function fetchChamberContinuity() {
@@ -4803,18 +4829,18 @@ function fetchChamberContinuity() {
 }
 
 function renderContinuityProofPanel(data = {}) {
-    const ownClock = !document.getElementById('uptime-counter');
+    const snapshot = readDashboardContinuity();
     const stats = data.continuity || {};
-    const runtimeHtml = document.getElementById('uptime-counter')?.innerHTML || escapeHtml(healthChainAge());
-    const bakersText = document.getElementById('uptime-bakers')?.textContent || (Number.isFinite(stats.totalBakers) ? formatCount(stats.totalBakers) : '—');
-    const observedFinality = document.getElementById('uptime-finality')?.textContent?.trim() || '';
+    const runtimeHtml = healthChainAge();
+    const bakersText = snapshot?.bakers || (Number.isFinite(stats.totalBakers) ? formatCount(stats.totalBakers) : '—');
+    const observedFinality = snapshot?.finality || '';
     const finalityText = observedFinality && !/^(?:—|--|-)$/.test(observedFinality) ? observedFinality : (data.timing?.avgSeconds > 0 ? `~${Math.round(data.timing.avgSeconds * 2)}s` : '~12s');
-    const stakedText = document.getElementById('uptime-staked')?.textContent || (Number.isFinite(stats.stakingRatio) ? `${stats.stakingRatio.toFixed(1)}%` : '—');
-    const issuanceText = document.getElementById('uptime-issuance')?.textContent || (Number.isFinite(stats.currentIssuanceRate) ? `${stats.currentIssuanceRate.toFixed(2)}%` : '—');
+    const stakedText = snapshot?.staked || (Number.isFinite(stats.stakingRatio) ? `${stats.stakingRatio.toFixed(1)}%` : '—');
+    const issuanceText = snapshot?.issuance || (Number.isFinite(stats.currentIssuanceRate) ? `${stats.currentIssuanceRate.toFixed(2)}%` : '—');
     return `
         <section class="lb-panel health-panel health-continuity-panel chamber-anim-fade" id="health-chain-proof" aria-label="Tezos mainnet age and upgrade history" style="animation-delay:40ms">
             <div class="lb-panel-title">Mainnet Continuity <span class="lb-live-pill">chain age · upgrade history</span></div>
-            <div class="health-continuity-runtime" id="chain-uptime-counter"${ownClock ? ' data-health-own-clock' : ''}>${runtimeHtml}</div>
+            <div class="health-continuity-runtime" id="chain-uptime-counter">${runtimeHtml}</div>
             <p class="health-continuity-copy">Elapsed time since mainnet launch, paired with protocol upgrades adopted on-chain. This is a chain-age measure, not an availability percentage or incident ledger.</p>
             <div class="health-continuity-grid">
                 <div>
@@ -6024,7 +6050,7 @@ function updateRecentBlockRows(blocks) {
 
 function updateHealthStoryPanels(data) {
     const continuity = document.getElementById('health-chain-proof');
-    if (continuity && !document.getElementById('uptime-counter')) quietlySyncElement(continuity, renderContinuityProofPanel(data));
+    if (continuity) quietlySyncElement(continuity, renderContinuityProofPanel(data));
     updateNakamotoCoefficientPanel(data);
     const consensus = document.getElementById('health-teztale-consensus');
     if (consensus) quietlySyncElement(consensus, renderTeztaleConsensusPanel(data));
@@ -6315,7 +6341,6 @@ export function initNetworkHealth() {
         heartbeatVisibilityWired = true;
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState !== 'visible') return;
-            refreshHealthAgeLabels(document);
             suppressNextHeartbeatMotion = true;
             refreshNetworkHealth();
         });

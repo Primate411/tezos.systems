@@ -46,6 +46,7 @@ import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
 import { smokeDomAffordances } from './lib/dom-affordances-smoke.mjs';
+import { smokeChainContinuity, smokeHenStylesLazy } from './lib/continuity-hen-smoke.mjs';
 import { smokeRootOgImage } from './lib/root-og-smoke.mjs';
 import { smokeThemeEffectsLazy } from './lib/theme-effects-lazy-smoke.mjs';
 import { smokeBakerRosterLoading } from './lib/baker-roster-loading-smoke.mjs';
@@ -16380,7 +16381,7 @@ async function smokeMyTezosLedgerFlowHandoff(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `my tezos Ledger Flow handoff: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#my-tezos-tab-transactions').click();
 
@@ -16692,7 +16693,7 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(response?.ok(), `my tezos proposal attribution: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').click();
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos proposal attribution drawer');
   await page.waitForFunction((address) => (
@@ -19839,6 +19840,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await healthOpenButton.focus();
   await healthOpenButton.click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  // The visible loading view still replaces its controls on the first render.
+  // Capture the focus boundary only after those data controls exist.
+  await page.locator('#network-health-modal.active[data-health-live="true"] .health-body[data-health-rendered="true"]').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => document.activeElement === document.querySelector('#network-health-modal.active .chamber-close'), null, { timeout: 5000 });
   await page.evaluate(() => {
     const overlay = document.querySelector('#network-health-modal.active');
@@ -33037,7 +33041,7 @@ async function smokeWidgetBuilder(browser, baseUrl) {
 }
 
 async function smokeOptionalStartup(browser, baseUrl) {
-  const optionalPaths = new Set(['/js/features/changelog.js', '/js/features/hen-mode.js', '/css/protocol-anthology.min.css']);
+  const optionalPaths = new Set(['/js/features/changelog.js', '/js/features/hen-mode.js', '/css/hen-feed.min.css', '/css/protocol-anthology.min.css']);
   for (const [theme, width] of [['matrix', 1280], ['clean', 390]]) {
     const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
     await installFeatureMocks(context);
@@ -37880,6 +37884,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'live-number-motion', description: 'Only factual live deltas animate, with concurrent quiet updates, newest-value cancellation, reduced motion, stable accessibility, and every theme personality', run: () => smokeLiveNumberMotion(browser, baseUrl) },
     { name: 'quiet-refresh', description: 'Background data reconciliation preserves page, rail, chamber, focus, selection, and animation state', run: () => smokeQuietRefresh(browser, baseUrl) },
     { name: 'live-time-labels', description: 'Unchanged time labels preserve text nodes and selection while age, countdown, duration, and stale transitions remain accurate', run: () => smokeLiveTimeLabels(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'chain-continuity', description: 'Shared observations replace hidden clocks while visible continuity, finality, reader state and standalone ownership remain intact', run: () => smokeChainContinuity(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'hen-styles-lazy', description: 'HEN feed CSS waits for intent, gates activation, preserves cascade and recovers cancelled or failed direct entries', run: () => smokeHenStylesLazy(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'dom-affordances', description: 'Header links and card history attach only to affected elements, survive replacement, and preserve reader state', run: () => smokeDomAffordances(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'root-og', description: 'Root social preview retains real fonts, readable enlarged change pills, bounded layout, and lossless PNG pixels', run: () => smokeRootOgImage(browser, baseUrl, { artifactsDir: ARTIFACTS_DIR }) },
     { name: 'baker-directory', description: 'Complete paged active-baker set, search, factual signals, direct route, quiet reading state, and mobile geometry', run: () => smokeLeaderboardSignals(browser, baseUrl) },

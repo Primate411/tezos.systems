@@ -90,13 +90,14 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
 - My Tezos prewarms its styles on launcher intent and waits for them before
   opening. Chart.js and its date adapter load through one retryable loader only
   when History, a visible My Tezos chart, or protocol impact needs them.
-- HEN's feed JavaScript loads on entry or launcher intent through
-  `js/core/hen-init.js`. Its shared `css/hen-mode.min.css` remains an eager
-  stylesheet in the dashboard and generated route shells: it also styles the
-  gift tray, recovery links, launchers, and theme. Deferring that CSS requires
-  separating those shared rules first. The standalone `/hen/` page owns its
-  banner styles in that same bundle, opens saved collector details on demand,
-  and tries alternate artwork sources promptly before backing off on failures.
+- HEN's feed JavaScript and `css/hen-feed.min.css` load together on entry or
+  launcher intent through `js/core/hen-init.js`; activation awaits both. The
+  smaller eager `css/hen-mode.min.css` retains shared theme tokens, gift/recovery
+  controls, price-bar rules, reduced-motion behavior, and the HEN theme flash.
+  Feed styles retain their original cascade position. Delayed opens can be
+  cancelled and failed styles retried; `/hen/` and query entry use the same gate.
+  Saved collector details still open on demand and artwork tries alternate
+  sources promptly before backing off on failures.
 - Historical queries preserve exact rolling range boundaries; they are not
   rounded to a capture interval. `js/core/api.js` shares in-flight paginated
   requests and caches completed receipts by range (and table/selection for
@@ -160,7 +161,8 @@ tezos.systems/
 │   ├── history-chamber.css            # Lazy Cycle History Chamber styles
 │   ├── tezoscrp.css                   # Lazy TezosCRP Recognition Hall styles
 │   ├── themes/                        # Generated lazy-loaded theme bundles
-│   ├── hen-mode.css                   # HEN overlay styles
+│   ├── hen-mode.css                   # Shared HEN theme tokens and dashboard controls
+│   ├── hen-feed.css                   # HEN feed styles loaded on entry
 │   └── landing.css                    # Landing and SEO page styles
 ├── js/
 │   ├── core/
@@ -758,6 +760,11 @@ inline modal styles in `js/core/app.js`.
   the same chain-age and upgrade-history context, explicitly separated from
   availability monitoring. Its compact cycle-progress and timing panel sits
   directly below that continuity context before the detailed health grid.
+  `js/core/chain-continuity.js` shares dashboard observations without hidden DOM
+  donors. The Chamber owns its visible seconds clock, preserves its nodes on
+  updates, pauses while hidden/closed, and catches up when shown. Direct Health
+  routes fetch their own continuity until the dashboard takes ownership; live
+  finality sampling and block events do not depend on an attached clock.
 - Tezos X Governance Chamber with direct `#l2chamber` access and visible L2
   Governance labeling,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
@@ -2218,7 +2225,7 @@ The dated local comparison is retained in `tests/fixtures/chamber-boot-pilot.jso
 data. Its 6×-slowdown medians were 1,175 to 357ms cold and 611 to 162ms HTTP-cached;
 these are diagnostics from that controlled run, not user-facing speed guarantees.
 
-HEN's feed runtime loads only for its route, query/legacy NFT link, or launcher;
+HEN's feed runtime and stylesheet load only for its route, query/legacy NFT link, or launcher;
 its shared gift-tray, TzSafe, and theme stylesheet remains eager. Protocol Anthology
 loads its editorial stylesheet before opening either the library or a chapter.
 Failed optional loads can be retried without reloading the dashboard. Concurrent

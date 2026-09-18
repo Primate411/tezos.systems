@@ -7,7 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-09-18',
         entries: [
-            { type: '⚡', text: 'Live updates spend less time checking header links and history controls, while late-loaded and replaced controls remain ready to use' }
+            { type: '⚡', text: 'Live updates spend less time checking header links and history controls, while late-loaded and replaced controls remain ready to use' },
+            { type: '⚡', text: 'HEN feed styles load only when opened, and Network Health keeps its live clocks and finality without repainting hidden clock markup' }
         ]
     },
     {

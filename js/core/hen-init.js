@@ -1,9 +1,11 @@
-// Shared HEN/theme styles stay eager; the art-feed runtime loads on intent.
+// Shared HEN/theme styles stay eager; feed styles and runtime load on intent.
 (() => {
     const isHenRoute = /^\/hen(?:\/|\/index\.html)?$/.test(window.location.pathname)
         || new URLSearchParams(window.location.search).has('hen');
     let runtimePromise = null;
     let runtimeAttempts = 0;
+    let stylesPromise = null;
+    let stylesAttempts = 0;
     let activationIntent = 0;
     const domReady = document.readyState === 'loading'
         ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }))
@@ -57,13 +59,43 @@
         return runtimePromise;
     }
 
+    function loadHenStyles() {
+        const existing = document.getElementById('hen-feed-css');
+        if (existing?.sheet) return Promise.resolve(existing);
+        if (stylesPromise) return stylesPromise;
+        stylesPromise = new Promise((resolve, reject) => {
+            const link = existing || document.createElement('link');
+            if (!existing) {
+                const attempt = stylesAttempts++;
+                link.id = 'hen-feed-css';
+                link.rel = 'stylesheet';
+                link.href = '/css/hen-feed.min.css?v=100' + (attempt ? `&retry=${attempt}` : '');
+            }
+            link.addEventListener('load', () => resolve(link), { once: true });
+            link.addEventListener('error', () => {
+                link.remove();
+                reject(new Error('HEN styles unavailable'));
+            }, { once: true });
+            // Preserve the original cascade position relative to other styles.
+            if (!existing) {
+                const shared = document.getElementById('hen-shared-css');
+                if (shared) shared.after(link);
+                else document.head.appendChild(link);
+            }
+        }).catch(error => {
+            stylesPromise = null;
+            throw error;
+        });
+        return stylesPromise;
+    }
+
     window.openHenMode = async (launcher = null) => {
         const intent = ++activationIntent;
         const requestedRoute = window.location.href;
         const title = launcher?.title || '';
         launcher?.setAttribute('aria-busy', 'true');
         try {
-            const [runtime] = await Promise.all([loadHenMode(), domReady]);
+            const [runtime] = await Promise.all([loadHenMode(), loadHenStyles(), domReady]);
             if (intent !== activationIntent || window.location.href !== requestedRoute) return false;
             runtime.init();
             if (launcher) launcher.title = title;
