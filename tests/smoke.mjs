@@ -58,6 +58,9 @@ import { getChamberCategories } from '../scripts/lib/chamber-catalog.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const releaseRadarFixture = require('../data/release-radar.json');
+// Ticker geometry and release ordering use a stable no-crossings catalog.
+// Scheduled milestone receipts are exercised by their own dedicated suites.
+const pulseMilestoneFixture = { schema: 1, tracks: {} };
 const intentionalWaits = require('./fixtures/smoke-intentional-waits.json');
 const defaultSmokeSuiteCosts = require('./fixtures/smoke-suite-costs.json');
 const { launchChromium: launchPlaywrightChromium } = require('../scripts/lib/playwright-browser.cjs');
@@ -11796,7 +11799,7 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context);
+  await installFeatureMocks(context, { milestoneCatalog: pulseMilestoneFixture });
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'aurora');
     localStorage.setItem('tezos-toured', '1');
@@ -12038,7 +12041,7 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     hasTouch: true,
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(mobileContext);
+  await installFeatureMocks(mobileContext, { milestoneCatalog: pulseMilestoneFixture });
   await mobileContext.addInitScript(() => {
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
@@ -12120,7 +12123,7 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     reducedMotion: 'reduce',
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(reducedContext);
+  await installFeatureMocks(reducedContext, { milestoneCatalog: pulseMilestoneFixture });
   await reducedContext.addInitScript(() => {
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
@@ -12158,7 +12161,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
       viewport,
       serviceWorkers: 'block'
     });
-    await installFeatureMocks(context);
+    await installFeatureMocks(context, { milestoneCatalog: pulseMilestoneFixture });
     await context.addInitScript((activeTheme) => {
       localStorage.setItem('tezos-systems-theme', activeTheme);
       localStorage.setItem('tezos-toured', '1');

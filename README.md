@@ -2296,6 +2296,9 @@ Current smoke suites:
 - `tzkt-throttle`
 - `dashboard-desktop`
 - `dashboard-mobile`
+- `live-pulse-ticker` and `release-radar-pulse` use a fixed milestone catalog
+  so scheduled milestone arrivals cannot change their geometry or release-order
+  fixtures; dedicated milestone suites cover arrival and expiry behavior.
 - `live-pulse-daily-curio` (covers score/rank, one-per-UTC-day replay
   prevention, eight-signal scarcity, desktop/mobile rendering, and quiet
   preservation of card identity, focus, selection, and rail scroll)
