@@ -2295,6 +2295,9 @@ Integrity consumers share the `?serialization=1` module URL so an already-open t
 can load a new Chamber without reusing the older module's export interface. The
 browser harness exercises all seven consumers with that legacy module preloaded.
 
+Within a dated changelog section, append the newest entry last: the version stamp
+uses that final entry for the update notice's latest-change description.
+
 Every visual defect discovered outside existing harness coverage must gain a
 failing regression check in the standard harness before its fix is accepted.
 Data-dependent success checks require populated content and settled loading states;
