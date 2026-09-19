@@ -873,6 +873,8 @@ async function resolveExactBlockMilestoneMoment(stats = {}) {
       crossedValue: Number(current)
     };
     exactMilestoneMoments.set(key, moment);
+    // A real-time render may have cached candidates while this receipt loaded.
+    lastLiveCandidateFingerprint = '';
     return moment.expiresAt > Date.now() ? moment : null;
   }).catch(() => null);
   exactMilestoneMomentPromises.set(key, promise);
@@ -911,6 +913,7 @@ async function resolveExactCycleMilestoneMoment(stats = {}) {
       crossedValue: Number(current)
     };
     exactMilestoneMoments.set(key, moment);
+    lastLiveCandidateFingerprint = '';
     return moment.expiresAt > Date.now() ? moment : null;
   }).catch(() => null);
   exactMilestoneMomentPromises.set(key, promise);

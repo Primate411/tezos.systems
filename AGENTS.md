@@ -906,6 +906,20 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 - Service worker cache can hide changes during QA. Hard refresh or unregister
   the service worker if behavior looks stale.
 
+## Visual regression rule
+
+Every visual defect found during rendered browser QA that the existing harness
+missed must receive a regression check in the standard harness as part of its fix.
+Reproduce the defect with a failing check, then verify the fix passes; cover the
+relevant viewport, theme, populated/loading state and interaction. A screenshot
+alone is evidence, not an automated regression check. Preserve existing assertions
+and do not hide failures behind broad warning filters or empty fixtures.
+
+Data-dependent acceptance checks must wait for and assert the expected populated
+content and completed loading state. Missing data, stuck skeletons and unexpected
+empty/error states are failures to investigate, not acceptable visual results.
+Keep deliberate unavailable/empty-source tests separate from successful-data tests.
+
 ## Browser QA Checklist
 
 Use a real browser for visual verification. The app is heavily theme-dependent

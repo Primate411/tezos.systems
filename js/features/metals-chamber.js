@@ -13,7 +13,7 @@ import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
 import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
-import { sha256Text } from '../core/sha256.js';
+import { sha256Text, stableJsonValue } from '../core/sha256.js?serialization=1';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { getChamberScrollContainer,
@@ -115,12 +115,6 @@ function hasCurrentClock(value) {
 function observationState({ status, observedAt, price }) {
     if (numeric(price) === null) return 'unavailable';
     return hasCurrentStatus(status) && hasCurrentClock(observedAt) ? 'current' : 'last-good';
-}
-
-function stableJsonValue(value) {
-    if (Array.isArray(value)) return value.map(stableJsonValue);
-    if (!value || typeof value !== 'object') return value;
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
 function safeExternalUrl(value) {

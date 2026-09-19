@@ -20,7 +20,7 @@ import {
 import { isValidAddress } from './my-baker.js';
 import { pulseFresh } from '../effects/data-magic.js';
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
-import { sha256Text } from '../core/sha256.js';
+import { sha256Text, stableJsonValue } from '../core/sha256.js?serialization=1';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
@@ -234,12 +234,6 @@ async function fetchJsonArtifact(url) {
     const response = await fetch(url, { cache: 'no-cache' });
     if (!response.ok) throw new Error(`Artifact HTTP ${response.status}`);
     return response.json();
-}
-
-function stableJsonValue(value) {
-    if (Array.isArray(value)) return value.map(stableJsonValue);
-    if (!value || typeof value !== 'object') return value;
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
 async function governanceSignalIndexes(artifact) {

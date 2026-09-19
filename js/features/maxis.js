@@ -8,7 +8,7 @@ import { requestChamberClose } from '../ui/chamber-accessibility.js';
 
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { versionedAsset } from '../core/asset-version.js';
-import { sha256Text } from '../core/sha256.js';
+import { sha256Text, stableJsonValue } from '../core/sha256.js?serialization=1';
 import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml, formatUtcDateTime } from '../core/utils.js';
 import { isTezDomainName, normalizeTezDomainName, resolveTezDomainAddress } from '../core/tezos-domains.js';
@@ -195,12 +195,6 @@ function asArray(value) {
 function textValue(...values) {
     const value = values.find((candidate) => candidate !== undefined && candidate !== null && String(candidate).trim() !== '');
     return value === undefined ? '' : String(value);
-}
-
-function stableJsonValue(value) {
-    if (Array.isArray(value)) return value.map(stableJsonValue);
-    if (!value || typeof value !== 'object') return value;
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
 function numberValue(...values) {

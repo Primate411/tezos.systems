@@ -122,7 +122,7 @@ assert(leaderboard.includes("const GOVERNANCE_SIGNALS_URL = '/data/baker-governa
 assert(!leaderboard.includes("GOVERNANCE_CAREERS_URL = '/data/maxis-careers.json?surface=leaderboard'"), 'Baker Directory must not fetch the full Maxis career artifact');
 assert(!leaderboard.includes("GOVERNANCE_VOTES_URL = '/data/governance-votes.json?surface=leaderboard'"), 'Baker Directory must not fetch the full governance vote artifact');
 assert(leaderboard.includes("fetch(url, { cache: 'no-cache' })"), 'Generated signal polling must permit conditional HTTP revalidation');
-assert(leaderboard.includes("import { sha256Text } from '../core/sha256.js'"), 'Baker Directory must verify the compact receipt in the browser');
+assert(leaderboard.includes("import { sha256Text, stableJsonValue } from '../core/sha256.js?serialization=1'"), 'Baker Directory must verify the compact receipt in the browser');
 assert(leaderboard.includes('failed its SHA-256 integrity receipt'), 'Baker Directory must fail closed on a tampered compact receipt');
 assert(leaderboard.includes('careerByAddress: governanceSignals.careerByAddress'), 'Refresh failures must retain the last-good career map');
 assert(leaderboard.includes('acceptedByAddress: governanceSignals.acceptedByAddress'), 'Refresh failures must retain the last-good proposal map');

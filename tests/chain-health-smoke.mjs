@@ -198,7 +198,12 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       ['partial', `${count - 9}/${count} ?`, `9 strong (6,500 to below 7,000 on a 7,000-power scale), ${count - 9} unavailable`]
     ]) {
       scenario = mode;
-      await page.evaluate(() => window.__refreshChainHealth());
+      await page.evaluate(async () => {
+        // A timer may already own a response from the previous scenario.
+        // Drain it, then request the newly selected same-head receipt.
+        await window.__refreshChainHealth();
+        await window.__refreshChainHealth();
+      });
       const current = await read();
       assert.equal(current.summary, text);
       assert(current.label.includes(`last ${count} blocks: ${description}.`), current.label);

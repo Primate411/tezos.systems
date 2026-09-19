@@ -7,6 +7,10 @@ export const CHANGELOG = [
     {
         date: '2026-09-19',
         entries: [
+            { type: '⚡', text: 'Removed duplicate styles and shared identical snapshot-validation helpers, preserving existing layouts and data integrity checks' },
+            { type: '🔧', text: 'Verified milestones appear even when another live signal renders first, and Precious Metals headlines keep whole words together on desktop and phones' },
+            { type: '🔧', text: 'Baker Directory titles, search text and table headings remain legible in the Clean theme' },
+            { type: '🔧', text: 'Uranium artwork disclosures remain separate from the introductory label on phones' },
             { type: '🎨', text: 'After at least 24 seconds without a new confirmed block, chain stalls tint the Live Blocks pane red with a centered pause symbol and elapsed duration in seconds, minutes, hours, or days, while keeping the last confirmed blocks available to inspect' }
         ]
     },

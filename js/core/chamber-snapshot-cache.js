@@ -1,4 +1,4 @@
-import { sha256Text } from './sha256.js';
+import { sha256Text } from './sha256.js?serialization=1';
 import { assertSnapshotMatchesProjection } from './snapshot-receipt.js';
 
 // An optional, application-owned last-good store, not an HTTP or service-worker

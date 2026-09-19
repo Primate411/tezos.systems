@@ -1,4 +1,16 @@
+import { SMOKE_MODULE_RULES } from './smoke-module-owners.mjs';
+
 const RULES = [
+  ...SMOKE_MODULE_RULES,
+  { suites: /^capital-chamber$/, files: ['tests/lib/serialization-upgrade-smoke.mjs'], tags: ['cache', 'deployment'], risk: 'normal' },
+  { suites: /^baker-directory$/, files: ['tests/lib/baker-directory-contrast-smoke.mjs'], tags: ['visual'], risk: 'normal' },
+  { suites: /^metals-chamber$/, files: ['tests/lib/metals-heading-smoke.mjs'], tags: ['visual'], risk: 'normal' },
+  { suites: /^uranium-chamber$/, files: ['tests/lib/uranium-caption-smoke.mjs'], tags: ['visual'], risk: 'normal' },
+  {
+    suites: /^dashboard-(desktop|mobile)$/,
+    files: ['tests/lib/home-data-ready.mjs'],
+    tags: ['live-data', 'loading', 'visual'], risk: 'high'
+  },
   {
     suites: /^live-head-stall$/,
     files: ['js/features/network-health.js', 'css/hero-search*', 'index.html', 'tests/lib/live-head-stall-smoke.mjs'],
@@ -300,6 +312,7 @@ export const GLOBAL_SMOKE_PATTERNS = [
   'sw.js',
   'tests/smoke.mjs',
   'tests/lib/smoke-*',
+  'tests/lib/test-source.mjs',
   'tests/fixtures/smoke-*',
   'js/core/app.js',
   'js/core/chamber-features.mjs',

@@ -280,7 +280,7 @@ try {
 } finally {
   globalThis.TextEncoder = nativeTextEncoder;
 }
-assert.match(feature, /import \{ sha256Text \} from '\.\.\/core\/sha256\.js';/,
+assert.match(feature, /import \{ sha256Text, stableJsonValue \} from '\.\.\/core\/sha256\.js\?serialization=1';/,
   'Uranium Chamber must use the shared SHA-256 implementation');
 assert.doesNotMatch(feature, /SHA-256 verification is unavailable/,
   'Uranium Chamber must not reject plain-HTTP LAN browsers solely because Web Crypto is unavailable');

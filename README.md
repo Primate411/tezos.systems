@@ -2273,6 +2273,42 @@ in-flight requests; ranges and source availability semantics are unchanged.
   assertion versus infrastructure retry classification, per-risk repetition,
   and summary accounting. It is also part of `test:static`.
 
+Browser workflow bodies live under `tests/smoke/`, grouped by feature; static
+contract bodies live under `tests/static/`. The original entry commands, shared
+fixture ownership, executable suite catalog, sharding and retry classification
+are retained. Each moved browser module has explicit affected-suite
+ownership. Source contracts follow the entry's imported feature files rather than
+counting unreferenced test files as coverage.
+
+The smoke runner's owned server uses explicit IPv4 loopback and a 256-connection
+queue to accommodate concurrent module requests. It serves the same repository
+bytes through Python's standard handler; the static gate checks a 96-request
+burst, module MIME types, redirects, missing files and HEAD responses.
+
+Browser snapshot consumers share the existing `js/core/sha256.js` integrity module
+for the same sorted object-key representation while preserving array order and exact values. Generator
+and frozen Maxis semantic implementations remain independent; the static gate
+checks the browser helper against published artifact hashes. Sharing it adds no
+new module request.
+
+Integrity consumers share the `?serialization=1` module URL so an already-open tab
+can load a new Chamber without reusing the older module's export interface. The
+browser harness exercises all seven consumers with that legacy module preloaded.
+
+Every visual defect discovered outside existing harness coverage must gain a
+failing regression check in the standard harness before its fix is accepted.
+Data-dependent success checks require populated content and settled loading states;
+unexpected empty data or persistent skeletons are failures to investigate. See
+`QA.md` for the required workflow.
+
+The desktop/mobile dashboard checks require complete healthy-fixture data, a
+populated Live Pulse and settled Live Head details. Precious Metals checks whole,
+unclipped headline words at eight widths. Baker Directory checks header, search
+and table text contrast in Clean and Dark at desktop and phone widths. Uranium
+checks that its artwork disclosure stays clear of hero text at nine widths. The cycle
+milestone test holds its exact receipt while another signal renders, then requires the verified milestone to
+appear without a new stats value.
+
 Current smoke suites:
 
 - `tall-screen` (covers full-height narrow, standard, and wide Chambers plus

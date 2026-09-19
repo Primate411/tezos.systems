@@ -82,6 +82,9 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             assert.match(await page.locator('#funding-panel').innerText(), /Paused campaign/);
             assert.match(await page.locator('#funding-panel').innerText(), /12\.5 ꜩ/);
             await page.locator('#funding-tab-support').click();
+            // Returning to Support creates a new lazy image. Establish its
+            // failed state before testing that background refresh preserves it.
+            await page.locator('.funding-project img[data-quiet-image-failed]').waitFor({ state: 'attached' });
             await page.evaluate(() => {
                 const card = document.querySelector('.funding-project');
                 const scroll = document.querySelector('.funding-content.chamber-room-scroll');
@@ -91,6 +94,7 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
                 getSelection().removeAllRanges(); getSelection().addRange(range);
                 scroll.scrollTop = 215;
                 window.__fundingReader = { card, scroll: scroll.scrollTop, page: scrollY, selection: getSelection().toString(), focus, url: location.href, rail: document.querySelector('.funding-tabs').scrollLeft };
+                window.__fundingFailedImage = card.querySelector('img[data-quiet-image-failed]');
                 window.__fundingVisibility = 'hidden';
                 window.__fundingTick();
             });
@@ -112,6 +116,7 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             });
             assert.deepEqual(continuity, { identity: true, scroll: true, page: true, selection: true, focus: true, url: true, tab: true, rail: true, opacity: '1' });
             assert.equal(await page.locator('.funding-project img').first().isVisible(), false, 'a refresh must preserve failed artwork fallback');
+            assert.equal(await page.evaluate(() => window.__fundingFailedImage === document.querySelector('.funding-project img[data-quiet-image-failed]')), true, 'a refresh retains the failed image node');
             await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
             assert.equal(await page.evaluate(() => document.querySelector('.funding-content').scrollTop === window.__fundingAfterScroll), true);
             failed = true;

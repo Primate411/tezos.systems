@@ -13,7 +13,7 @@ import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
 import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
-import { sha256Text } from '../core/sha256.js';
+import { sha256Text, stableJsonValue } from '../core/sha256.js?serialization=1';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
 import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
@@ -105,12 +105,6 @@ function firstNumeric(...values) {
 
 function firstText(...values) {
     return values.find((value) => typeof value === 'string' && value.trim()) || '';
-}
-
-function stableJsonValue(value) {
-    if (Array.isArray(value)) return value.map(stableJsonValue);
-    if (!value || typeof value !== 'object') return value;
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
 function safeExternalUrl(value) {

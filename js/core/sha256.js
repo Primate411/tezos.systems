@@ -182,3 +182,12 @@ export async function sha256Text(value, { subtle = globalThis.crypto?.subtle } =
     }
     return sha256FallbackHex(text);
 }
+
+// Consumers use ?serialization=1 to avoid reusing a pre-serializer module in
+// long-lived tabs. Keep this interface version separate from the build stamp.
+// Canonical object-key order for snapshot hashes; array order is meaningful.
+export function stableJsonValue(value) {
+    if (Array.isArray(value)) return value.map(stableJsonValue);
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
+}

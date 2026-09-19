@@ -1,5 +1,8 @@
 /** The static gate used by local npm commands and every hosted workflow. */
 export const STATIC_CHECKS = Object.freeze([
+  { "script": "tests/smoke-server-check.mjs", "args": [] },
+  { "script": "tests/stable-json-check.mjs", "args": [] },
+  { "script": "tests/test-layout-check.mjs", "args": [] },
   { "script": "tests/live-head-stall-check.mjs", "args": [] },
   { "script": "tests/unused-code-check.mjs", "args": [] },
   { "script": "tests/text-loading-check.mjs", "args": [] },

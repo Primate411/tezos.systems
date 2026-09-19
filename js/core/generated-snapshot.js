@@ -1,4 +1,4 @@
-import { sha256Text } from './sha256.js';
+import { sha256Text } from './sha256.js?serialization=1';
 import { decodeGeneratedTransport, generatedTransportPath } from './generated-transport.mjs';
 
 export async function fetchGeneratedSnapshot(path, { cache = 'no-cache' } = {}) {

@@ -14,6 +14,20 @@ If Playwright's bundled Chromium is not installed, the smoke runner will fall ba
 
 The installed pre-commit hook also runs the README guard. If staged changes touch documented behavior but `README.md` is not staged, the hook will block and list the files that need a README audit.
 
+## Visual regression rule
+
+Every visual defect found during rendered browser QA that the existing harness
+missed must receive a regression check in the standard harness as part of its fix.
+Reproduce the defect with a failing check, then verify the fix passes; cover the
+relevant viewport, theme, populated/loading state and interaction. A screenshot
+alone is evidence, not an automated regression check. Preserve existing assertions
+and do not hide failures behind broad warning filters or empty fixtures.
+
+Data-dependent acceptance checks must wait for and assert the expected populated
+content and completed loading state. Missing data, stuck skeletons and unexpected
+empty/error states are failures to investigate, not acceptable visual results.
+Keep deliberate unavailable/empty-source tests separate from successful-data tests.
+
 ## Standard pre-deploy pass
 
 ```sh
@@ -24,6 +38,35 @@ This runs:
 
 - `npm run test:static`: source and fixture checks for JSON validity, local asset references, cache-bust alignment, CSP domains, core DOM selector contracts, and served CSS freshness, plus local HTTP cache and fixture-server checks. No browser or live upstream is needed.
 - `npm run test:smoke`: starts a local static server, opens Chromium, checks the app shell/PWA/cache contract, desktop and mobile dashboard flows, governance/LB, feature workflows, themes, widgets, HEN, and standalone routes.
+
+## Test ownership
+
+Keep browser workflow bodies in `tests/smoke/` and static contract bodies in
+`tests/static/`, grouped by feature. `tests/smoke.mjs` retains shared fixtures,
+helpers and the executable suite catalog; `tests/static-checks.mjs` retains shared
+source reads and the ordered gate. Pass dependencies explicitly into feature
+factories. Moving a check must preserve its assertions, fixture values, execution
+order, failure propagation and retry classification.
+
+`tests/test-layout-check.mjs` validates executable module wiring and affected-suite
+ownership. Text-based source contracts use `readSmokeTestSource` to follow imported
+feature files; orphaned source text cannot satisfy a coverage requirement. Run
+`tests/smoke-harness-check.mjs` whenever changing harness structure or behavior.
+
+The owned smoke server is `tests/lib/smoke-server.py`: explicit IPv4 loopback,
+a 256-connection queue, and Python's standard file handler. Keep its concurrent
+response and HTTP behavior checks in `tests/smoke-server-check.mjs` in the static
+gate so a test-server connection reset cannot masquerade as missing site data.
+
+`home-data-ready.mjs` observes the public stats event and checks healthy data plus
+settled visible Home content. `metals-heading-smoke.mjs` uses rendered word ranges
+at 320–1440 px to detect split or clipped heading words.
+`uranium-caption-smoke.mjs` checks the artwork disclosure against every hero text
+range at nine widths so the mobile introductory label cannot overlap it.
+`baker-directory-contrast-smoke.mjs` checks populated header, search and table text
+against their composited backgrounds in Clean and Dark at three widths. Keep
+pending-source tests deterministic with explicit response gates; a fixed short delay is not proof that
+an assertion inspected a still-pending response.
 
 ## Useful variants
 

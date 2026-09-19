@@ -1,4 +1,4 @@
-import { sha256Text } from './sha256.js';
+import { sha256Text } from './sha256.js?serialization=1';
 
 const SHA256_HEX = /^[0-9a-f]{64}$/i;
 

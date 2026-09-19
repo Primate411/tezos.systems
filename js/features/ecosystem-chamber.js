@@ -12,7 +12,7 @@ import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
 import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
-import { sha256Text } from '../core/sha256.js';
+import { sha256Text, stableJsonValue } from '../core/sha256.js?serialization=1';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
 import { fetchGeneratedSnapshot } from '../core/generated-snapshot.js';
 import { escapeHtml } from '../core/utils.js';
@@ -151,12 +151,6 @@ function safeExternalUrl(value) {
 function truncate(value, length = 24) {
     const text = String(value || '');
     return text.length <= length ? text : `${text.slice(0, length - 7)}…${text.slice(-6)}`;
-}
-
-function stableJsonValue(value) {
-    if (Array.isArray(value)) return value.map(stableJsonValue);
-    if (!value || typeof value !== 'object') return value;
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
 async function verifyStableHash(payload, label, integrityFailure = `${label} failed its SHA-256 integrity receipt.`) {

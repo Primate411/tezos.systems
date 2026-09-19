@@ -10559,7 +10559,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 }
 
 /* --- Price change colors --- */
-[data-theme="void"] .price-change.positive { color: #8B5CF6; }
+
 [data-theme="void"] .price-change.negative { color: #ff6b9d; }
 [data-theme="ember"] .price-change.positive { color: #FF9F43; }
 [data-theme="ember"] .price-change.negative { color: #E55039; }
@@ -10614,7 +10614,6 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 
 [data-theme="void"] .settings-dropdown { background: #06060C; border-color: rgba(139, 92, 246, 0.18); }
 [data-theme="void"] .glass-button:hover { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); box-shadow: 0 0 12px rgba(139, 92, 246, 0.12); }
-[data-theme="void"] .glass-button.has-pulse::after { background: #8B5CF6; box-shadow: 0 0 6px rgba(139, 92, 246, 0.6); }
 
 [data-theme="void"] .uptime-pulse-dot { color: #8B5CF6; background: #8B5CF6; box-shadow: 0 0 6px rgba(139, 92, 246, 0.6); }
 
@@ -10626,8 +10625,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="void"] .hero-cta-primary { background: #8B5CF6; color: #06060C; box-shadow: 0 0 16px rgba(139, 92, 246, 0.3); }
 [data-theme="void"] .modal-large { background: #06060C; border-color: rgba(139, 92, 246, 0.15); }
 [data-theme="void"] .modal-large .modal-title { color: #8B5CF6; text-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
-[data-theme="void"] .giant-balance .xtz { color: #8B5CF6; }
-[data-theme="void"] .trend-arrow.up { color: #8B5CF6; }
+
 [data-theme="void"] .trend-arrow.down { color: #FF6B9D; }
 
 [data-theme="void"] body::before {
@@ -10701,7 +10699,7 @@ body.release-update-safe-area-raised :is(a[href], button, input, select, textare
 [data-theme="clean"] .comparison-card { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
 [data-theme="clean"] .comparison-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border-color: rgba(37, 99, 235, 0.12); }
 [data-theme="clean"] .hero-cta-primary { background: #2563EB; color: white; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25); }
-[data-theme="clean"] .hero-cta-primary:hover { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35); }
+
 [data-theme="clean"] .capacity-bar-fill { background: linear-gradient(90deg, #1D4ED8, #2563EB); }
 [data-theme="clean"] .modal-large { background: white; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12); }
 [data-theme="clean"] .settings-dropdown { background: white; border-color: rgba(0, 0, 0, 0.08); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); }
@@ -12549,10 +12547,6 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-/* Positive/negative indicators - keep green/red only for price changes and trends */
-[data-theme="dark"] .price-change.positive { color: #4ADE80; }
-[data-theme="dark"] .price-change.negative { color: #F87171; }
-
 /* Buttons */
 [data-theme="dark"] .hero-cta-primary { background: #C8C8C8; color: #1A1A1A; box-shadow: 0 2px 8px rgba(200, 200, 200, 0.25); }
 [data-theme="dark"] .hero-cta-primary:hover { box-shadow: 0 4px 16px rgba(200, 200, 200, 0.35); }
@@ -12581,8 +12575,7 @@ body {
 [data-theme="dark"] #ultra-toggle.active { background: rgba(200, 200, 200, 0.1); border-color: rgba(200, 200, 200, 0.3); box-shadow: 0 2px 8px rgba(200, 200, 200, 0.15); }
 
 /* Trend arrows - keep green/red only for these */
-[data-theme="dark"] .trend-arrow.up { color: #4ADE80; }
-[data-theme="dark"] .trend-arrow.down { color: #F87171; }
+
 [data-theme="dark"] .trend-arrow.up.inverted { color: #F87171; }
 [data-theme="dark"] .trend-arrow.down.inverted { color: #4ADE80; }
 
@@ -16031,10 +16024,6 @@ body {
     padding: 0 2px;
 }
 
-.heatmap-cell:hover .heatmap-label {
-    opacity: 1;
-}
-
 .heatmap-cell.voted-yay { background: rgba(34, 197, 94, 0.6); border: 1px solid rgba(34, 197, 94, 0.3); }
 .heatmap-cell.voted-nay { background: rgba(239, 68, 68, 0.6); border: 1px solid rgba(239, 68, 68, 0.3); }
 .heatmap-cell.voted-pass { background: rgba(234, 179, 8, 0.4); border: 1px solid rgba(234, 179, 8, 0.3); }
@@ -17253,11 +17242,6 @@ body {
     position: relative;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-}
-
-.chamber-body {
-    position: relative;
-    z-index: 1;
 }
 
 /* ─── Chamber v2: Entry card upgrade ─── */
@@ -25473,10 +25457,7 @@ body[data-theme="nerv"]::after {
     .network-personal-spotlight-copy {
         padding-right: 0;
     }
-    .network-signal-head {
-        align-items: flex-start;
-        flex-direction: column;
-    }
+
     .network-signal-detail {
         max-width: 100%;
         text-align: left;

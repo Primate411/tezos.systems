@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readSmokeTestSource } from './lib/test-source.mjs';
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -133,7 +134,7 @@ const [
   readText('.well-known/openapi.json'),
   readOptionalText('minerals/index.html'),
   readText('package.json'),
-  readText('tests/smoke.mjs'),
+  readSmokeTestSource(),
   readText('index.html'),
   readText('js/features/changelog.js')
 ]);

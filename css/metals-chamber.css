@@ -357,10 +357,14 @@
 
 .metals-hero-copy {
     position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     z-index: 2;
     align-self: center;
     padding: clamp(28px, 5vw, 72px);
     background: linear-gradient(90deg, rgba(8, 9, 13, .98) 72%, transparent);
+    container-type: inline-size;
 }
 
 .metals-hero-copy h3,
@@ -374,6 +378,9 @@
 }
 
 .metals-hero-copy p { max-width: 580px; margin: 0; color: #b2b0aa; font-size: .92rem; line-height: 1.65; }
+
+/* Size the headline against its text column so complete words stay together. */
+.metals-hero-copy h3 { font-size: clamp(2.4rem, 14cqi, 5.3rem); }
 
 .metals-core-stage img { filter: saturate(.9) contrast(1.04); }
 .metals-core-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, #08090d 0, transparent 28%), linear-gradient(0deg, rgba(7, 8, 11, .45), transparent 35%); }
@@ -608,7 +615,7 @@ html[data-theme="default"] .metals-content { color-scheme: dark; }
     .metals-core-stage.is-room::after { background: linear-gradient(0deg, #08090d 0, rgba(8, 9, 13, .94) 35%, transparent 72%); }
     .metals-core-stage.is-room img { object-position: 55% 20%; }
     .metals-hero-copy { align-self: end; padding: 25px 18px; background: transparent; }
-    .metals-hero-copy h3 { font-size: 2.6rem; }
+    .metals-hero-copy h3 { font-size: clamp(2rem, 14cqi, 2.6rem); }
     .metals-assay-grid { grid-template-columns: 1fr; }
     .metals-assay-card { grid-template-columns: 68px 1fr; }
     .metals-boundary { grid-template-columns: 1fr; gap: 5px; }
