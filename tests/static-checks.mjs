@@ -4088,7 +4088,8 @@ async function checkSelectorContracts() {
   }
   if (!index.includes('id="live-head-alert"')
       || !index.includes('id="chain-stall-announcer"')
-      || !health.includes('const LIVE_HEAD_STALLED_AFTER = 30 * 1000')
+      || !index.includes('data-live-head-alert-duration')
+      || !health.includes('const LIVE_HEAD_STALLED_AFTER = 24 * 1000')
       || !health.includes('function confirmLiveHeadObservation(')
       || !health.includes("liveHeadStallLatchedLevel = level")
       || !health.includes("label.textContent = state === 'stalled' ? 'CHAIN STALLED' : 'BLOCKS DELAYED'")
@@ -4096,6 +4097,8 @@ async function checkSelectorContracts() {
       || !health.includes("state === 'live' && (previousState === 'stalled' || liveHeadResumePendingLevel > 0)")
       || !heroSearchCss.includes('.live-head-panel[data-chain-state="stalled"]')
       || !heroSearchCss.includes('.live-head-alert-copy strong')
+      || !/\.live-head-panel \.live-head-alert\[data-chain-state="stalled"\]\s*\{\s*inset: -1px;/.test(heroSearchCss)
+      || !heroSearchCss.includes('place-items: center;')
       || !/\.live-head-alert\s*\{[\s\S]*?position:\s*absolute;/.test(heroSearchCss)) {
     fail('Live Head must latch a source-confirmed stale head into an unmistakable chain-stall alert until a newer block resumes the chain');
   }

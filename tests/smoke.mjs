@@ -39,6 +39,7 @@ import { smokeBakerIncidents } from './lib/baker-incidents-smoke.mjs';
 import { smokeMyTezosLayoutStates } from './lib/my-tezos-layout-states-smoke.mjs';
 import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
 import { checkInspectorKeyboardReceipt, checkInspectorTriggerRefresh } from './lib/network-health-harness-check.mjs';
+import { smokeLiveHeadStall } from './lib/live-head-stall-smoke.mjs';
 import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
 import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
@@ -18198,6 +18199,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	      liveHeadAlertTag: liveHeadAlert?.tagName || '',
 	      liveHeadAlertLabel: liveHeadAlert?.querySelector('[data-live-head-alert-label]')?.textContent?.trim() || '',
 	      liveHeadAlertDetail: liveHeadAlert?.querySelector('[data-live-head-alert-detail]')?.textContent?.trim() || '',
+	      liveHeadAlertDuration: liveHeadAlert?.querySelector('[data-live-head-alert-duration]')?.textContent?.trim() || '',
 	      liveHeadAlertFontSize: liveHeadAlert?.querySelector('[data-live-head-alert-label]') ? parseFloat(getComputedStyle(liveHeadAlert.querySelector('[data-live-head-alert-label]')).fontSize) : 0,
 	      liveHeadAlertBorderColor: liveHeadAlert ? getComputedStyle(liveHeadAlert).borderTopColor : '',
 	      liveHeadAlertBackground: liveHeadAlert ? getComputedStyle(liveHeadAlert).backgroundImage : '',
@@ -18822,11 +18824,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && healthState.liveHeadStateText === 'Stalled'
 	  && healthState.liveHeadStateDisplay === 'none'
       && !healthState.liveHeadAlertHidden
-      && healthState.liveHeadAlertTag === 'BUTTON'
+      && healthState.liveHeadAlertTag === 'DIV'
       && healthState.liveHeadAlertLabel === 'CHAIN STALLED'
-      && /No new block for 1m \d{2}s · last confirmed #[\d,]+/.test(healthState.liveHeadAlertDetail), `network health chamber: confirmed stale head did not replace the normal hierarchy with an explicit chain-stall alert ${JSON.stringify(healthState)}`);
-  assert(healthState.liveHeadAlertFontSize >= 15
-      && /rgb\((?:255, 82, 106|255, 81, 105)\)/.test(healthState.liveHeadAlertBorderColor)
+      && /^Last confirmed block #[\d,]+$/.test(healthState.liveHeadAlertDetail)
+      && /^for 1 minute \d+ seconds?$/.test(healthState.liveHeadAlertDuration), `network health chamber: confirmed stale head did not replace the normal hierarchy with an explicit chain-stall alert ${JSON.stringify(healthState)}`);
+  assert(healthState.liveHeadAlertFontSize >= 40
+      && /rgb\(244, 124, 135\)/.test(healthState.liveHeadAlertBorderColor)
       && /linear-gradient/.test(healthState.liveHeadAlertBackground), `network health chamber: chain-stall typography/color severity is not unmistakable ${JSON.stringify({ fontSize: healthState.liveHeadAlertFontSize, border: healthState.liveHeadAlertBorderColor, background: healthState.liveHeadAlertBackground })}`);
   assert(healthState.liveHeadTopRuleDisplay === 'none', `network health chamber: decorative top rule returned ${healthState.liveHeadTopRuleDisplay}`);
   assert(healthState.liveHeadRowHeights.every((height) => Math.abs(height - 60) <= 1), `network health chamber: separator removal did not become useful row spacing ${healthState.liveHeadRowHeights.join(',')}`);
@@ -37961,6 +37964,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-block-monitor', description: 'Setup keeps one persisted saved-address-only block monitor synchronized across Home and Network Health', run: () => smokeMyTezosBlockMonitor(browser, baseUrl) },
     { name: 'tall-screen', description: 'Tall Chambers use available height and health lines and pills remain crisp at 1x/2x pixel density across desktop/mobile', run: () => smokeTallScreen(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'network-health-inspector-refresh', description: 'Supplemental block receipts preserve the exact inspector button while its accessible description updates', run: () => checkInspectorTriggerRefresh(browser, baseUrl, { installFeatureMocks }) },
+    { name: 'live-head-stall', description: 'Centered stall overlay, responsive geometry, quiet elapsed ticks, retained rows and recovery', run: () => smokeLiveHeadStall(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'network-health', description: 'Live Head stories and Network Health expose block cadence, missed rights, live 33/66 Nakamoto coefficients, reports, and saved-baker context', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
     { name: 'maxis-domain-passport', description: 'Maxi Passport resolves .tez names and subdomains without mutating My Tezos or assigning KT1 activity to an owner', run: () => smokeMaxisDomainPassport(browser, baseUrl) },

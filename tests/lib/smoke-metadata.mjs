@@ -1,5 +1,10 @@
 const RULES = [
   {
+    suites: /^live-head-stall$/,
+    files: ['js/features/network-health.js', 'css/hero-search*', 'index.html', 'tests/lib/live-head-stall-smoke.mjs'],
+    tags: ['live-data', 'quiet-refresh', 'visual'], risk: 'high'
+  },
+  {
     suites: /^chain-continuity$/,
     files: ['js/core/chain-continuity.js', 'js/core/anniversary.js', 'js/core/app.js', 'js/features/network-health.js', 'tests/lib/continuity-hen-smoke.mjs'],
     tags: ['live-data', 'quiet-refresh', 'navigation'], risk: 'high'

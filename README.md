@@ -640,11 +640,13 @@ inline modal styles in `js/core/app.js`.
   visible-tab polling quietly reconciles stable keyed rows, retains last-good
   data, catches up once without motion, and announces only a genuinely new
   block. A source-confirmed head gap first becomes an amber `BLOCKS DELAYED`
-  warning after 18 seconds and then a large red `CHAIN STALLED` banner after 30
-  seconds. Both alerts occupy the card's reserved overlay plane, so a delayed
+  warning after 18 seconds and then a red-tinted pane with a centered pause mark,
+  `CHAIN STALLED` message, and elapsed duration after at least 24 seconds. The duration
+  scales from seconds and minutes to hours, days, and years. Both alerts occupy
+  the card's reserved overlay plane, so a delayed
   chain never changes the Live Head card's outer size. The critical state keeps
-  the last-good receipts visible, opens
-  Network Health as a whole control, survives a later source-check failure, and
+  the last-good receipts visible and inspectable, provides an explicit
+  View Network Health action, survives a later source-check failure, and
   remains latched until a genuinely newer block arrives. A new level softly
   fades and resolves into place while retained keyed
   rows glide together and the outgoing row dissolves, then its margin rail fills

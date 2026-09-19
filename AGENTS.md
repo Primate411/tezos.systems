@@ -545,7 +545,7 @@ Stamping gotchas:
   receipt, relevant baker identities also link into My Tezos, and the inspector
   footer, row, and non-link inspector space open Network Health without stealing
   clicks from receipt links. Only a successfully confirmed head may start the
-  18-second delayed and 30-second stalled clocks; render `CHAIN STALLED` as the
+  18-second delayed and 24-second stalled clocks; render `CHAIN STALLED` as the
   large red hierarchy override, retain the last-good rows, latch the critical
   state through later source failures, and clear it only after a genuinely newer
   head. Background head and

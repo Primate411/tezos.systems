@@ -48,7 +48,7 @@ const LIVE_REFRESH_INTERVAL = 6 * 1000;
 const CHAMBER_REFRESH_INTERVAL = 6 * 1000;
 const AGE_TICK_INTERVAL = 1000;
 const LIVE_HEAD_DELAYED_AFTER = 18 * 1000;
-const LIVE_HEAD_STALLED_AFTER = 30 * 1000;
+const LIVE_HEAD_STALLED_AFTER = 24 * 1000;
 const LIVE_HEAD_CONFIRMATION_MAX_AGE = LIVE_REFRESH_INTERVAL * 2 + 2000;
 const LIVE_HEAD_INSPECTOR_CLOSE_DELAY = 420;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
@@ -350,10 +350,19 @@ function confirmLiveHeadObservation(data) {
 }
 
 function formatLiveHeadStallDuration(milliseconds) {
-    const seconds = Math.max(0, Math.floor(Number(milliseconds) / 1000));
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`;
+    const value = Number(milliseconds);
+    const seconds = Number.isFinite(value) ? Math.max(0, Math.floor(value / 1000)) : 0;
+    const units = [['year', 365 * 86400], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+    const index = units.findIndex(([, size]) => seconds >= size);
+    const [unit, size] = units[index < 0 ? units.length - 1 : index];
+    const count = Math.floor(seconds / size);
+    const parts = [`${count} ${unit}${count === 1 ? '' : 's'}`];
+    const next = units[index + 1];
+    if (index >= 0 && next) {
+        const remainder = Math.floor((seconds % size) / next[1]);
+        if (remainder > 0) parts.push(`${remainder} ${next[0]}${remainder === 1 ? '' : 's'}`);
+    }
+    return parts.join(' ');
 }
 
 function updateLiveHeadStallAlert(data, { error = false } = {}) {
@@ -363,7 +372,7 @@ function updateLiveHeadStallAlert(data, { error = false } = {}) {
     if (!panel || !alert) return;
     if (!alert.dataset.liveHeadAlertWired) {
         alert.dataset.liveHeadAlertWired = '1';
-        alert.addEventListener('click', openNetworkHealthChamber);
+        alert.querySelector('.live-head-alert-action')?.addEventListener('click', openNetworkHealthChamber);
     }
 
     const latest = data?.blocks?.[0] || null;
@@ -401,12 +410,16 @@ function updateLiveHeadStallAlert(data, { error = false } = {}) {
 
     if (visible) {
         const label = alert.querySelector('[data-live-head-alert-label]');
+        const duration = alert.querySelector('[data-live-head-alert-duration]');
         const detail = alert.querySelector('[data-live-head-alert-detail]');
         if (label) label.textContent = state === 'stalled' ? 'CHAIN STALLED' : 'BLOCKS DELAYED';
+        const durationText = `for ${formatLiveHeadStallDuration(ageMs)}`;
+        if (duration && duration.textContent !== durationText) duration.textContent = durationText;
         if (detail) {
-            detail.textContent = state === 'stalled' && !sourceConfirmed
-                ? `Last confirmed block #${formatCount(liveHeadStallLatchedLevel)} · source recheck delayed`
+            const detailText = state === 'stalled'
+                ? `Last confirmed block #${formatCount(liveHeadStallLatchedLevel)}${sourceConfirmed ? '' : ' · source recheck delayed'}`
                 : `No new block for ${formatLiveHeadStallDuration(ageMs)} · last confirmed #${formatCount(level)}`;
+            if (detail.textContent !== detailText) detail.textContent = detailText;
         }
     }
 
@@ -904,6 +917,7 @@ function syncLiveHeadDepthControls() {
     document.documentElement.setAttribute('data-live-head-depth', liveHeadDepthMode);
     document.documentElement.style.setProperty('--live-head-row-count', liveHeadBlockLimit());
     panel?.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
+    panel?.setAttribute('data-live-head-rows', liveHeadBlockLimit());
     document.querySelectorAll('[data-live-head-depth-control]').forEach((control) => {
         const opener = control.querySelector('[aria-controls]');
         const input = control.querySelector('input');

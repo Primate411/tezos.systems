@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-19',
+        entries: [
+            { type: '🎨', text: 'After at least 24 seconds without a new confirmed block, chain stalls tint the Live Blocks pane red with a centered pause symbol and elapsed duration in seconds, minutes, hours, or days, while keeping the last confirmed blocks available to inspect' }
+        ]
+    },
+    {
         date: '2026-09-18',
         entries: [
             { type: '⚡', text: 'Live updates spend less time checking header links and history controls, while late-loaded and replaced controls remain ready to use' },
