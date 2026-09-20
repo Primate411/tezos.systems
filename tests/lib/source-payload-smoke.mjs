@@ -66,8 +66,55 @@ async function assertReader(page, before, label) {
   assert.deepEqual(after, { ...before, retained: true, focused: true, opacity: '1', animations: 0 }, label);
 }
 
+async function smokeRpcCadence(browser, baseUrl, { installFeatureMocks, artifactsDir }, width) {
+  const context = await browser.newContext({ viewport: { width, height: 1000 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+  let offset = 0;
+  let laggingEu = false;
+  const epoch = Date.now();
+  try {
+    await installFeatureMocks(context, { blockHeadAutoAdvance: false });
+    await context.addInitScript(() => {
+      localStorage.clear(); sessionStorage.clear();
+      localStorage.setItem('tezos-toured', '1'); localStorage.setItem('tezos-welcomed', '1');
+    });
+    await context.route('https://*.rpc.tez.capital/chains/main/blocks/head/header', route => {
+      const sample = laggingEu && new URL(route.request().url()).hostname === 'eu.rpc.tez.capital' ? 0 : offset;
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ level: 20000000 + sample, timestamp: new Date(epoch + sample * 6000).toISOString() }) });
+    });
+    const page = await context.newPage();
+    await page.clock.install({ time: new Date(epoch) });
+    await page.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'load' });
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
+    for (const next of [2, 4, 6]) {
+      offset = next;
+      const response = page.waitForResponse(r => r.url().includes('/blocks/head/header') && r.status() === 200);
+      await page.clock.fastForward(12000);
+      await response;
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+    }
+    const finality = page.locator('#hero-chain-uptime-finality');
+    await page.waitForFunction(() => document.getElementById('hero-chain-uptime-finality')?.textContent === '12s', null, { timeout: 5000 });
+    assert.equal(await finality.textContent(), '12s', 'sample gaps must be divided by elapsed block levels, not polling count');
+    laggingEu = true;
+    offset = 8;
+    await page.clock.fastForward(12000);
+    const heads = await page.evaluate(async () => {
+      const { fetchWithRetry } = await import('/js/core/api.js');
+      const rows = [];
+      for (let i = 0; i < 3; i++) rows.push(await fetchWithRetry('https://eu.rpc.tez.capital/chains/main/blocks/head/header', { memoryCache: false, cache: 'no-store' }, 1));
+      return rows.map(row => row.level);
+    });
+    assert.deepEqual(heads, [20000008, 20000008, 20000008], 'a stale HTTP-200 host must not move current reads backward');
+    await page.waitForFunction(() => document.getElementById('hero-chain-uptime-finality')?.textContent === '12s');
+    assert.equal(await page.evaluate(() => localStorage.getItem('tezos-systems-finality-seconds')), '12');
+    assert.ok(await finality.isVisible(), 'valid finality remains visibly rendered');
+    if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `rpc-finality-${width}.png`) });
+  } finally { await context.close(); }
+}
+
 export async function smokeSourcePayloads(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
   if (artifactsDir) await mkdir(artifactsDir, { recursive: true });
+  for (const width of [1440, 390]) await smokeRpcCadence(browser, baseUrl, { installFeatureMocks, artifactsDir }, width);
   for (const [width, theme] of [[1440, 'matrix'], [390, 'clean']]) {
     const context = await browser.newContext({ viewport: { width, height: 1000 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
     let releasePrice = () => {};

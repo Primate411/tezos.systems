@@ -1602,7 +1602,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 | Source | Purpose |
 |--------|---------|
 | TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, baker Octez software/version telemetry, blocks, operations, account transfer flow, governance, accounts, Maxis account/delegate ranks and recognized app calls, Ecosystem Activity's network-wide distinct implicit senders of applied top-level transactions plus its frozen L1 contract catalog and complete reviewed-dapp backfill, Etherlink governance contract discovery/storage/bigmaps, ctez oven discovery, and Capital's Tezos counters, 30-day transaction-operation series, and completed-day L1 block-fee pools |
-| Tez Capital RPC `https://eu.rpc.tez.capital` and `https://us.rpc.tez.capital` | Browser issuance, supply, constants, cycle/head metadata and read-only governance views share a bounded read pool. Concurrent reads use both hosts; a failed or stalled request can try the other within the original deadline. Healthy reads are sent once, and wallet operation injection is never replayed. Server-side collectors still use their existing endpoint selection. |
+| Tez Capital RPC `https://eu.rpc.tez.capital` and `https://us.rpc.tez.capital` | Browser issuance, supply, constants, cycle/head metadata and read-only governance views share a bounded read pool. Concurrent reads use both hosts; failed, stalled, or regressed head reads can try the other within the original deadline. Current heads cannot move below a level already observed by the pool; unchanged heads remain valid during a genuine stall, and pinned historical reads are unaffected. Healthy reads are sent once, and wallet operation injection is never replayed. Server-side collectors still use their existing endpoint selection. |
 | Official Octez mainnet RPC `https://tezos-mainnet.octez.io` | Current-cycle baking-power distribution for Network Health's live one-third and two-thirds address coefficients, the seven-day baker-set baseline, and historical milestone fallback. Moving these reads to Tez Capital requires the corresponding helper access and retained history; the current baker set already uses the owned pool. |
 | Teztale `https://teztale-server-mainnet-ro-prd.octez.tech` | Consensus timing lens for Network Health, including earliest-observer, endorsing-power-weighted reception distributions, exact two-thirds and 90% arrival thresholds, validation-to-quorum phases, and observer count; Teztale is by Nomadic Labs |
 | `data/nakamoto-sources.json` | Same-origin dated ledger of Chainspect, Edinburgh EDI, CoinClear, and explicitly marked Chainspect-derived historical reports; scheduled server-side refresh avoids third-party browser CORS limits |
@@ -1949,6 +1949,10 @@ The offline number-motion shell explicitly verifies unavailable baker history
 and a working Retry that keeps the popover visible. Only its exact expected
 baseline warning is accounted for in that offline context; populated-data
 checks retain the normal warning collector.
+Desktop and mobile source checks also simulate skipped block samples and a
+lagging HTTP-200 RPC host. Finality uses increasing level/timestamp samples
+and elapsed block levels, so polling gaps and stale peers cannot create a
+negative or inflated cadence estimate.
 
 `npm run test:affected` runs the static gate, maps files changed since
 `origin/main` to suite-declared `files`, `tags`, and `risk`, and repeats selected

@@ -8,7 +8,65 @@ const json = response => response.json();
 const ok = value => Response.json(value);
 const defer = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 
+{
+    let clock = 0, level = 100;
+    const calls = [];
+    const head = `${eu}/chains/main/blocks/head/header`;
+    const pool = createTezosRpcPool({ now: () => clock, fetchImpl: async target => {
+        calls.push(target);
+        const observed = target.includes('BLockPinned') ? 50 : target.startsWith(eu) ? 100 : level;
+        return ok({ level: observed, timestamp: new Date(observed * 6000).toISOString() });
+    } });
+    assert.equal((await pool(head, {}, 1000, json)).level, 100);
+    level = 110;
+    assert.equal((await pool(head, {}, 1000, json)).level, 110);
+    assert.equal((await pool(head, {}, 1000, json)).level, 110, 'an older HTTP-200 head must fail over');
+    assert.deepEqual(calls.map(target => new URL(target).origin), [eu, us, eu, us]);
+    await pool(head, {}, 1000, json);
+    assert.equal(calls.at(-1).startsWith(us), true, 'a regressed head cools its host down for other reads');
+    assert.equal((await pool(head, {}, 1000, json)).level, 110, 'an unchanged head remains a valid stall observation');
+    assert.equal((await pool(url, {}, 1000, json)).level, 50, 'pinned history does not enter the head monotonicity check');
+    clock = 30_001;
+    level = 99;
+    await assert.rejects(pool(head, {}, 1000, json), /older head/, 'both regressed sources must fail explicitly');
+}
+
 for (const resource of [url, new URL(url), `${us}/config/history_mode`]) assert.equal(isTezosRpcRead(resource), true);
+
+{
+    const entered = defer(), release = defer();
+    const pool = createTezosRpcPool({ fetchImpl: async target => ok({ level: target.startsWith(eu) ? 100 : 110, timestamp: '2026-09-20T00:00:00Z' }) });
+    const head = `${eu}/chains/main/blocks/head/header`;
+    const older = pool(head, {}, 1000, async response => {
+        const value = await response.json();
+        if (value.level === 100) { entered.resolve(); await release.promise; }
+        return value;
+    });
+    await entered.promise;
+    assert.equal((await pool(head, {}, 1000, json)).level, 110);
+    release.resolve();
+    assert.equal((await older).level, 110, 'slow consumption cannot publish a head behind a completed concurrent read');
+}
+
+{
+    const calls = [], pending = [];
+    const pool = createTezosRpcPool({ fetchImpl: async target => {
+        calls.push(target);
+        if (target.endsWith('/head/header')) return ok({ level: target.startsWith(eu) ? 100 : 110, timestamp: '2026-09-20T00:00:00Z' });
+        if (target.includes('/held')) { const next = defer(); pending.push(next); return next.promise; }
+        return ok('done');
+    } });
+    const head = `${eu}/chains/main/blocks/head/header`;
+    await pool(head, {}, 1000, json);
+    const raw = await pool(head);
+    assert.equal((await raw.json()).level, 110, 'head inspection preserves the response body for raw callers');
+    const olderReads = [pool(`${eu}/held/1`, {}, 1000, json), pool(`${eu}/held/2`, {}, 1000, json)];
+    assert.equal((await pool(head, {}, 1000, json)).level, 110);
+    pending.forEach(item => item.resolve(ok('earlier request succeeded')));
+    await Promise.all(olderReads);
+    await pool(`${eu}/next`, {}, 1000, json);
+    assert.ok(calls.at(-1).startsWith(us), 'older in-flight successes cannot clear a later stale-head cooldown');
+}
 for (const resource of ['https://eu.rpc.tez.capital.evil.test/a', 'https://rpc.tzkt.io/mainnet/a', '/relative', new Request(url), 'https://user:pass@eu.rpc.tez.capital/a']) {
     assert.equal(isTezosRpcRead(resource), false);
 }

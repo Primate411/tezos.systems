@@ -13,7 +13,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Uranium artwork disclosures remain separate from the introductory label on phones' },
             { type: '⚡', text: 'Removed duplicate styles and shared identical snapshot-validation helpers, preserving existing layouts and data integrity checks' },
             { type: '🔧', text: 'Live Tezos reads share Tez Capital’s EU and US RPC endpoints and recover through the other endpoint when one fails, while preserving historical data access' },
-            { type: '🔧', text: 'Retrying unavailable baker history keeps its popover open while the request completes' }
+            { type: '🔧', text: 'Retrying unavailable baker history keeps its popover open while the request completes' },
+            { type: '🔧', text: 'Live RPC reads reject lagging heads, and finality stays accurate when polls skip blocks or endpoints disagree' }
         ]
     },
     {

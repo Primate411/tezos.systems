@@ -3446,7 +3446,7 @@ function initUptimeClock() {
     const UPTIME_MILESTONE_SEEN_KEY = 'tezos-systems-uptime-milestone-seen-v1';
     const UPTIME_MILESTONE_SEEN_LIMIT = 64;
     let lastBlockLevel = 0;
-    let recentBlockTimes = []; // last N block timestamps for finality avg
+    let recentBlockTimes = []; // last N increasing level/timestamp observations
     let chainBakersText = '';
     let cachedFinalitySeconds = NaN;
     try { cachedFinalitySeconds = Number(localStorage.getItem(FINALITY_CACHE_KEY)); } catch (_) {}
@@ -4912,38 +4912,39 @@ function initUptimeClock() {
     // Fast block poller via Octez RPC (real-time, every 6s)
     async function pollBlock() {
         try {
-            const resp = await fetchWithDeadline(`${API_URLS.octez}/chains/main/blocks/head/header`, {}, 5000);
-            if (!resp.ok) return;
-            const header = await resp.json();
-            const level = header.level;
-            const timestamp = header.timestamp;
+            const header = await fetchWithDeadline(`${API_URLS.octez}/chains/main/blocks/head/header`, {}, 5000,
+                response => response.ok ? response.json() : null);
+            if (!header) return;
+            const level = Number(header.level);
+            const timestamp = Date.parse(header.timestamp);
+            if (!Number.isSafeInteger(level) || level <= 0 || !Number.isFinite(timestamp)) return;
+            const previous = recentBlockTimes[recentBlockTimes.length - 1];
+            if (previous && (level <= previous.level || timestamp <= previous.timestamp)) return;
 
-            if (level && level !== lastBlockLevel) {
-                lastBlockLevel = level;
-                recentBlockTimes.push(new Date(timestamp).getTime());
-                if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
-                const cb = document.getElementById('cycle-chip-block');
-                if (cb) cb.textContent = level.toLocaleString();
+            lastBlockLevel = Math.max(lastBlockLevel, level);
+            recentBlockTimes.push({ level, timestamp });
+            if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
+            const cb = document.getElementById('cycle-chip-block');
+            if (cb) cb.textContent = lastBlockLevel.toLocaleString();
 
-                // Update finality: Tenderbake = 2 confirmations on top of block
-                // So finality ≈ 2 × avg block time
-                if (recentBlockTimes.length >= 3) {
-                    const first = recentBlockTimes[0];
-                    const last = recentBlockTimes[recentBlockTimes.length - 1];
-                    const avgBlockTime = (last - first) / (recentBlockTimes.length - 1);
-                    const finality = Math.round((avgBlockTime * 2) / 1000);
-                    const finalityText = `${finality}s`;
-                    chainFinalityText = finalityText;
-                    finalityButton?.classList.remove('is-loading');
-                    finalityButton?.removeAttribute('aria-busy');
-                    if (finalityButton) finalityButton.title = 'Live Tenderbake finality estimate from recent block cadence.';
-                    try { localStorage.setItem(FINALITY_CACHE_KEY, String(finality)); } catch (_) {}
-                    syncChainProofMetrics();
-                }
-
-                // Notify pulse viz of new block
-                window.dispatchEvent(new Event('block-pulse'));
+            // Update finality: Tenderbake = 2 confirmations on top of block
+            // So finality ≈ 2 × avg block time
+            if (recentBlockTimes.length >= 3) {
+                const first = recentBlockTimes[0];
+                const last = recentBlockTimes[recentBlockTimes.length - 1];
+                const avgBlockTime = (last.timestamp - first.timestamp) / (last.level - first.level);
+                const finality = Math.round((avgBlockTime * 2) / 1000);
+                const finalityText = `${finality}s`;
+                chainFinalityText = finalityText;
+                finalityButton?.classList.remove('is-loading');
+                finalityButton?.removeAttribute('aria-busy');
+                if (finalityButton) finalityButton.title = 'Live Tenderbake finality estimate from recent block cadence.';
+                try { localStorage.setItem(FINALITY_CACHE_KEY, String(finality)); } catch (_) {}
+                syncChainProofMetrics();
             }
+
+            // Notify pulse viz of new block
+            window.dispatchEvent(new Event('block-pulse'));
         } catch (e) {
             // Silent fail — TzKT fallback via _updateUptimeClock still works
         }
@@ -4960,7 +4961,7 @@ function initUptimeClock() {
     // Expose update function for baker/staking/issuance data from main refresh cycle
     window._updateUptimeClock = function(data) {
         // Block data now comes from RPC poller above — only use this for hero metrics
-        if (data.blockLevel && data.blockLevel !== lastBlockLevel) {
+        if (Number.isSafeInteger(data.blockLevel) && data.blockLevel > lastBlockLevel) {
             lastBlockLevel = data.blockLevel;
             const cb2 = document.getElementById('cycle-chip-block');
             if (cb2) cb2.textContent = data.blockLevel.toLocaleString();
