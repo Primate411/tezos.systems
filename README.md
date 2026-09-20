@@ -1945,6 +1945,10 @@ for the exact cycle-start RPC receipt before the bounded render assertion,
 including cached reloads, peer tabs, and expired milestones. Desktop startup
 also runs at 6× CPU slowdown; an early ticker from other signals cannot satisfy
 the expired-cycle check before its own receipt and briefing have settled.
+The offline number-motion shell explicitly verifies unavailable baker history
+and a working Retry that keeps the popover visible. Only its exact expected
+baseline warning is accounted for in that offline context; populated-data
+checks retain the normal warning collector.
 
 `npm run test:affected` runs the static gate, maps files changed since
 `origin/main` to suite-declared `files`, `tags`, and `risk`, and repeats selected

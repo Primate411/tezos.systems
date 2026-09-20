@@ -273,14 +273,30 @@ export function createQuietRefreshSmokeSuites({
     });
 
     const page = await context.newPage();
-    attachIssueCollectors(page, 'live number production shell', issues);
+    const shellIssues = [];
+    const expectedOfflineIssues = new Set();
+    attachIssueCollectors(page, 'live number production shell', shellIssues);
     const shellOrigin = new URL(baseUrl).origin;
+    // This shell intentionally denies all data. Account for this exact failure
+    // only here, after asserting its unavailable UI below; healthy-data suites
+    // and every other diagnostic retain the normal strict collector.
+    page.on('console', (message) => {
+      const location = message.location()?.url;
+      if (!['warning', 'warn'].includes(message.type())
+        || message.text() !== '[baker-set] refresh failed: The 7D baker baseline is unavailable'
+        || !location) return;
+      const source = new URL(location);
+      if (source.origin !== shellOrigin || source.pathname !== '/js/core/app.js') return;
+      expectedOfflineIssues.add(`live number production shell console ${message.type()}: ${message.text()} (${location})`);
+    });
+    let deniedHistoryReads = 0;
     await page.route('**/*', async (route) => {
       const request = route.request();
       const resourceType = request.resourceType();
       let requestOrigin = shellOrigin;
       try { requestOrigin = new URL(request.url()).origin; } catch {}
       if (requestOrigin !== shellOrigin && (resourceType === 'fetch' || resourceType === 'xhr')) {
+        if (new URL(request.url()).pathname.endsWith('/tezos_history')) deniedHistoryReads += 1;
         await route.abort('aborted');
         return;
       }
@@ -772,7 +788,36 @@ export function createQuietRefreshSmokeSuites({
       `live number production shell skipped a visible scrolled observer update ${JSON.stringify(scrolledObserverMotion)}`
     );
 
+    await page.locator('.top-continuity-stat[data-card-history="total-bakers"]').click();
+    const unavailableRoster = page.locator('#top-continuity-baker-roster .top-continuity-baker-error');
+    await unavailableRoster.waitFor({ state: 'visible' });
+    assert((await unavailableRoster.textContent()).includes('Recent baker changes are unavailable.'),
+      'offline live-number shell must disclose unavailable baker history');
+    assert(await page.locator('#top-continuity-baker-roster [data-address]').count() === 0,
+      'offline live-number shell must not manufacture a populated baker roster');
+    const historyReadsBeforeRetry = deniedHistoryReads;
+    await unavailableRoster.locator('[data-baker-set-retry]').click();
+    await page.waitForFunction(() => {
+      const roster = document.getElementById('top-continuity-baker-roster');
+      return roster?.getAttribute('aria-busy') === 'false'
+        && document.getElementById('top-continuity-explain')?.getAttribute('aria-hidden') === 'false'
+        && Boolean(roster.querySelector('.top-continuity-baker-error [data-baker-set-retry]'));
+    }, null, { timeout: 5000 }).catch(async (error) => {
+      const state = await page.evaluate(() => ({
+        rosterBusy: document.getElementById('top-continuity-baker-roster')?.getAttribute('aria-busy'),
+        rosterText: document.getElementById('top-continuity-baker-roster')?.textContent?.trim(),
+        explainHidden: document.getElementById('top-continuity-explain')?.getAttribute('aria-hidden')
+      }));
+      throw new Error(`offline baker Retry did not settle: ${JSON.stringify(state)}; ${error.message}`);
+    });
+    assert(deniedHistoryReads > historyReadsBeforeRetry,
+      'offline baker Retry must attempt a new history request');
+    assert(await unavailableRoster.isVisible(),
+      'offline baker Retry must leave its settled unavailable state visible');
+    assert(expectedOfflineIssues.size > 0,
+      'offline live-number shell must report its deliberately denied baker baseline');
     await context.close();
+    issues.push(...shellIssues.filter((issue) => !expectedOfflineIssues.has(issue)));
   }
 
   async function smokeLiveNumberMotion(browser, baseUrl) {

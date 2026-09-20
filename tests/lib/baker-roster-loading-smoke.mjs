@@ -25,6 +25,8 @@ async function assertTextBubbles(page, selector, { reducedMotion = false, count 
 async function smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsDir) {
   const context = await browser.newContext({ viewport: { width: 390, height: 1000 }, serviceWorkers: 'block' });
   let release;
+  let historyUnavailable = true;
+  let deniedHistoryReads = 0;
   const gate = new Promise(resolve => { release = resolve; });
   try {
     await installFeatureMocks(context);
@@ -36,6 +38,10 @@ async function smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsD
     await context.route('**/*', async route => {
       const pathname = new URL(route.request().url()).pathname;
       if (pathname.endsWith('/context/delegates') || pathname.endsWith('/tezos_history')) await gate;
+      if (pathname.endsWith('/tezos_history') && historyUnavailable) {
+        deniedHistoryReads += 1;
+        return route.abort('aborted');
+      }
       return route.fallback();
     });
     const page = await context.newPage();
@@ -55,7 +61,26 @@ async function smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsD
     assert.equal(await page.locator('.top-continuity-baker-loading button, .top-continuity-baker-loading a').count(), 0, 'pending actions are not fake controls');
     if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, 'baker-roster-cold-390.png') });
     release();
-    await page.waitForFunction(() => document.querySelectorAll('#top-continuity-baker-roster [data-address]').length === 6);
+    const unavailable = page.locator('#top-continuity-baker-roster .top-continuity-baker-error');
+    await unavailable.waitFor({ state: 'visible' });
+    const deniedBeforeRetry = deniedHistoryReads;
+    await unavailable.locator('[data-baker-set-retry]').click();
+    await page.waitForFunction(() => document.querySelector('#top-continuity-baker-roster')?.getAttribute('aria-busy') === 'false');
+    assert.ok(deniedHistoryReads > deniedBeforeRetry, 'mobile Retry must make another history request');
+    assert.ok(await unavailable.isVisible(), 'failed Retry must leave its unavailable disclosure visible');
+    assert.equal(await page.locator('#top-continuity-explain').getAttribute('aria-hidden'), 'false');
+    assert.equal(await page.locator('#top-continuity-baker-roster [data-address]').count(), 0, 'failed history must not fabricate membership');
+    if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, 'baker-roster-retry-unavailable-390.png') });
+    historyUnavailable = false;
+    await unavailable.locator('[data-baker-set-retry]').click();
+    await page.waitForFunction(() => {
+      const roster = document.getElementById('top-continuity-baker-roster');
+      return roster?.getAttribute('aria-busy') === 'false' && roster.querySelectorAll('[data-address]').length === 6;
+    });
+    assert.equal(await page.locator('#top-continuity-explain').getAttribute('aria-hidden'), 'false');
+    assert.ok(await page.locator('#top-continuity-baker-roster .is-gained strong').first().isVisible());
+    assert.equal(await unavailable.count(), 0, 'successful Retry must replace the error with populated membership');
+    if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, 'baker-roster-retry-recovered-390.png') });
   } finally { release(); await context.close(); }
 }
 

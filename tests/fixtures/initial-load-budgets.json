@@ -1,18 +1,19 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-09-16",
+  "reviewedAt": "2026-09-20",
   "reference": "tests/fixtures/initial-load-baseline-2026-09-16.json",
   "notes": [
     "Per-profile ceilings selected from the R01 calibration and validated by the three-run CI matrix. These are decoded local bytes, not compressed production transfers.",
     "Total, JavaScript and CSS: 5% headroom rounded up to KiB. JSON: 10% rounded up to KiB for generated snapshot variation. Requests: max(3, ceil(2%)) extra. DOM: 10% for rendering and OS font geometry.",
     "Byte gates cover first-party document and resource payloads. Synthetic API fixture bytes and actual HTTP server bytes are separate diagnostics. Timings never gate CI.",
-    "Ceiling increases require a reviewed explanation. CI does not rewrite budgets or the historical July baseline."
+    "Ceiling increases require a reviewed explanation. CI does not rewrite budgets or the historical July baseline.",
+    "2026-09-20: fixture fingerprint reviewed after adding the Tez Capital US hostname as an alias for existing RPC payloads. All numeric ceilings are unchanged."
   ],
   "profileContract": {
     "network": "populated",
     "theme": "aurora",
     "settleMs": 2500,
-    "fixtureRevision": "3f540d3f303fae49957e0a522509aef4435ad5a0a8e2080a571d9265c7dcb110"
+    "fixtureRevision": "856e87e36dde87a828d5fd7b52817e8ad0cc70c582f2c38bb95088ebfc93a9f0"
   },
   "profiles": {
     "desktop-anonymous-cold": {

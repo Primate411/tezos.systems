@@ -4660,6 +4660,9 @@ function initUptimeClock() {
             }
 
             if (target.closest('[data-baker-set-retry]')) {
+                // Rendering the pending state detaches this button. Keep its
+                // click from being mistaken for an outside click afterward.
+                event.stopPropagation();
                 refreshTopContinuityBakerRoster({ force: true });
                 return;
             }
