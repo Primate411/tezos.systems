@@ -240,7 +240,7 @@ async function currentVotingStorage(track, storage, period, headLevel) {
     // Storage only advances on a contract call. Its old ballot must never be
     // attached to a freshly computed window. The view also catches a proposal
     // that has entered Promotion before the first ballot updates storage.
-    const rpc = 'https://tezos-mainnet.octez.io';
+    const rpc = API_URLS.octez;
     const result = await fetchWithRetry(`${rpc}/chains/main/blocks/${headLevel}/helpers/scripts/run_script_view`, {
         method: 'POST', cache: 'no-store', memoryCache: false,
         headers: { 'Content-Type': 'application/json' },

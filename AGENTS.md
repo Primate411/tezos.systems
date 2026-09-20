@@ -135,7 +135,13 @@ the highest-risk gotchas.
   - Critical Minerals retains only bounded xCo, xNi, and RARE token metadata,
     counters, holder-address/latest-transfer pages, and verified proxy lineage;
     addresses are not people and chain state is not backing or market evidence.
-- Octez RPC: `https://eu.rpc.tez.capital`
+- Tez Capital RPC: `https://eu.rpc.tez.capital` and `https://us.rpc.tez.capital`
+  - `js/core/tezos-rpc.mjs` pools browser reads with bounded failover and a
+    failure cooldown. GET/HEAD and the read-only `run_script_view` POST are
+    eligible; wallet writes must never be balanced or replayed.
+  - Both public nodes reported rolling history on 2026-09-20. Verify archive
+    history and baking-power helper access before moving historical/Nakamoto
+    reads from their existing providers; current-head success is insufficient.
 - Official Octez mainnet RPC: `https://tezos-mainnet.octez.io`
   - current-cycle baking-power distribution for live one-third and two-thirds
     address-level Nakamoto coefficients

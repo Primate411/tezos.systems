@@ -6,7 +6,7 @@
  * so installing an update does not download the whole site.
  */
 
-const CACHE_NAME = 'tezos-systems-v661';
+const CACHE_NAME = 'tezos-systems-v662';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 const CURRENT_CACHES = new Set([CACHE_NAME, RUNTIME_CACHE]);
 
@@ -29,6 +29,7 @@ const SHELL_ASSETS = [
 const API_HOSTS = new Set([
     'api.tzkt.io',
     'eu.rpc.tez.capital',
+    'us.rpc.tez.capital',
     'tezos-mainnet.octez.io',
     'octez-mainnet-archive.octez.io',
     'rpc.tzkt.io',

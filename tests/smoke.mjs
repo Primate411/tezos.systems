@@ -2629,11 +2629,11 @@ async function installFeatureMocks(context, options = {}) {
       }
     }
 
-    if (url.includes('eu.rpc.tez.capital')) {
+    if (['eu.rpc.tez.capital', 'us.rpc.tez.capital'].includes(new URL(url).hostname)) {
       if (url.includes('/context/issuance/current_yearly_rate')) return fulfillText(route, '4.5');
       if (url.includes('/context/total_supply')) return fulfillText(route, '1050000000000000');
       if (url.includes('/context/total_frozen_stake')) return fulfillText(route, '305000000000000');
-      if (url.includes('/context/delegates?active=true')) return fulfillJson(route, [SAMPLE_ADDRESS, SAMPLE_ADDRESS_2]);
+      if (url.includes('/context/delegates?active=true')) return fulfillJson(route, [SAMPLE_ADDRESS, SAMPLE_ADDRESS_2, SAMPLE_DELEGATOR_ADDRESS]);
       if (/\/blocks\/\d+\/operations\/3/.test(url)) {
         const level = Number(url.match(/\/blocks\/(\d+)\/operations\/3/)?.[1]) || 0;
         const gasPct = [12, 38, 68, 91][Math.abs(level) % 4];

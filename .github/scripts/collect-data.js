@@ -133,8 +133,7 @@ async function getIssuanceRate() {
     // Try multiple RPC endpoints (GitHub Actions-friendly)
     const rpcEndpoints = [
       'https://eu.rpc.tez.capital',
-      'https://us.rpc.tez.capital',
-      'https://mainnet.api.tez.ie'
+      'https://us.rpc.tez.capital'
     ];
 
     let adaptiveRate = 0;

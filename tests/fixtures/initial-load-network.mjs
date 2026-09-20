@@ -211,7 +211,7 @@ export function createInitialLoadFixtureResponder({ epoch = FIXTURE_TIME, savedW
       }
       return response(rows);
     }
-    if (['eu.rpc.tez.capital', 'tezos-mainnet.octez.io', 'octez-mainnet-archive.octez.io', 'rpc.tzkt.io'].includes(host)) {
+    if (['eu.rpc.tez.capital', 'us.rpc.tez.capital', 'tezos-mainnet.octez.io', 'octez-mainnet-archive.octez.io', 'rpc.tzkt.io'].includes(host)) {
       if (route.endsWith('/context/constants')) return response(constants);
       if (route.endsWith('/context/issuance/current_yearly_rate')) return response('4.5', { contentType: 'text/plain' });
       if (route.endsWith('/context/total_supply')) return response('1050000000000000', { contentType: 'text/plain' });

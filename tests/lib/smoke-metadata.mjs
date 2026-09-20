@@ -76,7 +76,7 @@ const RULES = [
   },
   {
     suites: /^source-payloads$/,
-    files: ['js/core/api.js', 'js/core/request-policy.mjs', 'js/core/source-payloads.mjs', 'js/core/storage.js', 'js/features/price.js', 'tests/lib/source-payload-smoke.mjs', 'tests/source-payload-check.mjs'],
+    files: ['js/core/api.js', 'js/core/tezos-rpc.mjs', 'js/core/request-policy.mjs', 'js/core/source-payloads.mjs', 'js/core/storage.js', 'js/features/price.js', 'tests/lib/source-payload-smoke.mjs', 'tests/source-payload-check.mjs', 'tests/tezos-rpc-check.mjs'],
     tags: ['live-data', 'quiet-refresh'],
     risk: 'high'
   },

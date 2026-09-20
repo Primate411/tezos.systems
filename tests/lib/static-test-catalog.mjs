@@ -2,6 +2,7 @@
 export const STATIC_CHECKS = Object.freeze([
   { "script": "tests/smoke-server-check.mjs", "args": [] },
   { "script": "tests/stable-json-check.mjs", "args": [] },
+  { "script": "tests/tezos-rpc-check.mjs", "args": [] },
   { "script": "tests/test-layout-check.mjs", "args": [] },
   { "script": "tests/live-head-stall-check.mjs", "args": [] },
   { "script": "tests/unused-code-check.mjs", "args": [] },

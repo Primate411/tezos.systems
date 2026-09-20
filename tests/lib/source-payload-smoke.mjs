@@ -73,6 +73,27 @@ export async function smokeSourcePayloads(browser, baseUrl, { installFeatureMock
     let releasePrice = () => {};
     try {
       await installFeatureMocks(context, { blockHeadAutoAdvance: false });
+      const failedRpcHost = width === 1440 ? 'eu.rpc.tez.capital' : 'us.rpc.tez.capital';
+      const rpcHosts = ['eu.rpc.tez.capital', 'us.rpc.tez.capital'];
+      const rpcRequests = [];
+      let bothRpcHostsDown = false;
+      await context.route('https://*.rpc.tez.capital/**', route => {
+        const url = new URL(route.request().url());
+        rpcRequests.push(url.hostname);
+        if (bothRpcHostsDown || url.hostname === failedRpcHost) {
+          return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"deliberate RPC outage"}' });
+        }
+        return route.fallback();
+      });
+      // A successful-data visual must include the missed-round identity too;
+      // the broad fixture otherwise returns a receipt for an unrelated level.
+      await context.route('https://api.tzkt.io/v1/rights?**', route => {
+        const query = new URL(route.request().url()).searchParams;
+        if (query.get('type') !== 'baking' || query.get('status') !== 'missed' || !query.has('level.in')) return route.fallback();
+        return route.fulfill({ contentType: 'application/json', body: JSON.stringify(query.get('level.in').split(',').map(Number).map(level => ({
+          level, round: 0, type: 'baking', status: 'missed', baker: { address: 'tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb', alias: 'RPC Fixture Baker' }
+        }))) });
+      });
       await context.addInitScript(theme => {
         localStorage.setItem('tezos-systems-theme', theme);
         localStorage.setItem('tezos-toured', '1'); localStorage.setItem('tezos-welcomed', '1');
@@ -108,6 +129,23 @@ export async function smokeSourcePayloads(browser, baseUrl, { installFeatureMock
         && document.querySelector('#price-bar.visible .price-value')?.textContent === '$0.720');
       await page.evaluate(() => document.fonts.ready);
       assert.equal(requestCount, 2, `${width}: one shared price pair during homepage initialization`);
+      const rpcData = await page.evaluate(async () => {
+        const { fetchWithRetry } = await import('/js/core/api.js');
+        const base = 'https://eu.rpc.tez.capital/chains/main/blocks/head';
+        return Promise.all(['/header', '/context/constants', '/context/total_supply'].map(path =>
+          fetchWithRetry(base + path, { memoryCache: false, cache: 'no-store' }, 1)));
+      });
+      assert.ok(Number(rpcData[0].level) > 0 && Number(rpcData[1].minimal_block_delay) > 0 && Number(rpcData[2]) > 0,
+        `${width}: actual browser API returns populated head, constants and supply with ${failedRpcHost} down`);
+      assert.ok(rpcHosts.every(host => rpcRequests.includes(host)), 'browser tried both owned endpoints');
+      await page.waitForFunction(() => document.querySelector('#live-head-stack [data-live-head-level]')
+        && /\d/.test(document.getElementById('hero-chain-uptime-bakers')?.textContent || ''));
+      await page.waitForFunction(() => document.querySelector('#header-activity-button')?.getAttribute('aria-busy') === 'false'
+        && document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready'
+        && document.querySelector('#live-head-stack [data-round-miss-state="missed"]')
+        && !document.querySelector('#live-head-stack [data-round-miss-state="loading"], #live-head-stack [data-round-miss-state="unavailable"]')
+        && [...document.querySelectorAll('#live-head-stack [data-live-head-level]')].every(row =>
+          !row.querySelector('.live-head-gas-skeleton, .live-head-story.is-loading')), null, { timeout: 30000 });
 
       const initial = await priceState(page);
       const reader = await retainReader(page);
@@ -229,6 +267,26 @@ export async function smokeSourcePayloads(browser, baseUrl, { installFeatureMock
       assert.equal(sourceRequests, 3, 'Invalid cached data is evicted and only one validated replacement is fetched');
 
       if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `source-payloads-${width}.png`) });
+      bothRpcHostsDown = true;
+      const rpcFailure = await page.evaluate(async () => {
+        const { fetchWithRetry } = await import('/js/core/api.js');
+        try {
+          await fetchWithRetry('https://eu.rpc.tez.capital/chains/main/blocks/head/header', { cache: 'no-store', memoryCache: false }, 1);
+          return 'unexpected success';
+        } catch (error) { return error.message; }
+      });
+      assert.match(rpcFailure, /503/, 'both RPC hosts down is an explicit failure, never cached live data');
+      bothRpcHostsDown = false;
+      await page.goto(`${baseUrl}/landing.html`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => /^\d/.test(document.getElementById('lp-bakers')?.textContent || '')
+        && /^\d.*%$/.test(document.getElementById('lp-staked')?.textContent || '')
+        && /^C\d/.test(document.getElementById('lp-cycle')?.textContent || '')
+        && /^\$\d/.test(document.getElementById('lp-price')?.textContent || ''));
+      assert.equal(await page.locator('#lp-staked').textContent(), '29.0%', 'landing reads the surviving RPC supply/stake instead of silently falling back');
+      if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `rpc-landing-${width}.png`) });
+      const lastTheme = page.locator('#theme-grid .theme-card').last();
+      await lastTheme.click();
+      assert.equal(await lastTheme.evaluate(node => node.classList.contains('selected')), true, 'landing theme control still works after module loading');
       assert.deepEqual(errors, [], `${width}: no uncaught browser errors`);
       console.log(`ok - ${width}px source validation, partial price recovery, zero/null semantics, hidden catch-up and exact reader preservation`);
     } finally { releasePrice(); await context.close(); }

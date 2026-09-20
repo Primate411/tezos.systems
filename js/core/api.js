@@ -8,6 +8,7 @@ import { loadDataAsset } from './data-assets.js';
 import { HISTORY_FRESHNESS_LIMITS } from './freshness-contracts.mjs';
 import { calculatePercentage } from './utils.js';
 import { requestFingerprint, withRequestDeadline } from './request-policy.mjs';
+import { fetchTezosRpc, isTezosRpcRead } from './tezos-rpc.mjs';
 import { validateStatistics, validateConstants, validateRpcScalar, validateRpcAmount, validateVotingPeriod, validateHeader, validateMetadata, validateBakers, validateCount, validateLbBlocks } from './source-payloads.mjs';
 
 export { HISTORY_FRESHNESS_LIMITS };
@@ -158,6 +159,7 @@ function requestSignal(resource, options) {
  * retry sequence immediately.
  */
 export async function fetchWithDeadline(resource, options = {}, timeoutMs = DEFAULT_FETCH_TIMEOUT_MS, consume = response => response) {
+    if (isTezosRpcRead(resource, options)) return fetchTezosRpc(resource, options, timeoutMs, consume);
     const queueAware = typeof window !== 'undefined'
         && window.__tzktThrottle?.supportsDispatchHook === true;
     return withRequestDeadline(async (signal, onDispatch) => {

@@ -11,7 +11,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Verified milestones appear even when another live signal renders first, and Precious Metals headlines keep whole words together on desktop and phones' },
             { type: '🔧', text: 'Baker Directory titles, search text and table headings remain legible in the Clean theme' },
             { type: '🔧', text: 'Uranium artwork disclosures remain separate from the introductory label on phones' },
-            { type: '⚡', text: 'Removed duplicate styles and shared identical snapshot-validation helpers, preserving existing layouts and data integrity checks' }
+            { type: '⚡', text: 'Removed duplicate styles and shared identical snapshot-validation helpers, preserving existing layouts and data integrity checks' },
+            { type: '🔧', text: 'Live Tezos reads share Tez Capital’s EU and US RPC endpoints and recover through the other endpoint when one fails, while preserving historical data access' }
         ]
     },
     {

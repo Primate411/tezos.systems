@@ -1,4 +1,5 @@
 import { loadingText } from '../ui/text-loading.js';
+import { fetchTezosRpc, TEZOS_RPC_ENDPOINTS } from '../core/tezos-rpc.mjs';
 /* ═══════════════════════════════════════════════════
    HEN MODE — live Tezos NFT discovery
    ═══════════════════════════════════════════════════ */
@@ -2657,8 +2658,10 @@ const HenMode = (() => {
     var blockTimer = null;
 
     async function fetchBlockLevel() {
-        var res = await fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/header');
-        var d = await res.json();
+        var d = await fetchTezosRpc(`${TEZOS_RPC_ENDPOINTS[0]}/chains/main/blocks/head/header`, {}, 15000, async res => {
+            if (!res.ok) throw new Error(`RPC header unavailable: ${res.status}`);
+            return res.json();
+        });
         return d && d.level ? Number(d.level) : null;
     }
 

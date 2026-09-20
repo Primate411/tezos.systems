@@ -5,6 +5,7 @@ const ROOT = new URL('../../', import.meta.url);
 // Execute the actual browser module with isolated imports and controlled I/O.
 export async function loadModule(file, exposure, globals = {}) {
   let source = await fs.readFile(new URL(file, ROOT), 'utf8');
+  if (file === 'js/core/api.js') source = await fs.readFile(new URL('js/core/tezos-rpc.mjs', ROOT), 'utf8') + '\n' + source;
   if (['js/core/api.js', 'js/features/price.js', 'js/core/my-tezos-request-broker.mjs', 'js/core/storage.js'].includes(file)) {
     source = await fs.readFile(new URL('js/core/request-policy.mjs', ROOT), 'utf8') + '\n'
       + await fs.readFile(new URL('js/core/source-payloads.mjs', ROOT), 'utf8') + '\n' + source;

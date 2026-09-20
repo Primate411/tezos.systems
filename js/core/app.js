@@ -4134,7 +4134,10 @@ function initUptimeClock() {
     }
 
     async function fetchTopContinuityProtocolBakerSet(blockId) {
-        const url = `${API_URLS.octezMainnet}/chains/main/blocks/${encodeURIComponent(blockId)}/context/delegates?active=true&with_minimal_stake=true`;
+        // The owned pool serves current state; the seven-day baseline requires
+        // archive context that the public rolling nodes do not currently retain.
+        const rpc = blockId === 'head' ? API_URLS.octez : API_URLS.octezMainnet;
+        const url = `${rpc}/chains/main/blocks/${encodeURIComponent(blockId)}/context/delegates?active=true&with_minimal_stake=true`;
         const rows = await fetchWithRetry(url, {
             cache: 'no-store',
             memoryCache: false,
