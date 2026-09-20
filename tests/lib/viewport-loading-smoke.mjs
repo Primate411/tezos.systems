@@ -13,7 +13,9 @@ export async function smokeViewportLoading(browser, baseUrl, { installFeatureMoc
     const historyReady = new Promise(resolve => { releaseHistory = resolve; });
     let heldHead = 0, heldHistory = 0;
     try {
-      await installFeatureMocks(context);
+      // Advance the head explicitly below. History-only reconciliation must
+      // not race unrelated new blocks synthesized by a background read.
+      const fixtures = await installFeatureMocks(context, { blockHeadAutoAdvance: false });
       await context.route('https://api.tzkt.io/v1/**', async route => {
         const url = new URL(route.request().url());
         if (url.pathname === '/v1/blocks' && url.searchParams.get('limit') === '26'
@@ -52,6 +54,7 @@ export async function smokeViewportLoading(browser, baseUrl, { installFeatureMoc
         'an early head must not be persisted as a complete history receipt');
       await capture('essential');
       const firstLevel = await page.evaluate(() => Number(document.querySelector('#live-head')?.dataset.heartbeatLevel));
+      fixtures.advanceBlockHead();
       await page.evaluate(() => window.dispatchEvent(new CustomEvent('block-pulse')));
       await page.waitForFunction(level => Number(document.querySelector('#live-head')?.dataset.heartbeatLevel) > level,
         firstLevel, { timeout: 10000 });

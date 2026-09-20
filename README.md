@@ -1949,6 +1949,9 @@ The offline number-motion shell explicitly verifies unavailable baker history
 and a working Retry that keeps the popover visible. Only its exact expected
 baseline warning is accounted for in that offline context; populated-data
 checks retain the normal warning collector.
+The viewport-loading test advances its head explicitly, then holds that level
+steady while history finishes, so unrelated mock blocks cannot invalidate its
+row-identity, focus and scroll assertions.
 Desktop and mobile source checks also simulate skipped block samples and a
 lagging HTTP-200 RPC host. Finality uses increasing level/timestamp samples
 and elapsed block levels, so polling gaps and stale peers cannot create a
