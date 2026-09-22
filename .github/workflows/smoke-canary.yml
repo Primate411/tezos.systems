@@ -13,8 +13,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  smoke-costs:
+    name: Freeze nightly smoke timings
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Restore adaptive smoke costs
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/smoke-suite-costs.json
+          key: smoke-costs-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            smoke-costs-${{ runner.os }}-
+
+      - name: Seed smoke costs when no hosted ledger exists
+        run: |
+          mkdir -p .cache
+          if [ ! -f .cache/smoke-suite-costs.json ]; then
+            cp tests/fixtures/smoke-suite-costs.json .cache/smoke-suite-costs.json
+          fi
+
+      # All shards must use identical costs even if CI publishes a new cache
+      # while this nightly run is starting.
+      - name: Share one timing snapshot with every nightly shard
+        uses: actions/upload-artifact@v5
+        with:
+          name: nightly-smoke-costs
+          path: .cache/smoke-suite-costs.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
   high-risk-repeat:
     name: High-risk repeat (${{ matrix.shard }}/6)
+    needs: smoke-costs
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
@@ -52,11 +87,18 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --only-shell chromium
 
+      - name: Download shared nightly timings
+        uses: actions/download-artifact@v5
+        with:
+          name: nightly-smoke-costs
+          path: .cache
+
       - name: Repeat high-risk suites
         run: >-
           node tests/smoke.mjs
           --risk high
           --repeat-each 5
+          --suite-costs .cache/smoke-suite-costs.json
           --shard ${{ matrix.shard }}/6
           --continue-on-failure
           --retry-infrastructure 2

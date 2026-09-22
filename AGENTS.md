@@ -57,8 +57,10 @@ the highest-risk gotchas.
   fail-independent shards and uploads every result ledger; a suite that passes
   only on an assertion retry remains a red flaky result, and Pages waits for
   every shard. Successful hosted ledgers update the next run's adaptive cached
-  costs while the committed fixture remains the fallback. Direct waits of at
-  least one second require a named receipt in
+  costs while the committed fixture remains the fallback. Nightly repeat shards
+  share one frozen adaptive timing artifact; missing suites use current fixture
+  costs and join subsequent learning, while retired suites leave the ledger.
+  Direct waits of at least one second require a named receipt in
   `tests/fixtures/smoke-intentional-waits.json`. Keep
   the Octez.Connect SDK and Kraken ticker subscription in the separate nightly
   live-upstream canary; normal CI uses pinned hermetic fixtures for both. Keep

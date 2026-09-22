@@ -116,7 +116,7 @@ const AFFECTED_SINCE = cli.affectedSince;
 const AFFECTED_HIGH_RISK_REPEAT = cli.affectedHighRiskRepeat;
 const SUITE_COSTS_PATH = cli.suiteCostsPath ? path.resolve(ROOT, cli.suiteCostsPath) : '';
 const smokeSuiteCosts = SUITE_COSTS_PATH
-  ? JSON.parse(readFileSync(SUITE_COSTS_PATH, 'utf8'))
+  ? { ...defaultSmokeSuiteCosts, ...JSON.parse(readFileSync(SUITE_COSTS_PATH, 'utf8')) }
   : defaultSmokeSuiteCosts;
 let affectedSelectionReport = null;
 let smokeLifecycle;

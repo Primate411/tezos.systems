@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -27,6 +27,43 @@ function expectThrow(run, pattern) {
 
 async function main() {
   await checkAsyncBrowserWork();
+  const costsDir = await mkdtemp(path.join(os.tmpdir(), 'smoke-costs-check-'));
+  try {
+    const currentCosts = JSON.parse(await readFile('tests/fixtures/smoke-suite-costs.json', 'utf8'));
+    const basePath = path.join(costsDir, 'base.json');
+    const outputPath = path.join(costsDir, 'updated.json');
+    const resultsPath = path.join(costsDir, 'results.json');
+    await writeFile(basePath, JSON.stringify({ 'first-visit-tour': 10, 'retired-suite': 999 }));
+    await writeFile(resultsPath, JSON.stringify({
+      environment: { githubActions: true },
+      summary: { failed: 0, flaky: 0 },
+      results: [
+        { name: 'first-visit-tour', status: 'passed', durationMs: 20_000 },
+        { name: 'live-head-stall', status: 'passed', durationMs: 500_000, repeatEach: 5 },
+        { name: 'retired-suite', status: 'passed', durationMs: 1_000 }
+      ]
+    }));
+    const update = spawnSync(process.execPath, ['scripts/update-smoke-costs.mjs', '--base', basePath, '--output', outputPath, resultsPath], { encoding: 'utf8' });
+    assert.equal(update.status, 0, update.stderr || update.stdout);
+    const updated = JSON.parse(await readFile(outputPath, 'utf8'));
+    assert.deepEqual(Object.keys(updated).sort(), Object.keys(currentCosts).sort(), 'old hosted caches must learn new suites and drop retired suites');
+    assert.equal(updated['first-visit-tour'], 17, 'existing hosted timings must remain the blending baseline');
+    assert.equal(updated['live-head-stall'], Math.round(70 + currentCosts['live-head-stall'] * 0.3), 'new suites must learn normalized repeat timings from the current fallback');
+    assert.equal(updated['network-health'], currentCosts['network-health'], 'unobserved suites must retain current fallback costs');
+
+    const mergedPath = path.join(costsDir, 'merged.json');
+    await writeFile(mergedPath, JSON.stringify({ ...currentCosts, 'first-visit-tour': 10 }));
+    const listShard = (costPath, shard) => {
+      const result = spawnSync(process.execPath, ['tests/smoke.mjs', '--list', '--risk', 'high', '--shard', `${shard}/6`, '--suite-costs', costPath], { encoding: 'utf8' });
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      return result.stdout;
+    };
+    for (let shard = 1; shard <= 6; shard += 1) {
+      assert.equal(listShard(basePath, shard), listShard(mergedPath, shard), 'partial hosted ledgers must use current fallback costs for every missing suite');
+    }
+  } finally {
+    await rm(costsDir, { recursive: true, force: true });
+  }
   assert.deepEqual(parseShard('2/4'), { index: 2, total: 4, value: '2/4' });
   assert.equal(parseShard(''), null);
   expectThrow(() => parseShard('2'), /expected <index>\/<total>/);

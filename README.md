@@ -2463,6 +2463,11 @@ caches it by the resolved Playwright version rather than invalidating the large
 browser cache for unrelated lockfile edits. A scheduled high-risk five-repeat
 canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
+The nightly shards share one frozen copy of the latest successful CI timing
+ledger, with the committed fixture as the cold-cache fallback. Missing suites
+use their current fixture costs and join future timing updates; retired suites
+are removed from the learned ledger. This keeps five-repeat coverage balanced
+without reducing repetitions or extending the 60-minute job limit.
 The SDK canary retains the dashboard CSP and real wallet loader while disabling
 analytics and the service-worker API blocked by the browser harness. Strict
 warning collection stays enabled, and an injected SDK import failure verifies

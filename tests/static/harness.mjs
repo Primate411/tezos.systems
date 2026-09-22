@@ -63,6 +63,9 @@ export function createHarnessStaticChecks({
     for (const snippet of ["cron: '17 9 * * *'", '--risk high', '--repeat-each 5', '--hermetic', '--allow-live-network', 'octez-connect-sdk-loader,kraken-websocket-canary', 'if: always()']) {
       if (!canaryWorkflow.includes(snippet)) fail(`nightly smoke canary must include ${snippet}`);
     }
+    for (const snippet of ['needs: smoke-costs', 'actions/cache/restore@v5', 'actions/download-artifact@v5', 'name: nightly-smoke-costs', 'include-hidden-files: true', 'cp tests/fixtures/smoke-suite-costs.json .cache/smoke-suite-costs.json', '--suite-costs .cache/smoke-suite-costs.json']) {
+      if (!canaryWorkflow.includes(snippet)) fail(`nightly shards must share adaptive timings with a cold-cache fallback through ${snippet}`);
+    }
 
     const directLongWaits = Array.from(smoke.matchAll(/waitForTimeout\(\s*([\d_]+)\s*\)/g))
       .map((match) => ({ literal: match[1], milliseconds: Number(match[1].replaceAll('_', '')) }))

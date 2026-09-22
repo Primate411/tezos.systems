@@ -92,7 +92,14 @@ async function main() {
   if (!options.inputs.length) throw new Error(`at least one artifact path is required\n\n${usage()}`);
 
   const basePath = path.resolve(ROOT, options.base);
-  const baseline = JSON.parse(await readFile(basePath, 'utf8'));
+  const currentCosts = JSON.parse(await readFile(path.join(ROOT, 'tests/fixtures/smoke-suite-costs.json'), 'utf8'));
+  const cachedCosts = JSON.parse(await readFile(basePath, 'utf8'));
+  // A cache can predate newly added suites. Seed them from today's catalog and
+  // drop retired entries so every current suite can learn from hosted receipts.
+  const baseline = Object.fromEntries(Object.entries(currentCosts).map(([name, fallback]) => {
+    const cached = Number(cachedCosts[name]);
+    return [name, Number.isFinite(cached) && cached > 0 ? cached : fallback];
+  }));
   const files = [...new Set((await Promise.all(options.inputs.map(collectResultFiles))).flat())];
   if (!files.length) throw new Error('no results.json files found in the supplied artifact paths');
 
