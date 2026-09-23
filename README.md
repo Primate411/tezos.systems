@@ -2291,6 +2291,12 @@ are retained. Each moved browser module has explicit affected-suite
 ownership. Source contracts follow the entry's imported feature files rather than
 counting unreferenced test files as coverage.
 
+The lazy Chamber loading suite pins Whale Watch data along with its account and
+operation receipts so scheduled transfer snapshots cannot change its external
+requests. Responsive tooltip checks wait for fonts and a stable, unobstructed
+control before clicking; they still require the actual pointer click to open the
+tooltip and preserve the viewport containment assertions.
+
 The smoke runner's owned server uses explicit IPv4 loopback and a 256-connection
 queue to accommodate concurrent module requests. It serves the same repository
 bytes through Python's standard handler; the static gate checks a 96-request

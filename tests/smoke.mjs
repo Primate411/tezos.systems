@@ -4627,6 +4627,30 @@ async function assertChamberInfoTooltipsContained(page, label) {
       return card && !card.hasAttribute('data-chamber-skeleton')
         && card.querySelector(':scope > .card-info-btn')?.dataset.chamberInfoWired === '1';
     }, selector, { timeout: 10000 });
+    // This fixture hydrates every launcher together. Late initial content and
+    // font placement can move the card between Playwright's two stable frames
+    // and pointer release, turning an info click into a card-surface click.
+    await page.evaluate(() => document.fonts.ready);
+    await button.scrollIntoViewIfNeeded();
+    await page.waitForFunction(cardSelector => {
+      const info = document.querySelector(`${cardSelector} > .card-info-btn`);
+      if (!info) return false;
+      const box = info.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      if (!hit || !info.contains(hit)) {
+        delete info.__smokeClickGeometry;
+        return false;
+      }
+      const signature = [box.x, box.y, box.width, box.height, window.scrollY].join(':');
+      const previous = info.__smokeClickGeometry;
+      if (previous?.signature !== signature) {
+        info.__smokeClickGeometry = { signature, since: performance.now() };
+        return false;
+      }
+      if (performance.now() - previous.since < 250) return false;
+      delete info.__smokeClickGeometry;
+      return true;
+    }, selector, { timeout: 10000 });
     await button.click();
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'

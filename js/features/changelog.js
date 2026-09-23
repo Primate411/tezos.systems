@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-23',
+        entries: [
+            { type: '🔧', text: 'Release checks keep Chamber loading fixtures consistent as live transfers change and wait for tooltip controls to settle before testing clicks' }
+        ]
+    },
+    {
         date: '2026-09-22',
         entries: [
             { type: '🔧', text: 'Nightly reliability checks balance their full repeated coverage using current test timings so slower checks can finish within the scheduled run' }

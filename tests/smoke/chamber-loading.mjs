@@ -871,7 +871,9 @@ export function createChamberLoadingSmokeSuites({
     const installLazyInit = async (context) => {
       // Opening the room may now finish before the close click: keep counts and
       // paged receipts coherent instead of pairing a generic count with no rows.
-      await installFeatureMocks(context, { ledgerFlowMocks: true });
+      // A Whale Watch highlight can open an account receipt during hydration.
+      // Pin that source too so scheduled transfers cannot introduce new URLs.
+      await installFeatureMocks(context, { ledgerFlowMocks: true, whaleChamberMocks: true });
       await context.route(/^https:\/\/api\.tzkt\.io\/v1\/accounts\/tz[1-4][^/?]+(?:\?.*)?$/, async (route) => {
         const parsedUrl = new URL(route.request().url());
         const address = decodeURIComponent(parsedUrl.pathname.split('/').pop() || '');
