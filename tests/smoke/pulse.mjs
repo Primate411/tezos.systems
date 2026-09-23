@@ -720,7 +720,7 @@ export function createPulseSmokeSuites({
       );
       assert(
         /Octez 25\.2/.test(overlayPresentation.text)
-          && /EVM Node 0\.65/.test(overlayPresentation.text)
+          && /EVM Node 0\.66/.test(overlayPresentation.text)
           && /Mainnet proposal readiness/.test(overlayPresentation.text)
           && /Dependency boundaries/.test(overlayPresentation.text)
           && /Status-change ledger/.test(overlayPresentation.text)

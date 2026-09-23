@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-23',
         entries: [
+            { type: '🔧', text: 'Release Radar has fresh primary-source receipts for EVM node 0.66 and current Tezos X governance and documentation, while keeping the full launch unconfirmed' },
             { type: '🔧', text: 'Release checks keep Chamber loading fixtures consistent as live transfers change and wait for tooltip controls to settle before testing clicks' }
         ]
     },

@@ -39,9 +39,9 @@ assert.equal(octez.confidence, 'high', 'published binaries and a canonical relea
 assert.equal(octez.lifecycle, 'released');
 assert.equal(octez.releasedAt, '2026-09-02T14:22:03.407Z', 'Octez publication must use released_at, not the August 24 source commit date');
 assert(octez.evidence.some((receipt) => receipt.url === 'https://octez.tezos.com/releases/'), 'the Octez lane checks the canonical public release page');
-assert.equal(evmNode.lifecycle, 'released', 'the direct 0.65 publication is a confirmed release');
-assert.equal(evmNode.label, 'EVM Node 0.65');
-assert.equal(evmNode.releasedAt, '2026-08-24T17:07:09.170Z', 'EVM node publication keeps its separate canonical release clock');
+assert.equal(evmNode.lifecycle, 'released', 'the direct 0.66 publication is a confirmed release');
+assert.equal(evmNode.label, 'EVM Node 0.66');
+assert.equal(evmNode.releasedAt, '2026-09-11T08:00:21.428Z', 'EVM node publication keeps its separate canonical release clock');
 for (const candidate of [octez, evmNode]) {
   assert.equal(candidate.horizon, '', 'released artifacts cannot retain a forecast ETA');
   assert(candidate.evidence.some(receipt => receipt.url.includes('/api/v4/') && receipt.note.includes(candidate.releasedAt)), 'publication time has a directly inspectable primary receipt');
@@ -53,6 +53,7 @@ assert.equal(signal.kind, 'state', 'the aggregate forecast does not decay like a
 assert(
   [
     `176:${octez.id}`,
+    `176:${evmNode.id}`,
     '166:'
   ].includes(`${signal.score}:${signal.releaseRadar.excitingCandidateId}`),
   'the reviewed signal transitions cleanly after the 14-day recent-release window without a fake completion percentage'
