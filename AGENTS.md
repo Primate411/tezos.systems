@@ -740,7 +740,9 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 ## Automation and Scripts
 
 - `.github/workflows/collect-data.yml`: scheduled historical data collector,
-  currently every 2 hours.
+  currently every 2 hours, also reused independently by the chamber-history
+  workflow for catch-up. Both paths share one concurrency lock and skip source
+  collection when the latest stored global row is less than two hours old.
 - `.github/workflows/refresh-tezoscrp.yml`: checks the official Tezos Commons
   Medium feed on the 10th and 25th monthly and commits only a new official award
   period. The read-only freshness audit watches its 45-day delivery envelope;

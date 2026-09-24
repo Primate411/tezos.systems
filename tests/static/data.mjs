@@ -239,6 +239,15 @@ export function createDataStaticChecks({
         fail(`both historical collectors must share the Supabase delivery contract through ${snippet}`);
       }
     }
+    for (const snippet of ['workflow_call:', 'group: tezos-systems-global-history', 'cancel-in-progress: false']) {
+      if (!globalCollectorWorkflow.includes(snippet)) fail(`global history primary and catch-up collection must share ${snippet}`);
+    }
+    if (!chamberCollectorWorkflow.includes('uses: ./.github/workflows/collect-data.yml')
+      || !chamberCollectorWorkflow.includes('SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}')
+      || !collector.includes('await globalHistoryCollectionDue(')
+      || !collector.includes('if (!cadence.due)')) {
+      fail('chamber history must offer an independent, cadence-gated global catch-up opportunity');
+    }
     for (const snippet of ['DEFAULT_ATTEMPTS = 5', 'isRetryableSupabaseStatus', 'confirmTimestampStored', 'retryAfterMilliseconds', 'alreadyStored']) {
       if (!supabaseWrite.includes(snippet)) fail(`Supabase write delivery must preserve ${snippet}`);
     }

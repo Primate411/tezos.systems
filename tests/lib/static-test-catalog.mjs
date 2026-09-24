@@ -38,6 +38,7 @@ export const STATIC_CHECKS = Object.freeze([
     "script": "tests/supabase-write-check.mjs",
     "args": []
   },
+  { "script": "tests/global-history-cadence-check.mjs", "args": [] },
   {
     "script": "tests/anniversary-check.mjs",
     "args": []

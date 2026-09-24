@@ -7,6 +7,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  global-history:
+    name: Catch up global history
+    uses: ./.github/workflows/collect-data.yml
+    secrets:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
   collect:
     runs-on: ubuntu-latest
     steps:

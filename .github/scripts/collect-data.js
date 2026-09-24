@@ -2,6 +2,7 @@
 // Fetches current Tezos stats and stores them in Supabase
 
 const { postSupabaseJson, TEMPORARY_FAILURE_EXIT_CODE } = require('./supabase-write.js');
+const { globalHistoryCollectionDue } = require('./global-history-cadence.js');
 
 const TZKT_API = 'https://api.tzkt.io/v1';
 const OCTEZ_RPC = 'https://eu.rpc.tez.capital'; // Better for GitHub Actions
@@ -381,6 +382,15 @@ async function collectData() {
   console.log('Starting data collection...');
 
   try {
+    const cadence = await globalHistoryCollectionDue({
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseKey: process.env.SUPABASE_KEY
+    });
+    if (!cadence.due) {
+      console.log(`Global history is within its two-hour capture interval (latest ${cadence.latest}); skipping collection`);
+      return;
+    }
+
     // Fetch issuance first to get total supply
     const issuanceData = await getIssuanceRate();
 

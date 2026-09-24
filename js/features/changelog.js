@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-24',
+        entries: [
+            { type: '🔧', text: 'Historical network snapshots get extra catch-up opportunities when scheduled collection is delayed, while preserving their two-hour capture target and five-hour freshness alarm' }
+        ]
+    },
+    {
         date: '2026-09-23',
         entries: [
             { type: '🔧', text: 'Release Radar has fresh primary-source receipts for EVM node 0.66 and current Tezos X governance and documentation, while keeping the full launch unconfirmed' },

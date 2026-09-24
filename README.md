@@ -1868,7 +1868,13 @@ collector should use a service-role or equivalent server-side secret for
 `SUPABASE_KEY`; the browser anon key should remain read-only under RLS.
 `.github/workflows/collect-data.yml` writes the 2-hour global `tezos_history`
 row, while `.github/workflows/collect-chamber-history.yml` writes 30-minute
-market, Network Health, Tezos X, and governance-period snapshots. Both retry
+market, Network Health, Tezos X, and governance-period snapshots. The chamber workflow
+also independently invokes the global collector as a catch-up opportunity;
+both global paths share one concurrency lock and read the latest stored timestamp
+before fetching source data. A row less than two hours old skips collection,
+preserving the intended capture interval even when both schedules arrive together.
+An empty ledger collects immediately; unreadable or invalid cadence receipts
+never count as a successful skip. Both collectors retry
 temporary Supabase transport, rate-limit, and 5xx failures with bounded backoff
 and confirm the exact timestamp before retrying an ambiguous write. If those
 retries are exhausted, the workflow keeps the last-good ledger and records a
