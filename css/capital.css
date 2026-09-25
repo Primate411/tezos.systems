@@ -12,7 +12,7 @@
     border-color: color-mix(in srgb, var(--capital-accent) 34%, var(--border-color, #334155));
     background:
         radial-gradient(circle at 88% 16%, rgba(243, 201, 105, .14), transparent 36%),
-        radial-gradient(circle at 12% 90%, rgba(105, 231, 195, .12), transparent 42%),
+        radial-gradient(circle at 12% 90%, color-mix(in srgb, var(--capital-accent) 12%, transparent), transparent 42%),
         var(--card-bg, rgba(10, 18, 30, .96));
 }
 
@@ -22,7 +22,7 @@
     inset: 0;
     pointer-events: none;
     opacity: .26;
-    background-image: linear-gradient(rgba(105, 231, 195, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(105, 231, 195, .08) 1px, transparent 1px);
+    background-image: linear-gradient(color-mix(in srgb, var(--capital-accent) 8%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--capital-accent) 8%, transparent) 1px, transparent 1px);
     background-size: 28px 28px;
     mask-image: linear-gradient(90deg, #000, transparent 72%);
 }
@@ -56,11 +56,11 @@
 
 .capital-entry-chip {
     padding: 3px 7px;
-    border: 1px solid rgba(105, 231, 195, .3);
+    border: 1px solid color-mix(in srgb, var(--capital-accent) 30%, transparent);
     border-radius: 999px;
     color: var(--capital-accent);
-    background: rgba(105, 231, 195, .08);
-    font: 600 10px/1.2 "JetBrains Mono", monospace;
+    background: color-mix(in srgb, var(--capital-accent) 8%, transparent);
+    font: 600 10px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .06em;
     text-transform: uppercase;
 }
@@ -74,7 +74,7 @@
 .capital-entry-source-label {
     margin-left: 8px;
     color: var(--text-muted, #94a3b8);
-    font: 500 10px/1.3 "JetBrains Mono", monospace;
+    font: 500 10px/1.3 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .05em;
     text-transform: uppercase;
 }
@@ -97,14 +97,14 @@
 .capital-entry-kpi small {
     display: block;
     color: var(--text-muted, #94a3b8);
-    font: 500 10px/1.35 "JetBrains Mono", monospace;
+    font: 500 10px/1.35 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-entry-kpi strong {
     display: block;
     margin: 3px 0 1px;
     color: var(--text-primary, #f8fafc);
-    font: 700 1.05rem/1.2 "JetBrains Mono", monospace;
+    font: 700 1.05rem/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-entry-price-chart,
@@ -112,9 +112,9 @@
     grid-column: 1 / -1;
     min-width: 0;
     min-height: 50px;
-    border: 1px solid rgba(105, 231, 195, .15);
+    border: 1px solid color-mix(in srgb, var(--capital-accent) 15%, transparent);
     border-radius: 10px;
-    background: linear-gradient(90deg, rgba(105, 231, 195, .075), rgba(7, 14, 25, .28));
+    background: linear-gradient(90deg, color-mix(in srgb, var(--capital-accent) 7.5%, transparent), rgba(7, 14, 25, .28));
 }
 
 .capital-entry-price-chart {
@@ -130,7 +130,7 @@
     display: grid;
     gap: 3px;
     color: var(--text-muted, #94a3b8);
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
+    font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .055em;
     text-transform: uppercase;
 }
@@ -158,7 +158,7 @@
 }
 
 .capital-entry-price-area {
-    fill: rgba(105, 231, 195, .12);
+    fill: color-mix(in srgb, var(--capital-accent) 12%, transparent);
 }
 
 .capital-entry-price-line {
@@ -180,7 +180,7 @@
     place-items: center;
     padding: 8px;
     color: var(--text-muted, #94a3b8);
-    font: 600 9px/1.3 "JetBrains Mono", monospace;
+    font: 600 9px/1.3 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .05em;
     text-transform: uppercase;
 }
@@ -196,7 +196,7 @@
     border-radius: 6px;
     color: var(--text-secondary, #cbd5e1);
     background: rgba(148, 163, 184, .08);
-    font: 500 10px/1.2 "JetBrains Mono", monospace;
+    font: 500 10px/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-overlay {
@@ -208,7 +208,7 @@
 }
 
 .capital-content {
-    border: 1px solid rgba(105, 231, 195, .28);
+    border: 1px solid color-mix(in srgb, var(--capital-accent) 28%, transparent);
     background: #08111d;
     box-shadow: 0 30px 90px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .025) inset;
 }
@@ -222,7 +222,7 @@
 .capital-body {
     color: #dce8f4;
     background:
-        radial-gradient(circle at 12% 0%, rgba(105, 231, 195, .09), transparent 30%),
+        radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--capital-accent) 9%, transparent), transparent 30%),
         radial-gradient(circle at 96% 4%, rgba(243, 201, 105, .08), transparent 28%),
         #08111d;
 }
@@ -251,7 +251,7 @@
 
 .capital-tab {
     color: #8ea4ba;
-    font: 600 11px/1.2 "JetBrains Mono", monospace;
+    font: 600 11px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .035em;
 }
 
@@ -272,7 +272,7 @@
 
 .capital-tab[aria-selected="true"]::after {
     background: var(--capital-accent);
-    box-shadow: 0 0 12px rgba(105, 231, 195, .48);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--capital-accent) 48%, transparent);
 }
 
 .capital-tab:focus-visible,
@@ -289,7 +289,7 @@
 .capital-view-head h3 {
     margin: 0 0 5px;
     color: #f5fbff;
-    font-family: "Orbitron", sans-serif;
+    font-family: var(--font-display, "Orbitron"), sans-serif;
     font-weight: 700;
     line-height: 1.25;
 }
@@ -318,7 +318,7 @@
 
 .capital-range-label {
     color: #6f879e;
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
+    font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -330,7 +330,7 @@
     border-radius: 6px;
     color: #7f96ad;
     background: transparent;
-    font: 600 10px/1.2 "JetBrains Mono", monospace;
+    font: 600 10px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     cursor: pointer;
 }
 
@@ -352,14 +352,14 @@
     padding-inline: 10px;
     color: #9fb5c9;
     border-style: dashed;
-    font: 600 10px/1.2 "JetBrains Mono", monospace;
+    font: 600 10px/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-cost-section {
     margin-top: 14px;
     padding: 16px;
     scroll-margin-top: 170px;
-    border: 1px solid rgba(105, 231, 195, .2);
+    border: 1px solid color-mix(in srgb, var(--capital-accent) 20%, transparent);
     border-radius: 15px;
     background:
         radial-gradient(circle at 92% 0%, rgba(98, 182, 255, .09), transparent 34%),
@@ -376,7 +376,7 @@
 
 .capital-section-head span {
     color: var(--capital-accent);
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
+    font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -384,7 +384,7 @@
 .capital-section-head h4 {
     margin: 4px 0 0;
     color: #eff8ff;
-    font: 700 1rem/1.25 "Orbitron", sans-serif;
+    font: 700 1rem/1.25 var(--font-display, "Orbitron"), sans-serif;
 }
 
 .capital-section-head p {
@@ -426,7 +426,7 @@
 .capital-coverage,
 .capital-table th,
 .capital-source-receipt {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-kpi-label {
@@ -439,7 +439,7 @@
 .capital-kpi-value {
     margin: 7px 0 4px;
     color: #f7fbff;
-    font: 700 clamp(1.35rem, 2.5vw, 2.1rem)/1.1 "JetBrains Mono", monospace;
+    font: 700 clamp(1.35rem, 2.5vw, 2.1rem)/1.1 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: -.045em;
 }
 
@@ -470,9 +470,9 @@
 .capital-market-price-panel {
     overflow: hidden;
     padding: 18px;
-    border-color: rgba(105, 231, 195, .24);
+    border-color: color-mix(in srgb, var(--capital-accent) 24%, transparent);
     background:
-        radial-gradient(circle at 82% 2%, rgba(105, 231, 195, .105), transparent 38%),
+        radial-gradient(circle at 82% 2%, color-mix(in srgb, var(--capital-accent) 10.5%, transparent), transparent 38%),
         linear-gradient(135deg, rgba(10, 25, 37, .98), rgba(8, 17, 29, .92));
 }
 
@@ -487,7 +487,7 @@
 .capital-panel-head h4 {
     margin: 2px 0 0;
     color: #eef7ff;
-    font: 650 .88rem/1.3 "JetBrains Mono", monospace;
+    font: 650 .88rem/1.3 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-panel-kicker {
@@ -562,7 +562,7 @@
 
 .capital-price-summary small {
     color: #7189a0;
-    font: 600 8px/1.2 "JetBrains Mono", monospace;
+    font: 600 8px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -570,7 +570,7 @@
 .capital-price-summary strong {
     margin-top: 4px;
     color: #eef7ff;
-    font: 700 clamp(.9rem, 1.4vw, 1.08rem)/1.15 "JetBrains Mono", monospace;
+    font: 700 clamp(.9rem, 1.4vw, 1.08rem)/1.15 var(--font-data, "JetBrains Mono"), monospace;
     font-variant-numeric: tabular-nums;
 }
 
@@ -591,7 +591,7 @@
 .capital-price-axis,
 .capital-price-date {
     fill: #7189a0;
-    font: 500 9px "JetBrains Mono", monospace;
+    font: 500 9px var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-price-area {
@@ -605,11 +605,11 @@
     stroke-linejoin: round;
     stroke-width: 2.5;
     vector-effect: non-scaling-stroke;
-    filter: drop-shadow(0 0 5px rgba(105, 231, 195, .22));
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--capital-accent) 22%, transparent));
 }
 
 .capital-price-end-halo {
-    fill: rgba(105, 231, 195, .16);
+    fill: color-mix(in srgb, var(--capital-accent) 16%, transparent);
 }
 
 .capital-price-end {
@@ -625,7 +625,7 @@
     place-items: center;
     padding: 20px;
     color: #70879f;
-    font: 500 11px/1.55 "JetBrains Mono", monospace;
+    font: 500 11px/1.55 var(--font-data, "JetBrains Mono"), monospace;
     text-align: center;
 }
 
@@ -635,7 +635,7 @@
     gap: 11px;
     margin-top: 8px;
     color: #8299af;
-    font: 500 9px/1.3 "JetBrains Mono", monospace;
+    font: 500 9px/1.3 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-legend span::before {
@@ -689,11 +689,11 @@
 }
 
 .capital-table tbody tr:hover {
-    background: rgba(105, 231, 195, .035);
+    background: color-mix(in srgb, var(--capital-accent) 3.5%, transparent);
 }
 
 .capital-table .is-number {
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-variant-numeric: tabular-nums;
     text-align: right;
 }
@@ -704,10 +704,10 @@
     border-radius: 999px;
     color: #9fb5c9;
     border: 1px solid rgba(148, 163, 184, .18);
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
+    font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 
-.capital-quality.is-good { color: #7cf0c9; border-color: rgba(105, 231, 195, .34); }
+.capital-quality.is-good { color: #7cf0c9; border-color: color-mix(in srgb, var(--capital-accent) 34%, transparent); }
 .capital-quality.is-warn { color: #ffd18a; border-color: rgba(243, 201, 105, .4); }
 .capital-quality.is-bad { color: #ff9db5; border-color: rgba(242, 140, 168, .4); }
 
@@ -719,7 +719,7 @@
 .capital-gap-card h4 {
     margin: 0 0 7px;
     color: #eff8ff;
-    font: 650 .86rem/1.35 "JetBrains Mono", monospace;
+    font: 650 .86rem/1.35 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-proof-card p,
@@ -735,7 +735,7 @@
     grid-template-columns: auto 1fr;
     gap: 7px 11px;
     margin: 13px 0 0;
-    font: 500 10px/1.35 "JetBrains Mono", monospace;
+    font: 500 10px/1.35 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-proof-card dt { color: #7189a0; }
@@ -754,7 +754,7 @@
     border-radius: 5px;
     color: #ffd18a;
     background: rgba(243, 201, 105, .1);
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
+    font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .06em;
     text-transform: uppercase;
 }
@@ -791,7 +791,7 @@
 .capital-source-ledger {
     flex: 1 0 100%;
     color: #7890a7;
-    font: 500 9px/1.45 "JetBrains Mono", monospace;
+    font: 500 9px/1.45 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-source-ledger summary {
@@ -837,7 +837,7 @@
     border-radius: 9px;
     color: #c9d8e7;
     background: rgba(7, 14, 24, .55);
-    font: 600 10px/1.35 "JetBrains Mono", monospace;
+    font: 600 10px/1.35 var(--font-data, "JetBrains Mono"), monospace;
     text-decoration: none;
 }
 
@@ -849,7 +849,7 @@
 }
 
 .capital-pathway:hover {
-    border-color: rgba(105, 231, 195, .36);
+    border-color: color-mix(in srgb, var(--capital-accent) 36%, transparent);
     color: #edfff9;
 }
 
@@ -867,7 +867,7 @@
     display: block;
     margin-bottom: 9px;
     color: #eaf6ff;
-    font: 650 1rem/1.4 "JetBrains Mono", monospace;
+    font: 650 1rem/1.4 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .capital-loading span,

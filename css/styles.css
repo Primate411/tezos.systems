@@ -7689,8 +7689,9 @@ body.high-combo .stat-card {
 }
 
 /* Fix word-spacing in protocol history modals (mobile rendering bug) */
-#protocol-history-modal .modal-large *,
-#history-modal .modal-large * {
+/* Cycle History is a Chamber with its own type scale; the extra spacing made
+   its mono labels read as spaced-out words, so it stays scoped to protocol history. */
+#protocol-history-modal .modal-large * {
     word-spacing: 0.15em !important;
     text-rendering: geometricPrecision;
     -webkit-text-size-adjust: 100%;
@@ -12009,7 +12010,7 @@ body[data-theme="valley"]::after {
  * low-contrast light-surface colors. Maxis and Staking own purpose-built light
  * Clean surfaces and therefore remain outside this contract.
  */
-[data-theme="clean"] .chamber-content:not(.maxis-content):not(.staking-chamber-content) {
+[data-theme="clean"] .chamber-content {
     --chamber-surface-bg: #07101D;
     --surface-heading-color: #F2F7FF;
     --surface-data-color: #F2F7FF;
@@ -12039,11 +12040,11 @@ body[data-theme="valley"]::after {
     color-scheme: dark;
 }
 
-[data-theme="clean"] .chamber-content:not(.maxis-content):not(.staking-chamber-content) :is(.stat-value, .metric-value, .value-text, .big-number, .large-stat, .protocol-number) {
+[data-theme="clean"] .chamber-content :is(.stat-value, .metric-value, .value-text, .big-number, .large-stat, .protocol-number) {
     color: var(--surface-data-color) !important;
 }
 
-[data-theme="clean"] .chamber-content:not(.maxis-content):not(.staking-chamber-content) a:hover {
+[data-theme="clean"] .chamber-content a:hover {
     color: var(--surface-link-hover) !important;
 }
 
@@ -26701,10 +26702,14 @@ body[data-theme="hen"]::after {
 }
 .drawer-schedule-upcoming { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 #my-tezos-drawer .drawer-schedule-right { min-height: 0; justify-content: flex-start; gap: 6px; padding: 12px; background: var(--my-surface); border-color: var(--my-edge); }
-#my-tezos-drawer .drawer-schedule-right:first-child { background: #f3c969; border-color: #f9dea2; box-shadow: inset 0 1px 0 #fff3ce; }
-#my-tezos-drawer .drawer-schedule-right:first-child :is(.drawer-operator-label, .drawer-operator-value, .drawer-operator-detail, a) { color: #241b08; text-shadow: none; }
-#my-tezos-drawer .drawer-schedule-right:first-child .drawer-schedule-time { color: #514019; }
-#my-tezos-drawer .drawer-schedule-right:first-child .drawer-operator-detail a { color: #241b08 !important; }
+/* The next right leads by weight and a warm edge, not a solid yellow slab. */
+#my-tezos-drawer .drawer-schedule-right:first-child {
+    border-color: color-mix(in srgb, var(--chamber-watch-color, #f5d65b) 55%, var(--my-edge));
+    background: color-mix(in srgb, var(--chamber-watch-color, #f5d65b) 9%, var(--my-surface));
+    box-shadow: inset 3px 0 0 var(--chamber-watch-color, #f5d65b);
+}
+#my-tezos-drawer .drawer-schedule-right:first-child .drawer-operator-label { color: var(--chamber-watch-color, #f5d65b); }
+#my-tezos-drawer .drawer-schedule-right:first-child .drawer-operator-value { color: var(--text-primary); }
 #my-tezos-drawer .drawer-schedule-right .drawer-operator-value { font-size: 1.45rem; text-shadow: none; }
 #my-tezos-drawer .drawer-schedule-right .drawer-operator-label { min-height: 2.4em; font-size: 0.61rem; }
 #my-tezos-drawer .drawer-schedule-right .drawer-operator-detail { font-size: 0.7rem; opacity: 1; }
@@ -26980,3 +26985,35 @@ body[data-theme="hen"]::after {
     .drawer-attestation-allowance a { display: inline-flex; min-height: 44px; align-items: center; }
 }
 /* MY_TEZOS_LAZY_END */
+
+.my-tezos-scope-select[hidden] { display: none !important; }
+
+/* Status dots replace emoji in My Tezos labels. */
+.my-tezos-dot {
+    display: inline-block;
+    flex: none;
+    width: 0.5em;
+    height: 0.5em;
+    margin-right: 0.45em;
+    border-radius: 50%;
+    background: var(--dot, var(--accent-cyan));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, var(--accent-cyan)) 22%, transparent);
+    vertical-align: 0.08em;
+}
+#my-tezos-drawer {
+    --my-tezos-earnings: var(--color-success, #10b981);
+    --my-tezos-baker: var(--chamber-watch-color, #f5d65b);
+    --my-tezos-governance: var(--accent-purple, #a78bfa);
+    --my-tezos-story: var(--accent-cyan, #45e0c8);
+}
+
+/* Standalone /my/ is the page itself, not a drawer over a page: centre it as a
+   room so a wide screen has no blank left half. */
+@media (min-width: 1100px) {
+    html[data-chamber-route="my"] #my-tezos-drawer.open {
+        right: max(0px, calc((100vw - 1180px) / 2));
+        width: min(1180px, 100vw);
+        border-right: 1px solid var(--my-edge);
+        box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
+    }
+}

@@ -16,8 +16,7 @@
     z-index: 10002 !important;
 }
 
-[data-theme="clean"] .tezoscrp-entry-card,
-[data-theme="clean"] .tezoscrp-overlay {
+[data-theme="clean"] .tezoscrp-entry-card {
     --tezoscrp-accent: #5b3fc5;
     --tezoscrp-accent-rgb: 91, 63, 197;
     --tezoscrp-gold: #9a5b00;
@@ -71,7 +70,7 @@
 .tezoscrp-category-card > span,
 .tezoscrp-person-detail-head > div > span {
     color: var(--tezoscrp-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.62rem;
     font-weight: 850;
     letter-spacing: 0.11em;
@@ -122,7 +121,7 @@
     border: 1px solid color-mix(in srgb, var(--tezoscrp-accent) 28%, transparent);
     border-radius: 50%;
     color: var(--tezoscrp-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.55rem;
 }
 
@@ -148,7 +147,7 @@
 .tezoscrp-entry-identity-strip small {
     margin-top: 0.12rem;
     color: var(--tezoscrp-muted);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.48rem;
 }
 
@@ -274,11 +273,6 @@
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-[data-theme="clean"] .tezoscrp-content > .chamber-close {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    color: #0f172a;
-}
 
 .tezoscrp-body {
     min-height: 72vh;
@@ -444,7 +438,7 @@
 .tezoscrp-metrics span,
 .tezoscrp-controls label > span {
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.57rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -454,7 +448,7 @@
 .tezoscrp-metrics strong {
     margin-top: 0.4rem;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: clamp(1.25rem, 3vw, 2rem);
     line-height: 1;
 }
@@ -529,7 +523,7 @@
 .tezoscrp-ranking-head {
     padding: 0.5rem 0.7rem;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.54rem;
     font-weight: 800;
     letter-spacing: 0.07em;
@@ -609,7 +603,7 @@
 
 .tezoscrp-rank {
     color: var(--tezoscrp-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.72rem;
     font-weight: 900;
 }
@@ -647,7 +641,7 @@
 
 .tezoscrp-ranking time,
 .tezoscrp-ranking button > span:not(.tezoscrp-rank):not(.tezoscrp-person) {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.67rem;
 }
 
@@ -730,7 +724,7 @@
 
 .tezoscrp-person-categories small {
     color: var(--text-secondary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.62rem;
 }
 
@@ -857,7 +851,7 @@
 
 .tezoscrp-category-winners header > strong {
     color: var(--tezoscrp-gold);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 1rem;
 }
 
@@ -943,7 +937,7 @@
 
 .tezoscrp-category-card > div strong {
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 1.15rem;
 }
 
@@ -1007,7 +1001,7 @@
 .tezoscrp-record-holder-type,
 .tezoscrp-record-hero label > span {
     color: var(--tezoscrp-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.56rem;
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -1088,7 +1082,7 @@
 
 .tezoscrp-record-year-metrics b {
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 1.15rem;
 }
 
@@ -1151,7 +1145,7 @@
 
 .tezoscrp-record-years span {
     color: var(--tezoscrp-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
     font-weight: 900;
 }
@@ -1186,7 +1180,7 @@
     margin-top: 0.9rem;
     padding: 0 0.7rem 0.45rem;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.52rem;
     font-weight: 850;
     letter-spacing: 0.08em;
@@ -1233,7 +1227,7 @@
 
 .tezoscrp-record-board button > :first-child {
     color: var(--tezoscrp-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.65rem;
     font-weight: 900;
 }
@@ -1267,7 +1261,7 @@
 
 .tezoscrp-record-board button > :nth-child(n + 3) {
     justify-self: end;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.66rem;
 }
 
@@ -1341,7 +1335,7 @@
 
 .tezoscrp-record-holder-total b {
     color: var(--tezoscrp-gold);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .tezoscrp-record-history {
@@ -1363,7 +1357,7 @@
 .tezoscrp-archive-count {
     margin: 0.4rem 0 0.7rem;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
 }
 
@@ -1382,7 +1376,7 @@
 
 .tezoscrp-archive-list time {
     color: var(--text-secondary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.65rem;
 }
 

@@ -138,7 +138,8 @@ export function createPublicRoutesSmokeSuites({
           await page.waitForFunction(() => {
             const drawer = document.querySelector('#my-tezos-drawer.open');
             const rect = drawer?.getBoundingClientRect();
-            return Boolean(rect) && Math.abs(rect.right - window.innerWidth) <= 1;
+            // Settled open: flush right as a drawer, or centred as the standalone /my/ page on wide screens.
+            return Boolean(rect) && (Math.abs(rect.right - window.innerWidth) <= 1 || Math.abs((rect.left + rect.right) / 2 - window.innerWidth / 2) <= 1);
           }, null, { timeout: 3000 });
         }
 

@@ -49,7 +49,7 @@
 .funding-panel-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .funding-panel-heading h2 { font-size: 19px; margin: 0 0 5px; letter-spacing: -.025em; }
 .funding-panel-heading p { color: var(--funding-muted); font-size: 12px; margin: 0; }
-.funding-panel-heading > span { color: var(--funding-muted); font: 10px 'JetBrains Mono', monospace; white-space: nowrap; }
+.funding-panel-heading > span { color: var(--funding-muted); font: 10px var(--font-data, "JetBrains Mono"), monospace; white-space: nowrap; }
 .funding-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .funding-card { min-width: 0; display: flex; flex-direction: column; border: 1px solid var(--funding-line); background: var(--funding-panel); border-radius: 13px; overflow: hidden; }
 .funding-art { height: 150px; position: relative; overflow: hidden; background: radial-gradient(ellipse at 75% 10%, color-mix(in srgb, var(--funding-accent) 26%, transparent), transparent 65%), color-mix(in srgb, var(--funding-green) 9%, var(--bg-primary, #111720)); }
@@ -137,9 +137,9 @@
     .funding-source-row { align-items: flex-start; gap: 6px; margin-top: 16px; }
     /* Phones: the credits stay one compact row so the answer and the first
        opportunities reach the first screen; the note keeps full attribution. */
-    .funding-platforms { gap: 4px 18px; margin-top: 4px; }
-    .funding-platform-credit > a { font-size: 16px; min-height: 40px; }
-    .funding-platform-credit > small { display: none; }
+    .funding-content .funding-platforms { gap: 4px 18px; margin-top: 4px; }
+    .funding-content .funding-platform-credit > a { font-size: 16px; min-height: 40px; }
+    .funding-content .funding-platform-credit > small { display: none; }
     .funding-hero { padding-bottom: 14px; }
     .funding-source-status { min-height: 54px; font-size: 9px; }
     #funding-refresh { font-size: 10px; padding-left: 4px; }
@@ -156,3 +156,9 @@
 
 .funding-value-basis, .funding-accounting-note { color: var(--funding-muted); font-size: 10px; line-height: 1.6; margin: 0 0 9px; }
 .funding-accounting-note { margin: 10px 0 0; }
+
+/* Three views always fit: on phones each tab takes a third and may wrap. */
+@media (max-width: 759px) {
+    .funding-content .funding-tabs.chamber-tabs { overflow-x: visible; }
+    .funding-content .funding-tabs.chamber-tabs > .chamber-tab { flex: 1 1 0; min-width: 0; padding-inline: 6px; white-space: normal; text-align: center; }
+}

@@ -170,7 +170,7 @@ export function activityDisplay(activity) {
     const decimals = Number(activity?.asset?.decimals);
     const amount = Number(activity?.amount) / (10 ** (Number.isFinite(decimals) ? decimals : 6));
     const amountText = Number.isFinite(amount) && amount > 0
-        ? `${amount.toLocaleString('en-US', { maximumFractionDigits: 6 })} ${activity?.asset?.symbol || 'XTZ'}`
+        ? `${amount.toLocaleString('en-US', { maximumFractionDigits: 6 })} ${!activity?.asset || activity.asset.type === 'xtz' ? 'ꜩ' : activity.asset.symbol || 'ꜩ'}`
         : '';
     const confidence = activity?.confidence === 'estimated'
         ? 'estimated'

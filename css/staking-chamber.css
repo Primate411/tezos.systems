@@ -9,8 +9,7 @@
     --staking-blue: #5ba8ff;
 }
 
-[data-theme="clean"] .staking-entry-card,
-[data-theme="clean"] .staking-chamber-overlay {
+[data-theme="clean"] .staking-entry-card {
     --staking-accent: #047857;
     --staking-accent-rgb: 4, 120, 87;
     --staking-unstake: #b91c1c;
@@ -18,12 +17,6 @@
     --staking-blue: #1d4ed8;
 }
 
-[data-theme="clean"] .staking-chamber-content > .chamber-close {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    color: #0f172a;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
-}
 
 
 .staking-entry-card {
@@ -93,7 +86,7 @@
     border-radius: 999px;
     background: rgba(var(--staking-accent-rgb), 0.075);
     color: var(--staking-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.58rem;
     font-weight: 850;
     letter-spacing: 0.04em;
@@ -125,7 +118,7 @@
 
 .staking-entry-ratio strong {
     color: var(--staking-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.86rem;
     font-variant-numeric: tabular-nums;
 }
@@ -187,7 +180,7 @@
     min-width: 0;
     overflow: hidden;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
@@ -362,7 +355,7 @@
 
 .staking-guide-summary-action::after {
     content: '+';
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.82rem;
 }
 
@@ -464,7 +457,7 @@
     border: 1px solid rgba(var(--staking-accent-rgb), 0.2);
     border-radius: 999px;
     color: var(--text-secondary) !important;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.52rem !important;
     letter-spacing: 0.02em !important;
     text-align: right;
@@ -501,7 +494,7 @@
 .staking-guide-metric-grid strong {
     overflow-wrap: anywhere;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.94rem;
     font-variant-numeric: tabular-nums;
 }
@@ -608,7 +601,7 @@
 .staking-guide-faq summary::after {
     content: '+';
     color: var(--staking-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .staking-guide-faq details[open] summary::after {
@@ -688,7 +681,7 @@
     min-width: 0;
     overflow-wrap: anywhere;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 1.25rem;
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
@@ -807,7 +800,7 @@
 
 .staking-latest-card > strong {
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.92rem;
     font-variant-numeric: tabular-nums;
 }
@@ -1104,7 +1097,7 @@
     min-width: 0;
     overflow: hidden;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.7rem;
     font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
@@ -1246,7 +1239,7 @@
 
 .staking-method-panel code {
     color: var(--staking-accent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.66rem;
 }
 

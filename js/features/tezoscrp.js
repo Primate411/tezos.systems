@@ -363,7 +363,7 @@ function tezoscrpAnswer() {
 function overviewMetrics() {
     const totals = summaryData?.totals || {};
     return `
-        <section class="tezoscrp-metrics" aria-label="TezosCRP archive totals">
+        <section class="tezoscrp-metrics chamber-stats" aria-label="TezosCRP archive totals">
             <div><span>Official awards</span><strong>${formatNumber(totals.awards)}</strong><small>category recognitions</small></div>
             <div><span>Community identities</span><strong>${formatNumber(totals.people)}</strong><small>after verified alias merges</small></div>
             <div><span>Monthly rounds</span><strong>${formatNumber(totals.periods)}</strong><small>${shortPeriod(fullData?.program?.first_award_period)} – ${shortPeriod(fullData?.program?.latest_award_period)}</small></div>

@@ -1264,9 +1264,9 @@ function renderContextHero() {
 
 function renderRoomTabs() {
     return `
-        <nav class="maxis-room-tabs" role="tablist" aria-label="Maxis rooms">
+        <nav class="maxis-room-tabs chamber-tabs" role="tablist" aria-label="Maxis rooms">
             ${VIEW_KEYS.map((view) => `
-                <button class="maxis-room-tab" id="maxis-tab-${view}" type="button" role="tab" aria-selected="${chamberState.view === view ? 'true' : 'false'}" aria-controls="maxis-panel-${view}" tabindex="${chamberState.view === view ? '0' : '-1'}" data-maxis-view="${view}">
+                <button class="maxis-room-tab chamber-tab" id="maxis-tab-${view}" type="button" role="tab" aria-selected="${chamberState.view === view ? 'true' : 'false'}" aria-controls="maxis-panel-${view}" tabindex="${chamberState.view === view ? '0' : '-1'}" data-maxis-view="${view}">
                     <span aria-hidden="true">${VIEW_META[view].icon}</span>${VIEW_META[view].label}
                 </button>
             `).join('')}

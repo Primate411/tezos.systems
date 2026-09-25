@@ -23,10 +23,10 @@
   padding: 0;
   overflow: hidden;
   color: var(--ecosystem-text);
-  border: 1px solid rgba(85, 226, 195, .22);
+  border: 1px solid color-mix(in srgb, var(--ecosystem-mint) 22%, transparent);
   background:
     radial-gradient(circle at 95% 0, rgba(105, 167, 255, .13), transparent 34%),
-    radial-gradient(circle at 0 35%, rgba(85, 226, 195, .08), transparent 30%),
+    radial-gradient(circle at 0 35%, color-mix(in srgb, var(--ecosystem-mint) 8%, transparent), transparent 30%),
     var(--ecosystem-bg);
 }
 
@@ -112,7 +112,7 @@
   color: var(--ecosystem-text);
   border-color: var(--ecosystem-line);
   border-bottom-color: var(--ecosystem-bg);
-  background: rgba(85, 226, 195, .08);
+  background: color-mix(in srgb, var(--ecosystem-mint) 8%, transparent);
 }
 
 .ecosystem-toolbar {
@@ -178,9 +178,9 @@
 }
 
 .ecosystem-kpis article.is-network-primary {
-  border-color: rgba(85, 226, 195, .48);
+  border-color: color-mix(in srgb, var(--ecosystem-mint) 48%, transparent);
   background:
-    linear-gradient(135deg, rgba(85, 226, 195, .13), rgba(105, 167, 255, .07)),
+    linear-gradient(135deg, color-mix(in srgb, var(--ecosystem-mint) 13%, transparent), rgba(105, 167, 255, .07)),
     var(--ecosystem-panel);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
 }
@@ -458,8 +458,8 @@
 .ecosystem-directory-card:hover,
 .ecosystem-directory-card:focus-visible,
 .ecosystem-directory-card.is-selected {
-  border-color: rgba(85, 226, 195, .58);
-  background: rgba(85, 226, 195, .08);
+  border-color: color-mix(in srgb, var(--ecosystem-mint) 58%, transparent);
+  background: color-mix(in srgb, var(--ecosystem-mint) 8%, transparent);
 }
 
 .ecosystem-directory-rank {
@@ -735,7 +735,7 @@
 
 .ecosystem-entry-title-line span {
   padding: 3px 6px;
-  border: 1px solid rgba(85, 226, 195, .32);
+  border: 1px solid color-mix(in srgb, var(--ecosystem-mint) 32%, transparent);
   border-radius: 999px;
   color: #55e2c3;
   font-size: .6rem;
@@ -799,8 +799,8 @@
 }
 
 .ecosystem-entry-leader:first-child {
-  border-color: rgba(85, 226, 195, .34);
-  background: linear-gradient(135deg, rgba(85, 226, 195, .09), rgba(13, 28, 38, .44));
+  border-color: color-mix(in srgb, var(--ecosystem-mint) 34%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ecosystem-mint) 9%, transparent), rgba(13, 28, 38, .44));
 }
 
 .ecosystem-entry-summary .ecosystem-entry-value {
@@ -809,8 +809,8 @@
 }
 
 .ecosystem-entry-network {
-  border-color: rgba(85, 226, 195, .42);
-  background: linear-gradient(135deg, rgba(85, 226, 195, .12), rgba(105, 167, 255, .06));
+  border-color: color-mix(in srgb, var(--ecosystem-mint) 42%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ecosystem-mint) 12%, transparent), rgba(105, 167, 255, .06));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035);
 }
 

@@ -216,8 +216,9 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
 
     for (const [hash, size, maxWidth, readySelector] of [
       ['health', 'standard', 1180, '.health-dashboard-grid'],
-      ['staking', 'narrow', 900, '.staking-overview-grid'],
-      ['ecosystem', 'wide', 1480, '.ecosystem-overview-charts']
+      // Every room shares the Network Health width; narrow and wide sizes are retired.
+      ['staking', 'standard', 1180, '.staking-overview-grid'],
+      ['ecosystem', 'standard', 1180, '.ecosystem-overview-charts']
     ]) {
       await page.goto(`${baseUrl}#${hash}`, { waitUntil: 'domcontentloaded' });
       const room = page.locator('.chamber-overlay.active .chamber-room-shell');
@@ -261,6 +262,6 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
     }
     assert.deepEqual(errors, []);
     await context.close();
-    console.log(`ok - full-height standard/narrow/wide Chambers and unscaled health rendering at ${deviceScaleFactor}x`);
+    console.log(`ok - full-height shared-width Chambers and unscaled health rendering at ${deviceScaleFactor}x`);
   }
 }

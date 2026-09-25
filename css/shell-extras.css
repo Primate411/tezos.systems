@@ -6356,8 +6356,9 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     .ctez-overlay .ctez-content { width: calc(100vw - 16px); max-width: none; padding: 18px 14px; }
 }
 
-/* Reserve a single status line in either saved, validated, or failed state. */
-.chamber-source-status .chamber-snapshot-status { display: block; min-height: 18px; font: 500 12px/1.5 system-ui, sans-serif; }
+/* The status stays on the summary line after its "·" separator, in saved,
+   validated, or failed state, so the separator never dangles at a line end. */
+.chamber-source-status .chamber-snapshot-status { display: inline; font: 500 12px/1.5 system-ui, sans-serif; }
 @media (max-width: 759px) {
     .chamber-content :is(input[type="search"], input[type="text"], select) { min-height: 44px; font-size: 16px; }
 }
@@ -6379,4 +6380,222 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     .chamber-content .whale-watch-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; }
     .chamber-content .whale-watch-filters .whale-watch-search { grid-column: 1 / -1; }
     .chamber-content .minerals-atlas-tools { gap: 6px; padding: 8px; }
+}
+
+/* ─── One Chamber vocabulary ──────────────────────────────────────────────
+   Rooms keep their palettes as accents but share Network Health's parts:
+   one tab bar, one stat tile, one data table, and one section title. Each
+   room sets --chamber-room-accent to tint these parts with its identity. */
+.chamber-content {
+    --chamber-room-accent: var(--accent-cyan, #45e0c8);
+    --chamber-part-line: color-mix(in srgb, var(--text-secondary, #a5accb) 16%, transparent);
+    --chamber-part-label: color-mix(in srgb, var(--text-secondary, #a5accb) 88%, var(--text-primary, #eaf0ff));
+}
+
+/* Tabs: mono labels, one accent underline, one scrolling row at any width. */
+.chamber-content .chamber-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 0;
+    border-bottom: 1px solid var(--chamber-part-line);
+    border-radius: 0;
+    scrollbar-width: none;
+}
+.chamber-content .chamber-tabs::-webkit-scrollbar { display: none; }
+.chamber-content .chamber-tabs > .chamber-tab {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--chamber-part-label);
+    font: 700 11px/1.2 var(--font-data, 'JetBrains Mono', monospace);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.chamber-content .chamber-tabs > .chamber-tab:hover { color: var(--text-primary, #eaf0ff); background: transparent; }
+.chamber-content .chamber-tabs > .chamber-tab[aria-selected="true"] {
+    color: var(--text-primary, #eaf0ff);
+    background: transparent;
+    font-weight: 800;
+}
+.chamber-content .chamber-tabs > .chamber-tab[aria-selected="true"]::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--chamber-room-accent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--chamber-room-accent) 55%, transparent);
+}
+.chamber-content .chamber-tabs > .chamber-tab:focus-visible {
+    outline: 2px solid var(--chamber-room-accent);
+    outline-offset: -4px;
+    border-radius: 6px;
+}
+
+/* Stat tiles: small uppercase label, mono figure, quiet note. */
+.chamber-content .chamber-stats > * > span:first-child,
+.chamber-content .capital-kpi-label {
+    color: var(--chamber-part-label);
+    font-family: var(--font-ui, system-ui, sans-serif);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+.chamber-content .chamber-stats > * > strong,
+.chamber-content .capital-kpi-value {
+    font-family: var(--font-data, 'JetBrains Mono', monospace);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+.chamber-content .chamber-stats > * > small,
+.chamber-content .capital-kpi-note {
+    color: var(--text-secondary, #a5accb);
+    font-family: var(--font-ui, system-ui, sans-serif);
+    font-size: 12px;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+/* Data tables: the Passing Blocks head and row rhythm. */
+.chamber-content .chamber-table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.chamber-content .chamber-table th {
+    color: var(--chamber-part-label);
+    font-family: var(--font-ui, system-ui, sans-serif);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.chamber-content .chamber-table thead th { border-bottom: 1px solid var(--chamber-part-line); }
+.chamber-content .chamber-table td { font-size: 13px; border-bottom: 1px solid color-mix(in srgb, var(--text-secondary, #a5accb) 9%, transparent); }
+.chamber-content .chamber-table tbody tr:last-child > * { border-bottom: 0; }
+.chamber-content .chamber-table :is(td, th):is(.is-number, .is-numeric, .num, .number) { font-family: var(--font-data, 'JetBrains Mono', monospace); }
+
+/* Section titles inside rooms read like Network Health panel titles. */
+.chamber-content :is(.whale-watch-view-heading h3, .market-room-view-head h3, .ecosystem-panel-head h3, .staking-panel-head h3, .tezoscrp-panel-head h2, .baker-directory-section-heading h3, .funding-panel-heading h2) {
+    color: var(--chamber-room-accent);
+    font-family: var(--font-display, 'Orbitron', sans-serif);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+
+/* Each room keeps its identity as the accent of the shared parts. */
+.chamber-content.whale-watch-content { --chamber-room-accent: var(--whale-cyan, #63d3ee); }
+.chamber-content.ecosystem-content { --chamber-room-accent: #6ee7c8; }
+.chamber-content.capital-content { --chamber-room-accent: var(--capital-accent, #69e7c3); }
+.chamber-content.minerals-content { --chamber-room-accent: #5fd4c8; }
+.chamber-content.metals-content { --chamber-room-accent: #f1c862; }
+.chamber-content.uranium-content { --chamber-room-accent: #a4ff71; }
+.chamber-content.staking-chamber-content { --chamber-room-accent: var(--staking-accent, #65e6a7); }
+.chamber-content.tezoscrp-content { --chamber-room-accent: var(--tezoscrp-accent, #8f78ff); }
+.chamber-content.maxis-content { --chamber-room-accent: var(--maxis-gold, #f5c451); }
+.chamber-content.funding-content { --chamber-room-accent: var(--funding-accent, #f4b36c); }
+
+/* Market rooms lead with figures. The illustrated hero is atmosphere, not a
+   poster: a restrained headline on desktop, and on phones the headline, the
+   figures and nothing else inside one compact band. */
+.chamber-content :is(.metals-hero-copy, .minerals-hero-copy, .uranium-hero-copy) > h3 {
+    font-size: clamp(1.6rem, 3vw, 2.6rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+}
+@media (max-width: 759px) {
+    .chamber-content :is(.metals-hero, .minerals-hero, .uranium-hero-panel) { position: relative; isolation: isolate; overflow: hidden; min-height: 0; }
+    /* The artwork disclosure stays visible: one quiet line above the copy. */
+    .chamber-content :is(.metals-core-stage, .minerals-core-stage, .uranium-core-stage).is-room figcaption {
+        position: absolute;
+        inset: 10px 14px auto;
+        z-index: 3;
+        max-width: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .chamber-content :is(.metals-core-stage, .minerals-core-stage, .uranium-core-stage).is-room { position: absolute; inset: 0; min-height: 0; opacity: .42; }
+    .chamber-content :is(.metals-hero-copy, .minerals-hero-copy, .uranium-hero-copy) { position: relative; z-index: 2; align-self: stretch; padding: 34px 14px 14px; }
+    .chamber-content :is(.metals-hero-copy, .minerals-hero-copy, .uranium-hero-copy) > h3 { margin: 6px 0 4px; font-size: 1.45rem; }
+    .chamber-content :is(.metals-hero-copy, .minerals-hero-copy, .uranium-hero-copy) > p { display: none; }
+    .chamber-content :is(.metals-hero-metrics, .minerals-hero-metrics) { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 10px; }
+    .chamber-content .uranium-hero-price { margin-top: 10px; }
+}
+
+/* Theme contract: generic room accents follow the active theme. Aurora keeps
+   each room's designed hue; material rooms (gold, uranium, minerals) and
+   semantic stake/unstake colours never change with the theme. */
+body[data-theme]:not([data-theme="aurora"]) :is(.whale-watch-content, #whale-watch-entry-card) { --whale-cyan: var(--accent-cyan, #63d3ee); }
+body[data-theme]:not([data-theme="aurora"]) :is(.capital-content, .capital-entry-card) { --capital-accent: var(--accent-cyan, #69e7c3); }
+body[data-theme]:not([data-theme="aurora"]) :is(.ecosystem-content, .ecosystem-entry-card) { --ecosystem-mint: var(--accent-cyan, #55e2c3); }
+
+/* Chambers stay dark under Clean: undo the light-page history controls. */
+[data-theme="clean"] .chamber-content .time-range-btn { border-color: var(--surface-control-border); background: var(--surface-control-bg); color: var(--surface-control-color); }
+[data-theme="clean"] .chamber-content .time-range-btn:hover { background: color-mix(in srgb, var(--accent-cyan) 10%, transparent); border-color: var(--accent-cyan); box-shadow: none; }
+[data-theme="clean"] .chamber-content .time-range-btn.active { background: color-mix(in srgb, var(--accent-cyan) 16%, transparent); border-color: var(--accent-cyan); color: var(--text-primary); box-shadow: none; }
+[data-theme="clean"] .chamber-content .chart-section h4 { color: var(--text-primary); }
+[data-theme="clean"] .chamber-content .chart-section::before { background: linear-gradient(90deg, transparent, var(--glass-border), transparent); }
+[data-theme="clean"] .chamber-content .stat-value { color: var(--text-primary); }
+[data-theme="clean"] .chamber-content .stat-label { color: var(--text-secondary); }
+[data-theme="clean"] .chamber-content .chart-stats .stat-value.positive { color: var(--chamber-good-color); }
+[data-theme="clean"] .chamber-content.modal-large { background: var(--chamber-surface-bg); border-color: var(--glass-border); color: var(--text-primary); }
+
+/* Standalone shells keep a plain route home; once a room is on screen it reads
+   as the site's quiet back link instead of an unstyled browser link. */
+#standalone-chamber-shell #main-content > p:has(> a[href="/"]:only-child) { margin: 0; }
+#standalone-chamber-shell #main-content > p > a[href="/"]:only-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    color: var(--text-secondary, #a5accb);
+    font: 600 11px/1.2 var(--font-data, 'JetBrains Mono', monospace);
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+#standalone-chamber-shell #main-content > p > a[href="/"]:only-child::before { content: '←'; color: var(--accent-cyan, #45e0c8); }
+#standalone-chamber-shell #main-content > p > a[href="/"]:only-child:is(:hover, :focus-visible) { color: var(--text-primary, #eaf0ff); }
+
+/* Small visual controls keep their size but get a 24px+ hit area. */
+.live-head-info,
+.lb-help-trigger { position: relative; }
+.live-head-info::after,
+.lb-help-trigger::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+}
+.funding-builder a { display: inline-block; padding-block: 6px; margin-block: -6px; }
+
+/* Narrow phones keep the brand and room crumbs; the third crumb is detail the
+   title row already carries, and wrapping it costs the first screen a line. */
+@media (max-width: 480px) {
+    .chamber-content .chamber-house-header .lb-system-strip > span:nth-child(n + 3) { display: none; }
+}
+
+/* Phones: the title keeps its own row; chips and header actions share the next. */
+@media (max-width: 759px) {
+    .chamber-content .chamber-house-header .chamber-title-row { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+    .chamber-content .chamber-house-header .chamber-title-row > .chamber-title { flex: 1 0 100%; text-align: center; }
+}
+@media (max-width: 360px) {
+    .chamber-content .chamber-house-header .chamber-proposal-info .proposal-name { font-size: 15px; }
 }

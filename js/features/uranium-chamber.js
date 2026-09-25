@@ -1079,7 +1079,7 @@ function renderOverview(snapshot) {
             </div>
             ${heroPicture('is-room')}
         </section>
-        <section class="uranium-metric-grid">
+        <section class="uranium-metric-grid chamber-stats">
             ${renderMetric('Indicative uranium', formatUsd(physical.oraclePrice, { digits: 2 }), 'USD/lb · non-executable')}
             ${renderMetric('Derived representation', physical.ouncesPerToken === null ? 'Unavailable' : `${formatNumber(physical.ouncesPerToken, 4)} oz`, `per token · statement ${formatDate(physical.statementDate)}`)}
             ${renderMetric('Indexed supply', chain.supply === null ? 'Unavailable' : `${formatCompact(chain.supply, 3)} xU3O8`, 'Etherlink observation')}
@@ -1144,7 +1144,7 @@ function renderBookSide(rows, side) {
 function renderTrades(rows) {
     const normalized = rows.slice(0, 14);
     return `
-        <div class="uranium-table-wrap"><table class="uranium-table">
+        <div class="uranium-table-wrap"><table class="chamber-table uranium-table">
             <caption class="sr-only">Most recent bounded Kraken xU3O8 trades</caption>
             <thead><tr><th>Time</th><th>Side</th><th class="is-number">Price</th><th class="is-number">xU3O8</th></tr></thead>
             <tbody>${normalized.length ? normalized.map((trade) => {
@@ -1158,7 +1158,7 @@ function renderTrades(rows) {
 function renderVenues(rows) {
     const normalized = Array.isArray(rows) ? rows.slice(0, 20) : [];
     return `
-        <div class="uranium-table-wrap"><table class="uranium-table">
+        <div class="uranium-table-wrap"><table class="chamber-table uranium-table">
             <caption class="sr-only">Attributed xU3O8 venue directory</caption>
             <thead><tr><th>Venue</th><th>Pair</th><th class="is-number">Last</th><th class="is-number">24h volume</th><th>Receipt</th></tr></thead>
             <tbody>${normalized.length ? normalized.map((venue) => {
@@ -1225,7 +1225,7 @@ function holderShare(holder, totalSupply) {
 function renderHolders(rows, supply) {
     const normalized = rows.slice(0, 16);
     return `
-        <div class="uranium-table-wrap"><table class="uranium-table">
+        <div class="uranium-table-wrap"><table class="chamber-table uranium-table">
             <caption class="sr-only">Top indexed xU3O8 token addresses</caption>
             <thead><tr><th>Indexed address</th><th class="is-number">Balance</th><th class="is-number">Supply share</th></tr></thead>
             <tbody>${normalized.length ? normalized.map((holder) => {
@@ -1240,7 +1240,7 @@ function renderHolders(rows, supply) {
 function renderTransfers(rows) {
     const normalized = rows.slice(0, 18);
     return `
-        <div class="uranium-table-wrap"><table class="uranium-table">
+        <div class="uranium-table-wrap"><table class="chamber-table uranium-table">
             <caption class="sr-only">Most recent bounded xU3O8 transfers indexed by Etherlink Blockscout</caption>
             <thead><tr><th>Time</th><th>From → to</th><th class="is-number">Amount</th><th>Receipt</th></tr></thead>
             <tbody>${normalized.length ? normalized.map((transfer) => {
@@ -1273,7 +1273,7 @@ function renderChain(snapshot) {
             <div><span class="uranium-eyebrow">Etherlink mainnet · chain ID 42793</span><h3>xU3O8 ledger state</h3><p>Blockscout indexes addresses, balances, and transfers. An address is not necessarily a person: contracts, venue omnibus wallets, and custody structures can pool many users.</p></div>
             <div class="uranium-contract-card"><span>Verified token contract</span><code>${TOKEN_CONTRACT}</code><div><button type="button" data-uranium-copy="${TOKEN_CONTRACT}">Copy address</button><a href="https://explorer.etherlink.com/address/${TOKEN_CONTRACT}" target="_blank" rel="noopener noreferrer">Explorer ↗</a></div></div>
         </section>
-        <section class="uranium-metric-grid">
+        <section class="uranium-metric-grid chamber-stats">
             ${renderMetric('Total supply', chain.supply === null ? 'Unavailable' : `${formatNumber(chain.supply, 4)} xU3O8`, 'Observed token state')}
             ${renderMetric('Indexed holders', formatNumber(chain.holders), 'Addresses, not investors')}
             ${renderMetric('Indexed transfers', formatNumber(chain.transfers), 'Blockscout counter')}
@@ -1360,7 +1360,7 @@ function renderSources(snapshot) {
         const clock = sourceClockFor(snapshot, id, normalized);
         return `<tr><td>${url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)} ↗</a>` : escapeHtml(label)}</td><td><span class="uranium-status ${statusClass(status)}">${escapeHtml(status)}</span></td><td>${renderSourceClock(clock)}</td><td>${escapeHtml(firstText(normalized.note, normalized.credit, 'Public receipt'))}</td></tr>`;
     });
-    return `<div class="uranium-table-wrap"><table class="uranium-table"><caption class="sr-only">Uranium Chamber source and freshness ledger</caption><thead><tr><th>Source</th><th>Status</th><th>Evidence clock</th><th>Coverage</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="4">No source receipts available.</td></tr>'}</tbody></table></div>`;
+    return `<div class="uranium-table-wrap"><table class="chamber-table uranium-table"><caption class="sr-only">Uranium Chamber source and freshness ledger</caption><thead><tr><th>Source</th><th>Status</th><th>Evidence clock</th><th>Coverage</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="4">No source receipts available.</td></tr>'}</tbody></table></div>`;
 }
 
 function renderUnavailable(rows) {

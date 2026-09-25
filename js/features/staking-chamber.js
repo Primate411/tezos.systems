@@ -751,7 +751,7 @@ function renderLoadingRoom() {
     body.innerHTML = `
         ${stakingHeader({ chip: 'Scanning', tone: 'current', meta: 'Building the complete &gt;10,000 ꜩ stake / unstake tape' })}
         ${renderStakingGuide(overviewData)}
-        <section class="staking-overview-grid" aria-label="Current staking overview">
+        <section class="chamber-stats staking-overview-grid" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary"><span>Current staked</span><strong id="staking-loading-ratio">—</strong><small>own + external stake / supply</small></div>
             <div class="staking-overview-card"><span>History scan</span><strong>Opening</strong><small id="staking-archive-progress">Scanning applied operations</small></div>
         </section>
@@ -1044,7 +1044,7 @@ function renderRoom() {
         ${renderStakingGuide(overviewData)}
 
         ${renderChamberVerdict({ key: 'staking-chamber', state: 'observed', sentence: `${formatRatio(overviewData.stakingRatio)} of supply is staked. In the last 24 hours ${formatCount(summary.stakeCount24h)} ${pluralize(summary.stakeCount24h, 'stake')} and ${formatCount(summary.unstakeCount24h)} ${pluralize(summary.unstakeCount24h, 'unstake')} moved more than 10,000 ꜩ.`, note: 'Large explicit moves show gross activity, not total inflows from all holders or a change in ownership.', receipts: [['Stake operations · 24h', summary.stakeCount24h], ['Unstake operations · 24h', summary.unstakeCount24h]] })}
-        <section class="staking-overview-grid chamber-anim-fade" aria-label="Current staking overview">
+        <section class="chamber-stats staking-overview-grid chamber-anim-fade" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary">
                 <span>Current staked</span>
                 <strong>${escapeHtml(formatRatio(overviewData.stakingRatio))}</strong>
@@ -1136,7 +1136,7 @@ function renderRoomError(error) {
     body.innerHTML = `
         ${stakingHeader({ chip: 'Tape unavailable', tone: 'historical', meta: `${escapeHtml(formatRatio(overviewData?.stakingRatio))} staked · the stake / unstake tape could not be completed` })}
         ${renderStakingGuide(overviewData)}
-        <section class="staking-overview-grid">
+        <section class="chamber-stats staking-overview-grid">
             <div class="staking-overview-card is-primary"><span>Current staked</span><strong>${escapeHtml(formatRatio(overviewData?.stakingRatio))}</strong><small>The ratio remains available independently of the tape.</small></div>
         </section>
         <div class="staking-room-error" role="alert">

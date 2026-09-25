@@ -110,6 +110,8 @@ function renderLinkedAccounts() {
     )).join(''));
     selector.value = selectedAddress;
     selector.disabled = scopedEntries.length === 0;
+    // An empty account picker reads as broken; show it only once there is something to pick.
+    if (selector.hidden !== (scopedEntries.length === 0)) selector.hidden = scopedEntries.length === 0;
     if (!entries.length) {
         quietlySyncHtml(target, `
             <div class="tezosx-empty">

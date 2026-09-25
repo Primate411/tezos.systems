@@ -59,14 +59,16 @@ export async function smokeStandaloneChamberCompletion(browser, baseUrl, { insta
         assert.equal(await page.locator(`#${room.overlayId} .chamber-reading-guide dt`).count(), 3, 'Three source-scale reference rows');
       }
       if (id === 'history' && width === 390) {
+        // Chambers stay dark rooms under the light Clean theme, History included.
         const palette = await page.evaluate(() => {
           const room = getComputedStyle(document.querySelector('.cycle-history-content'));
-          const lede = getComputedStyle(document.querySelector('.cycle-history-lede'));
-          return { scheme: room.colorScheme, background: room.backgroundImage, text: lede.color };
+          const summary = getComputedStyle(document.querySelector('#history-modal .chamber-house-header .proposal-name'));
+          const [r, g, b] = summary.color.match(/[\d.]+/g).map(Number);
+          return { scheme: room.colorScheme, surface: room.getPropertyValue('--chamber-surface-bg').trim(), luminance: (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 };
         });
-        assert.equal(palette.scheme, 'light', 'History Clean owns a coherent light palette');
-        assert(palette.background.includes('255, 255, 255'), 'History light background beats generic dark Chamber skin');
-        assert.equal(palette.text, 'rgb(74, 85, 104)', 'History prose stays readable on its light panels');
+        assert.equal(palette.scheme, 'dark', 'History stays a dark Chamber under Clean');
+        assert.equal(palette.surface, '#07101D', 'History uses the shared Clean dark-room surface');
+        assert(palette.luminance > 0.7, `History summary stays light and readable on the dark room: ${JSON.stringify(palette)}`);
       }
       if (id === 'health') {
         await page.waitForFunction(() => getComputedStyle(document.querySelector('.health-header')).opacity === '1');
