@@ -24,39 +24,8 @@
         linear-gradient(180deg, rgba(10, 10, 22, 0.99), rgba(6, 8, 17, 0.99)) !important;
 }
 
-#maxis-modal .maxis-close-tray > .chamber-close {
-    position: relative;
-    top: 0;
-    right: auto;
-    border: 1px solid color-mix(in srgb, var(--maxis-gold) 34%, transparent);
-    border-radius: 50%;
-    color: color-mix(in srgb, var(--maxis-gold) 68%, var(--text-secondary));
-    background:
-        radial-gradient(circle at 31% 24%, rgba(255, 255, 255, 0.13), transparent 30%),
-        color-mix(in srgb, var(--bg-primary, #070b14) 88%, transparent);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.055);
-    font-size: 1.2rem;
-    line-height: 1;
-    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-}
-
-#maxis-modal .maxis-close-tray > .chamber-close:is(:hover, :focus-visible) {
-    outline: 2px solid color-mix(in srgb, var(--maxis-cyan) 55%, transparent);
-    outline-offset: 3px;
-    border-color: color-mix(in srgb, var(--maxis-gold) 72%, transparent);
-    color: var(--text-primary);
-    background:
-        radial-gradient(circle at 31% 24%, rgba(255, 255, 255, 0.18), transparent 30%),
-        color-mix(in srgb, var(--maxis-gold) 10%, var(--bg-primary, #070b14));
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34), 0 0 24px color-mix(in srgb, var(--maxis-gold) 12%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.075);
-}
-
-#maxis-modal .maxis-close-tray > .chamber-close:focus:not(:focus-visible) { outline: none; }
-
 [data-theme="hen"] #maxis-modal .maxis-season-orb,
-[data-theme="hen"] #maxis-modal .maxis-close-tray > .chamber-close,
-[data-theme="nerv"] #maxis-modal .maxis-season-orb,
-[data-theme="nerv"] #maxis-modal .maxis-close-tray > .chamber-close {
+[data-theme="nerv"] #maxis-modal .maxis-season-orb {
     border-radius: 50% !important;
 }
 
@@ -1114,11 +1083,14 @@
     overflow: visible;
 }
 
-.maxis-season-tray { margin-left: var(--maxis-corner-inset); }
-
-.maxis-close-tray {
-    z-index: 121;
-    margin-left: calc(100% - 44px - var(--maxis-corner-inset));
+/* The season orb mirrors the shared room exit: same corner inset, same top. */
+#maxis-modal .maxis-season-tray {
+    top: 0;
+    margin-left: 0;
+    transform: translate(
+        calc(var(--chamber-exit-inset, 12px) - var(--chamber-pad-left, 0px)),
+        calc(var(--chamber-exit-inset, 12px) - var(--chamber-pad-top, 0px))
+    );
 }
 
 .maxis-season-orb {
@@ -1312,7 +1284,7 @@
     position: relative;
     overflow: hidden;
     margin: 0 0 0.75rem;
-    padding: 1.1rem 4.25rem 1.15rem;
+    padding: 0.35rem 1rem 1.15rem;
     border: 1px solid var(--maxis-line);
     border-radius: 14px;
     background:
@@ -1344,12 +1316,19 @@
 
 .maxis-passport-hero,
 .maxis-champions-hero {
-    padding-top: 0.82rem;
     padding-bottom: 0.86rem;
 }
 
-.maxis-passport-hero .maxis-protocol-title,
-.maxis-champions-hero .maxis-protocol-title { font-size: clamp(1.25rem, 2.5vw, 1.8rem); }
+/* The shared Chamber header opens each view inside the hero; gold stays the
+   room accent for the title and glyph. */
+.maxis-house-header { position: relative; z-index: 1; padding-inline: 0; }
+.maxis-house-header .chamber-title { color: var(--maxis-gold); text-shadow: 0 0 18px color-mix(in srgb, var(--maxis-gold) 26%, transparent); }
+.maxis-house-header .chamber-title[data-glyph]::before {
+    color: var(--maxis-gold);
+    border-color: color-mix(in srgb, var(--maxis-gold) 36%, transparent);
+    background: color-mix(in srgb, var(--maxis-gold) 9%, transparent);
+    box-shadow: none;
+}
 .maxis-passport-hero .maxis-protocol-lead,
 .maxis-champions-hero .maxis-protocol-lead { max-width: 44rem; font-size: 0.7rem; }
 .maxis-passport-hero .maxis-season-telemetry,
@@ -1359,44 +1338,6 @@
         radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--maxis-gold) 11%, transparent), transparent 30%),
         radial-gradient(circle at 90% 20%, color-mix(in srgb, var(--maxis-violet) 11%, transparent), transparent 35%),
         linear-gradient(130deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
-}
-
-.maxis-protocol-kicker {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-    color: color-mix(in srgb, var(--maxis-gold) 70%, var(--text-secondary));
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.maxis-protocol-kicker span {
-    padding: 0.22rem 0.42rem;
-    border: 1px solid color-mix(in srgb, var(--maxis-cyan) 32%, transparent);
-    border-radius: 999px;
-    color: color-mix(in srgb, var(--maxis-cyan) 72%, var(--text-primary));
-    letter-spacing: 0.06em;
-}
-
-.maxis-protocol-title {
-    position: relative;
-    z-index: 1;
-    margin: 0.55rem 0 0;
-    color: color-mix(in srgb, var(--maxis-gold) 72%, var(--text-primary));
-    font-family: var(--font-display, 'Orbitron', sans-serif);
-    font-size: clamp(1.35rem, 3vw, 2.2rem);
-    font-weight: 900;
-    letter-spacing: 0.025em;
-    line-height: 1.08;
-    text-align: center;
-    text-wrap: balance;
-    text-shadow: 0 0 26px color-mix(in srgb, var(--maxis-gold) 22%, transparent);
 }
 
 .maxis-protocol-lead {
@@ -2506,13 +2447,10 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     }
     .maxis-season-tray.is-open .maxis-season-menu { transform: translateY(0) scale(1); }
     .maxis-protocol-hero { padding: 1rem 0.75rem 0.9rem; }
-    .maxis-protocol-kicker { box-sizing: border-box; width: 100%; max-width: 100%; padding-inline: 2.8rem; flex-wrap: wrap; gap: 0.28rem 0.45rem; overflow-wrap: anywhere; text-align: center; }
-    .maxis-protocol-title { font-size: 1.3rem; }
     .maxis-protocol-lead { font-size: 0.74rem; }
     .maxis-season-telemetry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .maxis-room-tabs { grid-template-columns: repeat(4, max-content); justify-content: start; padding-left: 3.55rem; overflow-x: auto; }
     .maxis-room-tab { min-width: 7rem; min-height: 44px; }
-    .maxis-experience:not(.has-season-context) .maxis-protocol-kicker { padding-inline: 0.75rem 3rem; }
     .maxis-experience:not(.has-season-context) .maxis-room-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); justify-content: stretch; overflow-x: visible; }
     .maxis-experience:not(.has-season-context) .maxis-room-tab { min-width: 0; padding-inline: 0.28rem; font-size: 0.64rem; }
     .maxis-lane-chip { min-height: 44px; }

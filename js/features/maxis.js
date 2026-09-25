@@ -1,5 +1,6 @@
 import { loadingText, loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Tezos Maxis Chamber
@@ -1155,9 +1156,8 @@ function renderMaxisHero() {
     const categories = categoriesFor(data || {});
     const clocks = [...new Set(categories.map((category) => windowLabel(leaderForCategory(data || {}, category)?.windowKind)))];
     return `
-        <header class="maxis-protocol-hero maxis-context-hero maxis-maxis-hero chamber-anim-fade">
-            <div class="maxis-protocol-kicker"><span>Tezos Maxis</span> objective identities · honest clocks</div>
-            <h2 id="maxis-title" class="maxis-protocol-title">Who is a Maxi?</h2>
+        <section class="maxis-protocol-hero maxis-context-hero maxis-maxis-hero chamber-anim-fade">
+            ${renderChamberHeader({ room: 'maxis', strip: ['Tezos.Systems', 'Tezos Maxis', 'Objective identities · honest clocks'], glyph: 'maxi', title: 'Who is a Maxi?', titleId: 'maxis-title', chips: renderChamberChip(state.stale ? 'Previous snapshot' : 'Ongoing records', { tone: state.stale ? 'historical' : 'live' }), className: 'maxis-house-header' })}
             <p class="maxis-protocol-lead">Ongoing Tezos records, each with its own declared clock. These crowns do not reset at protocol activation.</p>
             <div class="maxis-season-telemetry" aria-label="Ongoing Maxis snapshot status">
                 <span><strong>${escapeHtml(String(categories.length || '—'))}</strong>Maxi identities</span>
@@ -1165,7 +1165,7 @@ function renderMaxisHero() {
                 <span><strong>${escapeHtml(String(clocks.length || '—'))} clocks</strong>live · rolling · all-time</span>
                 <span><strong>${escapeHtml(state.label)}</strong>${state.stale ? 'previous valid snapshot' : 'generated snapshot'} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}</span>
             </div>
-        </header>
+        </section>
     `;
 }
 
@@ -1198,9 +1198,8 @@ function renderSeasonHero() {
                 ? 'The selected protocol-season sheet is scoped unavailable. Ongoing Maxis identities remain usable on their own declared clocks.'
                 : 'Every Maxis protocol season opens a new arena. Crowns stay objective; movement, breadth, and season honors give every wallet a path forward.';
     return `
-        <header class="maxis-protocol-hero maxis-context-hero maxis-season-hero chamber-anim-fade">
-            <div class="maxis-protocol-kicker"><span>Season ${escapeHtml(seasonNumberLabel(season))}</span> Tezos protocol arena · ${escapeHtml(sheetState)}</div>
-            <h2 id="maxis-title" class="maxis-protocol-title">${escapeHtml(contextError && !chamberState.manifest ? 'Maxis season sheet unavailable' : (season?.displayLabel || `${season?.protocol || 'Tezos'} Season`))}</h2>
+        <section class="maxis-protocol-hero maxis-context-hero maxis-season-hero chamber-anim-fade">
+            ${renderChamberHeader({ room: 'maxis', strip: ['Tezos.Systems', 'Tezos Maxis', `Season ${seasonNumberLabel(season)} · protocol arena`], glyph: 'maxi', title: contextError && !chamberState.manifest ? 'Maxis season sheet unavailable' : (season?.displayLabel || `${season?.protocol || 'Tezos'} Season`), titleId: 'maxis-title', chips: renderChamberChip(settling ? 'Settling' : final ? 'Finalized' : contextError ? 'Unavailable' : 'Live season', { tone: final ? 'historical' : settling || contextError ? 'current' : 'live' }), className: 'maxis-house-header' })}
             <p class="maxis-protocol-lead">${escapeHtml(lead)} ${escapeHtml(boundarySentence)}. Maxis seasons begin with Ushuaia; earlier Tezos protocols are not retroactively scored.</p>
             <div class="maxis-season-telemetry" aria-label="Protocol season status">
                 <span><strong>${escapeHtml(starts || (contextError ? 'Unavailable' : season?.isCurrent ? 'Live now' : 'Date unavailable'))}</strong>season activation</span>
@@ -1209,7 +1208,7 @@ function renderSeasonHero() {
                 <span><strong>${escapeHtml(data ? fresh.label : contextError ? 'Unavailable' : 'Preparing')}</strong>${contextError ? 'selected season sheet' : 'sheet snapshot'}</span>
                 <span><strong>${escapeHtml(categories.length ? String(categories.length) : '—')}</strong>${categories.length === 1 ? 'lane' : 'lanes'}</span>
             </div>
-        </header>
+        </section>
     `;
 }
 
@@ -1225,9 +1224,8 @@ function renderPassportHero() {
         ? 'Season boundary unavailable'
         : seasonEndCopy(season, { compact: true });
     return `
-        <header class="maxis-protocol-hero maxis-context-hero maxis-passport-hero chamber-anim-fade">
-            <div class="maxis-protocol-kicker"><span>Season ${escapeHtml(seasonNumberLabel(season))}</span> ${escapeHtml(season?.protocol || 'Tezos')} Passport scope · ${escapeHtml(scope.passportScope)}</div>
-            <h2 id="maxis-title" class="maxis-protocol-title">Maxi Passport</h2>
+        <section class="maxis-protocol-hero maxis-context-hero maxis-passport-hero chamber-anim-fade">
+            ${renderChamberHeader({ room: 'maxis', strip: ['Tezos.Systems', 'Tezos Maxis', `Season ${seasonNumberLabel(season)} · ${season?.protocol || 'Tezos'} Passport`], glyph: 'maxi', title: 'Maxi Passport', titleId: 'maxis-title', chips: renderChamberChip(scope.phase === 'finalized' ? 'Finalized season' : scope.phase === 'settling' ? 'Provisional' : 'Career + season', { tone: scope.phase === 'finalized' ? 'historical' : scope.phase === 'settling' ? 'current' : 'live' }), className: 'maxis-house-header' })}
             <p class="maxis-protocol-lead">Career achievements stay stamped to this address. ${escapeHtml(contextError ? 'The selected season receipt is scoped unavailable; verified career and ongoing records remain separate and usable.' : scope.passportCopy)}</p>
             <div class="maxis-season-telemetry" aria-label="Selected Passport season scope">
                 <span><strong>${escapeHtml(starts || (contextError ? 'Unavailable' : scope.phase === 'active' ? 'Live now' : 'Date unavailable'))}</strong>season activation</span>
@@ -1235,7 +1233,7 @@ function renderPassportHero() {
                 <span><strong>${escapeHtml(String(passportRecords ?? '—'))}</strong>Passports indexed</span>
                 <span><strong>${escapeHtml(data ? fresh.label : contextError ? 'Unavailable' : 'Preparing')}</strong>${escapeHtml(scope.phase === 'finalized' ? 'finalized season sheet' : scope.phase === 'settling' ? 'provisional season sheet' : 'selected season sheet')}</span>
             </div>
-        </header>
+        </section>
     `;
 }
 
@@ -1244,9 +1242,8 @@ function renderChampionsHero() {
     const finalized = seasons.filter((season) => ['final', 'finalized', 'complete', 'archived'].includes(season.status));
     const archivedCards = asArray(chamberState.archives).length;
     return `
-        <header class="maxis-protocol-hero maxis-context-hero maxis-champions-hero chamber-anim-fade">
-            <div class="maxis-protocol-kicker"><span>Permanent record</span> finalized protocol seasons</div>
-            <h2 id="maxis-title" class="maxis-protocol-title">Champions</h2>
+        <section class="maxis-protocol-hero maxis-context-hero maxis-champions-hero chamber-anim-fade">
+            ${renderChamberHeader({ room: 'maxis', strip: ['Tezos.Systems', 'Tezos Maxis', 'Finalized protocol seasons'], glyph: 'maxi', title: 'Champions', titleId: 'maxis-title', chips: renderChamberChip('Permanent record', { tone: 'historical' }), className: 'maxis-house-header' })}
             <p class="maxis-protocol-lead">Every finalized Maxis season keeps the lane names, rules, honors, and winners it closed with. The live arena can add history; it can never rewrite it. Maxis seasons begin with Ushuaia.</p>
             <div class="maxis-season-telemetry" aria-label="Champions archive status">
                 <span><strong>${escapeHtml(String(Math.max(finalized.length, archivedCards)))}</strong>finalized seasons</span>
@@ -1254,7 +1251,7 @@ function renderChampionsHero() {
                 <span><strong>Original names</strong>frozen lane catalog</span>
                 <span><strong>Permanent</strong>after source settlement</span>
             </div>
-        </header>
+        </section>
     `;
 }
 
@@ -2864,6 +2861,26 @@ function renderCurrentRoom() {
     return renderSeasonPanel();
 }
 
+/** Each view answers with its own counts before its reading boundary. */
+function maxisAnswer(view) {
+    if (view === 'maxis') {
+        const data = chamberState.legacy;
+        const crowns = categoriesFor(data || {}).length;
+        return data ? `${formatNumber(crowns)} ongoing Maxi crowns rank ${formatNumber(uniqueRankedWallets(data))} wallets.` : 'Ongoing Maxi crowns are loading.';
+    }
+    if (view === 'champions') {
+        const finalized = normalizedSeasons(chamberState.manifest, chamberState.summary)
+            .filter((season) => ['final', 'finalized', 'complete', 'archived'].includes(season.status)).length;
+        return `${formatNumber(Math.max(finalized, asArray(chamberState.archives).length))} finalized ${finalized === 1 ? 'season is' : 'seasons are'} frozen as permanent records.`;
+    }
+    if (view === 'passport') return 'One address: career stamps plus its progress in the selected season.';
+    const season = seasonById();
+    const lanes = activeDataForSeason() ? categoriesFor(activeDataForSeason()).length : 0;
+    const phase = seasonPhase(season);
+    const label = season?.displayLabel || `${season?.protocol || 'Tezos'} Season`;
+    return `${label} is ${phase === 'finalized' ? 'finalized' : phase === 'settling' ? 'settling' : 'live'}${lanes ? ` with ${formatNumber(lanes)} lanes in the race` : ''}.`;
+}
+
 function renderChamberExperience() {
     const selectedView = chamberState.view;
     const seasonContext = viewUsesSeasonContext();
@@ -2881,7 +2898,7 @@ function renderChamberExperience() {
         <div class="maxis-experience${seasonContext ? ' has-season-context' : ''}" data-maxis-current-view="${selectedView}" data-maxis-season-phase="${escapeHtml(selectedSeasonPhase)}">
             ${seasonContext ? renderSeasonSelector() : ''}
             ${renderContextHero()}
-            ${renderChamberVerdict({ key: 'maxis', state: contextError ? 'unavailable' : selectedView === 'champions' ? 'archive' : 'snapshot', sentence: selectedView === 'maxis' ? 'Each crown uses its disclosed natural clock; an ongoing career is not a protocol-season result.' : selectedView === 'champions' ? 'Champions records finalized seasons only; active and settling results are not final titles.' : selectedView === 'passport' ? 'Career stamps and selected-season progress are separate records; missing historical shards stay local.' : 'This race is bounded by the selected protocol season, not an all-time career ranking.', receipts: [['View', selectedView], ['Record', footerDataLabel]] })}
+            ${renderChamberVerdict({ key: 'maxis', state: contextError ? 'unavailable' : selectedView === 'champions' ? 'archive' : 'snapshot', sentence: maxisAnswer(selectedView), note: selectedView === 'maxis' ? 'Each crown uses its disclosed natural clock; an ongoing career is not a protocol-season result.' : selectedView === 'champions' ? 'Active and settling results are not final titles.' : selectedView === 'passport' ? 'Career stamps and selected-season progress are separate records; missing historical shards stay local.' : 'This race is bounded by the selected protocol season, not an all-time career ranking.', receipts: [['View', selectedView], ['Record', footerDataLabel]] })}
             ${renderRoomTabs()}
             <section class="maxis-room-panel" id="maxis-panel-${selectedView}" role="tabpanel" aria-labelledby="maxis-tab-${selectedView}" tabindex="-1">
                 ${renderCurrentRoom()}
@@ -3681,9 +3698,7 @@ export async function openMaxisChamber({ isCurrent = () => true } = {}) {
         overlay.setAttribute('aria-hidden', 'true');
         overlay.innerHTML = `
             <div class="modal-content modal-large chamber-content maxis-content" role="dialog" aria-modal="true" aria-label="Tezos Maxis Chamber" aria-labelledby="maxis-title" tabindex="-1">
-                <div class="maxis-corner-tray maxis-close-tray">
-                    <button class="modal-close chamber-close" type="button" aria-label="Close Tezos Maxis Chamber">&times;</button>
-                </div>
+                <button class="modal-close chamber-close" type="button" aria-label="Close Tezos Maxis Chamber">&times;</button>
                 <div class="chamber-body maxis-body"></div>
             </div>
         `;

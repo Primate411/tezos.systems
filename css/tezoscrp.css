@@ -63,7 +63,6 @@
     min-width: 0;
 }
 
-.tezoscrp-kicker,
 .tezoscrp-entry-label,
 .tezoscrp-header + .tezoscrp-truth-note strong,
 .tezoscrp-panel-head span,
@@ -286,41 +285,23 @@
     padding: clamp(1.1rem, 3vw, 2.25rem);
 }
 
+/* The shared Chamber header (js/ui/chamber-header.js) opens the hall; the
+   official category badges sit beneath it as the room's identity row. */
 .tezoscrp-header {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    gap: 0;
-    padding: 0.15rem 3rem 1.2rem;
+    padding: 0 0 1.1rem;
     border-bottom: 1px solid var(--tezoscrp-line);
     text-align: center;
 }
 
-.tezoscrp-system-strip {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.65rem;
-    margin-bottom: 0.75rem;
-    color: var(--tezoscrp-muted);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.54rem;
-    font-weight: 850;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.tezoscrp-system-strip span + span::before {
-    content: '/';
-    margin-right: 0.65rem;
-    color: color-mix(in srgb, var(--tezoscrp-gold) 65%, transparent);
+.tezoscrp-header .chamber-title {
+    color: color-mix(in srgb, var(--tezoscrp-gold) 55%, var(--text-primary));
 }
 
 .tezoscrp-hero-badges {
     display: flex;
     justify-content: center;
     gap: 0.14rem;
-    margin-bottom: 0.7rem;
+    margin-top: 0.4rem;
 }
 
 .tezoscrp-hero-badges img {
@@ -333,16 +314,6 @@
 
 .tezoscrp-hero-badges img:nth-child(odd) { transform: translateY(2px); }
 
-.tezoscrp-header h1 {
-    margin: 0.38rem 0 0;
-    color: color-mix(in srgb, var(--tezoscrp-gold) 38%, var(--text-primary));
-    font-size: clamp(1.8rem, 4.5vw, 3.45rem);
-    line-height: 1;
-    text-shadow: 0 0 24px rgba(var(--tezoscrp-accent-rgb), 0.16);
-    text-wrap: balance;
-}
-
-.tezoscrp-header .tezoscrp-hero-lead,
 .tezoscrp-panel-head p,
 .tezoscrp-latest-hero p,
 .tezoscrp-person-detail-head p {
@@ -366,7 +337,6 @@
 }
 
 .tezoscrp-header .tezoscrp-official-link {
-    margin-top: 0.8rem;
     background: rgba(var(--tezoscrp-accent-rgb), 0.055);
 }
 
@@ -1553,27 +1523,6 @@
 
     .tezoscrp-body {
         padding: 1rem 0.75rem 2rem;
-    }
-
-    .tezoscrp-header {
-        padding: 0.1rem 2.4rem 1rem;
-    }
-
-    .tezoscrp-system-strip {
-        gap: 0.25rem 0.5rem;
-        font-size: 0.48rem;
-    }
-
-    .tezoscrp-system-strip span + span::before {
-        margin-right: 0.5rem;
-    }
-
-    .tezoscrp-header h1 {
-        font-size: clamp(1.55rem, 10vw, 2.35rem);
-    }
-
-    .tezoscrp-header .tezoscrp-hero-lead {
-        font-size: 0.76rem;
     }
 
     .tezoscrp-latest-hero {

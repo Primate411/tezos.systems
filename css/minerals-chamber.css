@@ -261,17 +261,8 @@
 
 .minerals-header {
     border-bottom: 1px solid rgba(106, 222, 224, .1);
-    background: rgba(7, 16, 18, .94);
 }
 
-.minerals-system-strip { color: #71898a; font: 650 8px/1.2 "JetBrains Mono", monospace; letter-spacing: .06em; text-transform: uppercase; }
-.minerals-system-strip strong { color: var(--minerals-cyan); }
-
-.minerals-title-row { margin-top: 7px; }
-.minerals-title-row h2 { color: #effffb; font-family: var(--font-ui, system-ui, sans-serif); font-weight: 760; letter-spacing: -.055em; line-height: 1; }
-
-.minerals-badge,
-.minerals-freshness,
 .minerals-status {
     border: 1px solid rgba(111, 225, 226, .18);
     font-weight: 650;
@@ -287,8 +278,6 @@
     font: 650 8px/1.25 "JetBrains Mono", monospace;
 }
 
-.minerals-badge { color: #a5f0ed; background: rgba(70, 197, 200, .07); letter-spacing: .06em; text-transform: uppercase; }
-.minerals-freshness { color: #849a9b; }
 .minerals-freshness.is-stale { color: #edbe81; border-color: rgba(205, 132, 81, .3); }
 .minerals-status.is-good { color: #b9eba2; border-color: rgba(148, 211, 116, .29); }
 .minerals-status.is-warn { color: #f0c180; border-color: rgba(213, 139, 80, .34); }
@@ -678,7 +667,6 @@
 }
 
 @media (max-width: 520px) {
-    .minerals-freshness { flex-basis: 100%; width: fit-content; }
     .minerals-tab { font-size: 8px; }
     .minerals-atlas-directory { grid-template-columns: 1fr; padding: 7px; }
     .minerals-atlas-card { grid-template-columns: 52px 1fr; }

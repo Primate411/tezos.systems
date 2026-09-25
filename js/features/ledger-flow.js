@@ -1033,7 +1033,7 @@ function renderEmptyState(container, valueOverride = '') {
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
             ${renderControls(null, valueOverride)}
-            ${renderChamberVerdict({ key: 'ledger-flow', state: 'guide', sentence: 'Choose an account to inspect its transfer window; no account data is loaded yet.', receipts: [['Input', 'Wallet, contract, or .tez'], ['Source', 'TzKT']] })}
+            ${renderChamberVerdict({ key: 'ledger-flow', state: 'guide', sentence: 'Choose a wallet, contract, or .tez name to map where its tez came from and went.', note: 'No account data is loaded yet.', receipts: [['Input', 'Wallet, contract, or .tez'], ['Source', 'TzKT']] })}
             ${renderChamberGuide('ledger-flow')}
             ${renderExampleChips()}
             <div class="ledger-flow-empty-panel">
@@ -1102,7 +1102,7 @@ function renderLedgerFlow(data, options = {}) {
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
             ${renderControls(model)}
-            ${renderChamberVerdict({ key: 'ledger-flow', state: model.coverage?.mode === 'sample' ? 'partial' : 'observed', sentence: model.coverage?.mode === 'sample' ? 'This account map is a bounded sample; its flows must not be read as complete account history.' : 'These gross transfers belong to the selected account window; counterparties do not establish common ownership.', receipts: [['Received', formatCompactXTZ(model.totals.received)], ['Sent', formatCompactXTZ(model.totals.sent)]] })}
+            ${renderChamberVerdict({ key: 'ledger-flow', state: model.coverage?.mode === 'sample' ? 'partial' : 'observed', sentence: `${identity} received ${formatCompactXTZ(model.totals.received)} and sent ${formatCompactXTZ(model.totals.sent)} in the ${windowLabel} window.`, note: model.coverage?.mode === 'sample' ? 'This account map is a bounded sample; its flows must not be read as complete account history.' : 'These are gross transfers in the selected window; counterparties do not establish common ownership.', receipts: [['Received', formatCompactXTZ(model.totals.received)], ['Sent', formatCompactXTZ(model.totals.sent)]] })}
             ${renderChamberGuide('ledger-flow')}
             ${renderCoverage(model)}
             ${renderStats(model)}

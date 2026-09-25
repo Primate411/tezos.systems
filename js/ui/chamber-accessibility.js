@@ -23,9 +23,10 @@ function bindRoomControls(dialog) {
         railFrame = requestAnimationFrame(() => {
             railFrame = 0;
             if (!dialog.closest('.active') || document.visibilityState !== 'visible') return;
-            for (const rail of dialog.querySelectorAll('.market-room-tabs, .whale-watch-tabs, .ecosystem-tabs, .network-pulse-nav, .tezoscrp-tabs, .minerals-filter-rail')) {
+            for (const rail of dialog.querySelectorAll('.chamber-tabs, .market-room-tabs, .whale-watch-tabs, .ecosystem-tabs, .network-pulse-nav, .tezoscrp-tabs, .minerals-filter-rail')) {
                 rail.dataset.quietOverflowEnd = String(rail.scrollWidth - rail.clientWidth - rail.scrollLeft > 2);
             }
+            syncChamberExit(dialog);
         });
     };
     new ResizeObserver(refreshRailCues).observe(dialog);
@@ -76,16 +77,8 @@ export function bindChamberVisibility(overlayId, refresh) {
     });
 }
 const CHAMBER_SHELL_EXCLUSIONS = new Set(['release-radar-overlay', 'ctez-overlay']);
-const WIDE_CHAMBER_DIALOG_SELECTOR = [
-    '.capital-content',
-    '.minerals-content',
-    '.uranium-content',
-    '.metals-content',
-    '.ecosystem-content',
-    '.funding-content',
-    '.whale-watch-content',
-    '.baker-directory-content'
-].join(',');
+// Every room shares the Network Health frame: one width, one exit position.
+const CHAMBER_ROOM_SIZE = 'standard';
 const CHAMBER_INTERACTIVE_SELECTOR = [
     'a[href]',
     'button',
@@ -105,16 +98,31 @@ export function getChamberScrollContainer(element) {
     return candidates.find((element) => ['auto', 'scroll'].includes(getComputedStyle(element).overflowY)) || dialog;
 }
 
+/**
+ * Pin the exit to the same corner inset in every room, whatever padding the
+ * room gives its dialog, and mark a scrolled room so its exit band turns
+ * opaque. Values are written only when they change; user scrolling and
+ * resizes are the only triggers, never a data refresh.
+ */
+function syncChamberExit(dialog) {
+    if (!dialog.classList.contains('chamber-room-shell')) return;
+    const style = getComputedStyle(dialog);
+    for (const [property, value] of [['--chamber-pad-top', style.paddingTop], ['--chamber-pad-right', style.paddingRight], ['--chamber-pad-left', style.paddingLeft]]) {
+        if (dialog.style.getPropertyValue(property) !== value) dialog.style.setProperty(property, value);
+    }
+    const scrolled = String(getChamberScrollContainer(dialog).scrollTop > 4);
+    if (dialog.dataset.chamberScrolled !== scrolled) dialog.dataset.chamberScrolled = scrolled;
+}
+
 function normalizeChamberShell(overlay, dialog) {
     if (!overlay.classList.contains('chamber-overlay')
         || [...CHAMBER_SHELL_EXCLUSIONS].some((className) => overlay.classList.contains(className))) return;
 
-    const roomSize = dialog.matches('.staking-chamber-content')
-        ? 'narrow'
-        : dialog.matches(WIDE_CHAMBER_DIALOG_SELECTOR) ? 'wide' : 'standard';
+    const roomSize = CHAMBER_ROOM_SIZE;
     overlay.classList.add('chamber-shell-normalized');
     dialog.classList.add('chamber-room-shell');
     dialog.dataset.roomSize = roomSize;
+    syncChamberExit(dialog);
 
     const scrollContainer = getChamberScrollContainer(dialog);
     const basePaddingBottom = getComputedStyle(scrollContainer).paddingBottom || '0px';

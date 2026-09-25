@@ -4375,7 +4375,7 @@
 }
 
 /* Normalized first-class Chamber viewport. Room palettes and internal spacing
-   stay local while the outer geometry follows one narrow/standard/wide model. */
+   stay local while every room shares the Network Health frame width. */
 .chamber-overlay.chamber-shell-normalized {
     padding: var(--space-4) !important;
 }
@@ -4390,8 +4390,6 @@
     border-radius: var(--radius-room) !important;
 }
 
-.chamber-room-shell[data-room-size="narrow"] { --room-max-width: 900px; }
-.chamber-room-shell[data-room-size="wide"] { --room-max-width: 1480px; }
 
 .chamber-title {
     min-width: 0;
@@ -6131,6 +6129,42 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
 .chamber-reading-verdict[data-state="partial"] .chamber-reading-state { color: var(--text-primary, #e8edf7); border-style: dashed; }
 .chamber-reading-copy { min-width: 0; flex: 1; }
 .chamber-reading-copy > p { margin: 0; font-size: 14px; line-height: 1.55; color: inherit; }
+/* The answer leads; the reading boundary stays visible one step quieter. */
+.chamber-reading-copy > p:first-child { font-weight: 600; color: var(--text-primary, #e8edf7); }
+.chamber-reading-copy > p.chamber-reading-note { margin-top: 3px; font-size: 12.5px; font-weight: 400; line-height: 1.5; color: var(--text-secondary, #a5accb); }
+
+/* Shared Chamber header (js/ui/chamber-header.js): every room opens with the
+   Network Health anatomy — strip, glyph + title + status, summary, mono meta. */
+.chamber-house-header { text-align: center; }
+.chamber-house-header .chamber-title-row { justify-content: center; }
+.lb-header .chamber-title[data-glyph]::before {
+    content: attr(data-glyph);
+    width: auto;
+    min-width: 28px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    text-transform: none;
+}
+.chamber-house-header .chamber-proposal-info { margin-top: 6px; }
+.chamber-house-header .chamber-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+/* Rooms whose dialog has no padding own their gutters; give the header the
+   same breathing room Network Health gets from its padded dialog. */
+.chamber-content:is(.market-room-shell, .whale-watch-content, .ecosystem-content, .funding-content, .baker-directory-content) .chamber-house-header {
+    padding: 32px 40px 8px;
+}
+@media (max-width: 759px) {
+    .chamber-content:is(.market-room-shell, .whale-watch-content, .ecosystem-content, .funding-content, .baker-directory-content) .chamber-house-header {
+        padding: 22px 16px 6px;
+    }
+    /* The strip is the header's first line: keep it clear of the exit. */
+    .chamber-room-shell .lb-header .lb-system-strip { margin-inline: 40px !important; }
+}
 .chamber-reading-receipts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 11px; line-height: 1.65; color: var(--text-secondary, #a5accb); }
 .chamber-reading-receipts strong { color: var(--text-primary, #e8edf7); font-variant-numeric: tabular-nums; font-weight: 600; }
 /* Leave one spare character beyond "under 1m ago" for fractional glyph rounding. */
@@ -6163,11 +6197,24 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     min-height: 100%;
     overflow: visible !important;
 }
-.chamber-content > .chamber-close {
+/* One exit position in every room: the same corner inset whatever padding a
+   room gives its dialog (the shell measures it into --chamber-pad-*). A float
+   cannot rise into its parent's top padding and a sticky offset is measured
+   from the scroller's content edge, so the exit sticks at that edge and a
+   translate lifts it to the shared inset, before and after scrolling. The
+   float nets zero height and never pushes content. */
+.chamber-content {
+    --chamber-exit-inset: 12px;
+}
+.chamber-content > .chamber-close,
+.chamber-room-shell > .modal-close {
     position: sticky !important;
-    top: 4px !important;
+    top: 0 !important;
+    right: auto !important;
     float: right;
-    margin: 4px 4px -48px 0 !important;
+    margin: 0 calc(var(--chamber-exit-inset) - var(--chamber-pad-right, 0px)) -44px 0 !important;
+    transform: translateY(calc(var(--chamber-exit-inset) - var(--chamber-pad-top, 0px)));
+    transition: color 0.18s ease, text-shadow 0.18s ease !important;
     width: 44px;
     height: 44px;
     z-index: 40 !important;
@@ -6179,6 +6226,25 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     outline: 0 !important;
 }
 .chamber-content > .chamber-close:focus-visible { color: var(--accent-cyan) !important; text-shadow: 0 0 10px currentColor; }
+/* Once the reader scrolls, an opaque band sits behind the bare exit so the X
+   never floats over content. Rooms with a sticky control rail already give
+   the exit's column an opaque backing, so they keep their rail instead. */
+.chamber-room-shell > :is(.chamber-close, .modal-close)::before {
+    content: '';
+    position: absolute;
+    top: calc(-1 * var(--chamber-exit-inset));
+    right: calc(-1 * var(--chamber-exit-inset));
+    z-index: -1;
+    width: 200vw;
+    height: calc(44px + 2 * var(--chamber-exit-inset));
+    border-bottom: 1px solid color-mix(in srgb, var(--text-secondary, #a5accb) 18%, transparent);
+    background: var(--chamber-exit-band, var(--bg-primary, #0a0e1a));
+    opacity: 0;
+    pointer-events: none;
+}
+.chamber-room-shell[data-chamber-scrolled="true"]:not(:has(.chamber-tabs, .market-room-tabs, .whale-watch-tabs, .ecosystem-tabs, .network-pulse-nav, .baker-directory-controls, .etherlink-gov-tabs, .maxis-room-tabs, .tezoscrp-tabs)) > :is(.chamber-close, .modal-close)::before {
+    opacity: 1;
+}
 .chamber-disclosure {
     min-width: 0;
     margin: 8px 0 12px;
@@ -6246,11 +6312,9 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
 }
 .chamber-content :is(.whale-watch-tabs button, .ecosystem-tabs button, .network-pulse-nav button, .baker-directory-tabs button, .etherlink-gov-tabs button) { min-height: 44px; font-size: 13px; }
 .chamber-content .whale-watch-header { position: static; padding-bottom: 12px; }
-.chamber-content .ecosystem-header { position: static; padding-bottom: 8px; }
 .chamber-content .chamber-context-nav button { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); border-radius: 6px; color: inherit; background: transparent; font: 600 13px/1.35 var(--font-ui, system-ui); cursor: pointer; }
 .chamber-content [data-chamber-scroll-to]:focus-visible { outline: 2px solid var(--accent-cyan, #68d7e7); outline-offset: 2px; }
 .chamber-content .baker-directory-method { font-size: 13px; }
-.chamber-content .tezoscrp-header h1 { word-break: normal; overflow-wrap: normal; }
 .chamber-content .tezoscrp-tabs { display: flex; width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .chamber-content .tezoscrp-tabs button { flex: 0 0 auto; min-height: 44px; font-size: 13px; }
 .chamber-content .chamber-source-status summary { overflow-wrap: anywhere; }
@@ -6280,12 +6344,6 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     pointer-events: none;
 }
 @media (max-width: 759px) {
-    .chamber-content .tezoscrp-header { padding-top: 10px; padding-bottom: 10px; }
-    .chamber-content .tezoscrp-header h1 { font-size: clamp(23px, 6.5vw, 36px); line-height: 1.12; letter-spacing: -.025em; }
-    .chamber-content .tezoscrp-hero-badges { margin-block: 8px; }
-    .chamber-content .tezoscrp-hero-lead { font-size: 14px; margin-block: 10px; }
-    .chamber-content .whale-watch-title-row { padding-right: 50px; }
-    .chamber-content .whale-watch-title-row p { font-size: 13px; }
     .chamber-content .network-pulse-nav { flex-wrap: nowrap; overflow-x: auto; padding-block: 5px; }
     .chamber-content .network-pulse-nav button { flex: 0 0 auto; }
     .chamber-content .network-pulse-header .proposal-name { display: none; }

@@ -658,63 +658,17 @@
     color: var(--text-primary, #f8fafc);
 }
 
-.baker-directory-header {
-    display: grid;
-    position: sticky;
-    z-index: 8;
-    top: 0;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 18px 30px;
-    padding: 28px 68px 18px 30px;
-    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.09));
-    background: color-mix(in srgb, var(--bg-primary, #07101a) 93%, transparent);
-    box-shadow: 0 12px 35px rgba(0,0,0,0.12);
-    backdrop-filter: blur(18px);
-}
-
-.baker-directory-title-block {
-    min-width: 0;
-}
-
-.baker-directory-title-block h1 {
-    margin: 3px 0 6px;
-    color: var(--text-primary, #fff);
-    font-size: clamp(1.45rem, 2.7vw, 2.3rem);
-    line-height: 1;
-    letter-spacing: -0.035em;
-}
-
-.baker-directory-title-block p {
-    max-width: 68rem;
-    margin: 0;
-    color: var(--text-secondary, rgba(255,255,255,0.64));
-    font-size: 0.82rem;
-    line-height: 1.5;
-}
-
+/* The shared Chamber header (js/ui/chamber-header.js) opens the room. Its
+   live receipt rides in the title row as a compact pill. */
 .baker-directory-receipt {
-    display: grid;
-    align-self: start;
-    justify-self: end;
-    grid-template-columns: auto 1fr;
-    gap: 1px 8px;
-    min-width: 170px;
-    width: max-content;
-    padding: 9px 12px;
-    border: 1px solid var(--border-color, rgba(255,255,255,0.09));
-    border-radius: 10px;
-    background: rgba(255,255,255,0.028);
+    gap: 6px;
+    height: auto;
+    min-height: 18px;
 }
 
-.baker-directory-receipt strong {
-    font-size: 0.78rem;
-}
-
-.baker-directory-receipt small {
-    grid-column: 2;
-    color: var(--text-tertiary, var(--text-secondary));
-    font-size: 0.63rem;
-}
+.baker-directory-receipt strong { font-weight: 700; }
+.baker-directory-shell > .chamber-reading-verdict { margin-inline: 24px; }
+.baker-directory-receipt small { font-size: inherit; opacity: 0.86; }
 
 #baker-directory-search-input::placeholder {
     color: var(--text-tertiary, #91a2b8);
@@ -724,7 +678,6 @@
 .baker-directory-live-dot {
     width: 7px;
     height: 7px;
-    margin-top: 4px;
     border-radius: 50%;
     background: var(--text-tertiary, #64748b);
 }
@@ -1611,10 +1564,6 @@
 }
 
 @media (max-width: 1120px) {
-    .baker-directory-header {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
     .baker-directory-tabs,
     .baker-directory-search {
         grid-column: 1 / -1;
@@ -1644,11 +1593,6 @@
         width: calc(100vw - 12px);
         height: calc(100dvh - 12px);
         max-height: calc(100dvh - 12px);
-    }
-
-    .baker-directory-header {
-        gap: 14px;
-        padding: 22px 52px 15px 18px;
     }
 
     .baker-directory-panel {
@@ -1702,18 +1646,6 @@
 }
 
 @media (max-width: 560px) {
-    .baker-directory-header {
-        grid-template-columns: 1fr;
-        padding: 20px 50px 14px 14px;
-    }
-
-    .baker-directory-receipt {
-        grid-row: 2;
-        justify-self: stretch;
-        min-width: 0;
-        width: auto;
-    }
-
     .baker-directory-tabs {
         grid-column: 1;
         width: 100%;

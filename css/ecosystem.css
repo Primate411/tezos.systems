@@ -43,19 +43,19 @@
   padding: 0 24px 30px;
 }
 
+/* The shared Chamber header (js/ui/chamber-header.js) opens the room; this
+   wrapper spans the body gutters and groups it with sources and the banner. */
 .ecosystem-header {
-  position: sticky;
-  z-index: 8;
-  top: 0;
+  position: static;
   margin: 0 -24px;
-  padding: 18px 68px 0 24px;
+  padding: 0 24px 6px;
   border-bottom: 1px solid var(--ecosystem-line);
-  background: linear-gradient(180deg, rgba(7, 16, 23, .99) 75%, rgba(7, 16, 23, .94));
-  backdrop-filter: blur(18px);
 }
 
-.ecosystem-system-strip,
-.ecosystem-title-row,
+.chamber-content.ecosystem-content .ecosystem-header > .chamber-house-header {
+  padding: 32px 16px 8px;
+}
+
 .ecosystem-tabs,
 .ecosystem-toolbar,
 .ecosystem-panel-head,
@@ -67,32 +67,6 @@
   align-items: center;
 }
 
-.ecosystem-system-strip {
-  gap: 8px;
-  color: var(--ecosystem-muted);
-  font-size: .72rem;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-}
-
-.ecosystem-system-strip strong {
-  color: var(--ecosystem-mint);
-}
-
-.ecosystem-title-row {
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-
-.ecosystem-title-row h2 {
-  margin: 0;
-  font-size: clamp(1.65rem, 3vw, 2.7rem);
-  letter-spacing: -.04em;
-}
-
-.ecosystem-badge,
-.ecosystem-freshness,
 .ecosystem-week-label,
 .ecosystem-layer-chip,
 .ecosystem-eyebrow {
@@ -104,31 +78,9 @@
   font-weight: 750;
 }
 
-.ecosystem-badge {
-  padding: 5px 9px;
-  color: #061411;
-  background: var(--ecosystem-mint);
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-
-.ecosystem-freshness {
-  margin-left: auto;
-  padding: 5px 9px;
-  color: var(--ecosystem-muted);
-  border: 1px solid var(--ecosystem-line);
-}
-
 .ecosystem-freshness.is-stale {
   color: #ffd98b;
   border-color: rgba(244, 200, 90, .42);
-}
-
-.ecosystem-intro {
-  max-width: 920px;
-  margin: 7px 0 14px;
-  color: var(--ecosystem-muted);
-  line-height: 1.48;
 }
 
 .ecosystem-tabs {
@@ -933,15 +885,8 @@
   }
 
   .ecosystem-header {
-    position: relative;
-    top: auto;
     margin: 0 -12px;
-    padding: 14px 50px 0 12px;
-  }
-
-  .ecosystem-freshness {
-    width: 100%;
-    margin-left: 0;
+    padding: 0 12px 4px;
   }
 
   .ecosystem-toolbar {

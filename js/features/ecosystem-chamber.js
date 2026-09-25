@@ -1,4 +1,5 @@
 import { setChamberReadingState, renderAgeingLabel, renderChamberVerdict, syncChamberReading } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 /**
  * Ecosystem Activity Chamber
  *
@@ -393,8 +394,8 @@ function lineChart(rows, metricName, title, colorClass) {
 
 function renderLayerTabs() {
     return `
-        <div class="ecosystem-tabs" role="tablist" aria-label="Ecosystem layer">
-            ${LAYERS.map((layer) => `<button type="button" role="tab" id="ecosystem-tab-${layer.id}" aria-selected="${currentLayer === layer.id}" tabindex="${currentLayer === layer.id ? '0' : '-1'}" data-ecosystem-layer="${layer.id}">${escapeHtml(layer.label)}</button>`).join('')}
+        <div class="ecosystem-tabs chamber-tabs" role="tablist" aria-label="Ecosystem layer">
+            ${LAYERS.map((layer) => `<button type="button" class="chamber-tab" role="tab" id="ecosystem-tab-${layer.id}" aria-selected="${currentLayer === layer.id}" tabindex="${currentLayer === layer.id ? '0' : '-1'}" data-ecosystem-layer="${layer.id}">${escapeHtml(layer.label)}</button>`).join('')}
         </div>
     `;
 }
@@ -640,22 +641,51 @@ function renderMethodology(snapshot) {
     `;
 }
 
+function ecosystemHeaderMeta(snapshot) {
+    const lastWeek = networkRows(snapshot).at(-1);
+    const active = metricFor(lastWeek, 'all')?.activeWallets;
+    return `${formatNumber(active)} active addresses · ${formatNumber(snapshot.universe?.eligibleApps)} reviewed apps · week of ${formatWeek(lastWeek?.weekStart)}`;
+}
+
+/** Lead with the completed week's answer; the counting boundary follows. */
+function ecosystemReading(snapshot, freshness) {
+    const [leader] = rankedApps(snapshot);
+    const active = metricFor(networkRows(snapshot).at(-1))?.activeWallets;
+    const scope = currentLayer === 'all' ? 'network-wide' : `on ${layerLabel()}`;
+    const sentence = leader
+        ? `${leader.app.name} led the last completed week with ${formatNumber(leader.summary.activeWallets)} active wallets; ${formatNumber(active)} addresses were active ${scope}.`
+        : `${formatNumber(active)} addresses were active ${scope} in the last completed week.`;
+    return {
+        key: 'ecosystem',
+        state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot',
+        sentence,
+        note: 'Rankings use the last completed UTC week; the current week is partial, and addresses are not people.',
+        receipts: [['Reviewed apps', snapshot.apps.length], ['Weekly observations', snapshot.weeks.length]]
+    };
+}
+
 function renderChamber(snapshot) {
     if (!snapshot.universe.categories.includes(currentCategory)) currentCategory = 'all';
     if (currentApp && !snapshot.apps.some((app) => app.id === currentApp)) currentApp = '';
     const rows = snapshot.weeks;
     const freshness = freshnessPresentation(snapshot);
     return `
-        <header class="ecosystem-header" data-quiet-key="ecosystem-header">
-            <div class="ecosystem-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>network-wide + app activity</span></div>
-            <div class="ecosystem-title-row">
-                <h2 id="ecosystem-title">Ecosystem Activity</h2>
-                <span class="ecosystem-badge">Weekly address ledger</span>
-                <span class="ecosystem-freshness${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>
-            </div>
-            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources || snapshot.sourceReceipts)}<p class="ecosystem-intro">Network-wide addresses and the reviewed-app subset, measured separately.</p>
-            ${renderChamberVerdict({ key: 'ecosystem', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'App rankings use the last completed UTC week; the current week is partial and addresses are not people.', receipts: [['Reviewed apps', snapshot.apps.length], ['Weekly observations', snapshot.weeks.length]] })}
-        </header>
+        <div class="ecosystem-header" data-quiet-key="ecosystem-header">
+            ${renderChamberHeader({
+                room: 'ecosystem',
+                strip: ['Tezos.Systems', 'Ecosystem', 'Network-wide + app activity'],
+                glyph: 'eco',
+                title: 'Ecosystem Activity',
+                titleId: 'ecosystem-title',
+                chips: `${renderChamberChip(freshness.stale ? 'Stale snapshot' : 'Weekly ledger', { tone: freshness.stale ? 'historical' : 'live' })}<span class="ecosystem-freshness lb-live-pill lb-refresh-pill${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>`,
+                summary: 'Network-wide addresses and the reviewed-app subset, measured separately.',
+                summaryClass: 'ecosystem-intro',
+                meta: escapeHtml(ecosystemHeaderMeta(snapshot)),
+                className: 'chamber-anim-fade'
+            })}
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources || snapshot.sourceReceipts)}
+            ${renderChamberVerdict(ecosystemReading(snapshot, freshness))}
+        </div>
         ${renderLayerTabs()}
         <div class="ecosystem-toolbar" data-quiet-key="ecosystem-toolbar">
             ${renderRangeTabs()}

@@ -30,61 +30,16 @@
     overscroll-behavior: contain;
 }
 
+/* Market rooms open with the shared Chamber header (js/ui/chamber-header.js).
+   The wrapper groups it with the snapshot receipt; the tab rail stays sticky. */
 .market-room-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    position: static;
     min-width: 0;
-    padding: 18px 64px 0 var(--market-room-inline);
-    backdrop-filter: blur(16px) saturate(1.08);
+    padding: 0 var(--market-room-inline) 4px;
 }
 
-.market-room-system-strip {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2, 8px);
-    min-width: 0;
-}
-
-.market-room-title-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2, 8px) var(--space-3, 12px);
-    min-width: 0;
-}
-
-.market-room-title {
-    min-width: 0;
-    margin: 0;
-    font-size: var(--type-room-title);
-    line-height: 1.05;
-    overflow-wrap: anywhere;
-}
-
-.market-room-title.is-display {
-    font-family: var(--font-display, 'Orbitron', sans-serif);
-    letter-spacing: 0.02em;
-}
-
-.market-room-title.is-editorial {
-    font-family: var(--font-ui, system-ui, sans-serif);
-    letter-spacing: -0.045em;
-}
-
-.market-room-badge,
-.market-room-freshness {
-    display: inline-flex;
-    align-items: center;
-    flex: 0 0 auto;
-    max-width: 100%;
-    min-height: 21px;
-    padding: var(--space-1, 4px) var(--space-2, 8px);
-    border-radius: var(--radius-pill);
-    font-family: "JetBrains Mono", monospace;
-    font-size: 0.5625rem;
-    line-height: 1.25;
+.chamber-content.market-room-shell .market-room-header > .chamber-house-header {
+    padding: 30px 16px 8px;
 }
 
 .market-room-intro {
@@ -223,18 +178,6 @@
         --market-room-inline: var(--space-3, 12px);
     }
 
-    .market-room-header {
-        padding: 10px 46px 0 var(--market-room-inline);
-    }
-
-    .market-room-title-row {
-        align-items: flex-start;
-    }
-
-    .market-room-title {
-        flex-basis: 100%;
-    }
-
     .market-room-intro {
         font-size: 0.75rem;
         line-height: 1.48;
@@ -284,10 +227,8 @@
 }
 .market-room-shell .market-room-tab { font-size: 13px; min-height: 44px; }
 .market-room-shell .market-room-view-shell { padding-top: 12px; }
-.market-room-shell .market-room-freshness { font-size: 11px; }
 .market-room-shell .market-room-view-head p { font-size: 13px; }
 @media (max-width: 759px) {
-    .market-room-shell .market-room-header { padding-right: 62px; }
-    .market-room-shell .market-room-title { font-size: clamp(23px, 7vw, 34px); overflow-wrap: normal; word-break: normal; }
+    .chamber-content.market-room-shell .market-room-header > .chamber-house-header { padding: 20px 4px 6px; }
     .market-room-shell .market-room-view-head { gap: 8px; }
 }

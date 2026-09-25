@@ -1212,8 +1212,17 @@ function hasSeedStats(stats) {
     return Boolean(stats && typeof stats === 'object' && Object.keys(stats).length);
 }
 
+/** Lead with the headline network read; each card keeps its own clock. */
+function pulseAnswer(stats = {}) {
+    const bakers = numericValue(stats.totalBakers);
+    const staked = numericValue(stats.stakingRatio);
+    const cycle = numericValue(stats.cycle);
+    if (bakers === null || staked === null) return 'Network signals are warming up; each card fills as its source returns.';
+    return `${formatCount(bakers)} active bakers secure Tezos with ${formatPct(staked)} of supply staked${cycle !== null ? ` in cycle ${formatCount(cycle)}` : ''}.`;
+}
+
 function pulseReading(stats) {
-    return { key: 'pulse', state: hasSeedStats(stats) ? 'observed' : 'unavailable', sentence: 'This field combines network measurements with different capture clocks; a missing measurement is not zero.', receipts: [['Scope', 'Tezos L1 + L2'], ['Sources', 'TzKT, RPC, and captured history']], timestamp: lastStatsAt || null, clockLabel: 'Stats read' };
+    return { key: 'pulse', state: hasSeedStats(stats) ? 'observed' : 'unavailable', sentence: pulseAnswer(stats), note: 'This field combines measurements with different capture clocks; a missing measurement is not zero.', receipts: [['Scope', 'Tezos L1 + L2'], ['Sources', 'TzKT, RPC, and captured history']], timestamp: lastStatsAt || null, clockLabel: 'Stats read' };
 }
 
 function renderNetworkPulseChamber(stats, container, { loading = false, rows = lastHistoryRows, domainRows = lastDomainRows } = {}) {

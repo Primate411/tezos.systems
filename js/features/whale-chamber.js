@@ -1,5 +1,6 @@
 import { loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict, renderChamberStamp, settleChamberArrival } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 import { getChamberScrollContainer, requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Whale Watch Chamber
@@ -420,20 +421,32 @@ function sourceStripMarkup() {
 
 function headerMarkup() {
     const active = VIEWS.find(({ id }) => id === currentView) || VIEWS[0];
+    const transfer = lastArtifact?.transfers24h;
+    const chip = artifactError
+        ? renderChamberChip(lastArtifact ? 'Last-good archive' : 'Archive unavailable', { tone: 'historical' })
+        : lastArtifact ? renderChamberChip('Archive ready', { tone: 'live' }) : renderChamberChip('Loading archive');
+    const largest = transfer?.largestOperation;
     return `
-        <header class="whale-watch-header">
-            <div class="whale-watch-system-line"><span>Tezos L1</span><span>Public-source observation</span><span>No inferred ownership</span></div>
-            <div class="whale-watch-title-row">
-                <div><p class="whale-watch-kicker">Capital movement · account dormancy · operation receipts</p><h2 id="whale-watch-title">Whale Watch</h2><p>${escapeHtml(active.detail)}</p></div>
-                <button class="whale-watch-refresh" type="button" data-whale-action="refresh" aria-label="Refresh Whale Watch data">Refresh</button>
-            </div>
-            ${renderChamberVerdict({ key: 'whales', state: artifactError ? 'watch' : lastArtifact ? 'snapshot' : 'unavailable', sentence: lastArtifact?.transfers24h ? `${exact(lastArtifact.transfers24h.operationCount)} large applied transfers are recorded in the archive’s 24-hour window; the live tape has separate bounded coverage.` : 'The shared archive is not available yet; no quiet-day claim can be made.', receipts: [['Window', archiveWindowLabel()], ['Operation groups', lastArtifact?.transfers24h?.operationGroupCount ?? 'Unavailable']] })}
+        <div class="whale-watch-header">
+            ${renderChamberHeader({
+                room: 'whales',
+                strip: ['Tezos.Systems', 'Whale Watch', 'Capital movement'],
+                glyph: 'whl',
+                title: 'Whale Watch',
+                titleId: 'whale-watch-title',
+                chips: `${chip}<span class="lb-live-pill lb-refresh-pill">${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}</span>`,
+                summary: active.detail,
+                meta: escapeHtml(transfer ? `Window ${archiveWindowLabel(transfer)}` : 'Tezos L1 · public-source observation · no inferred ownership'),
+                actions: '<button class="whale-watch-refresh" type="button" data-whale-action="refresh" aria-label="Refresh Whale Watch data">Refresh</button>',
+                className: 'chamber-anim-fade'
+            })}
+            ${renderChamberVerdict({ key: 'whales', state: artifactError ? 'watch' : lastArtifact ? 'snapshot' : 'unavailable', sentence: transfer ? `${exact(transfer.operationCount)} large applied ${transfer.operationCount === 1 ? 'transfer' : 'transfers'} in the last 24 hours${largest ? `; the largest single operation moved ${xtz(largest.amountMutez, 2)}` : ''}.` : 'The shared archive is not available yet; no quiet-day claim can be made.', note: transfer ? 'Gross observed transfers, not economic volume. The live tape has separate bounded coverage, and TzKT aliases are source context, not ownership.' : '', receipts: [['Operation groups', transfer?.operationGroupCount ?? 'Unavailable'], ['Senders / targets', transfer ? `${exact(transfer.uniqueSenders)} / ${exact(transfer.uniqueTargets)}` : 'Unavailable']] })}
 
             ${VIEWS.filter((view) => view.id !== currentView).map((view) => `<div id="whale-watch-panel-${view.id}" role="tabpanel" aria-labelledby="whale-watch-tab-${view.id}" tabindex="0" hidden inert aria-hidden="true"></div>`).join('')}
             ${sourceStripMarkup()}
-        </header>
-            <nav class="whale-watch-tabs" role="tablist" aria-label="Whale Watch views">
-                ${VIEWS.map((view) => `<button id="whale-watch-tab-${view.id}" type="button" role="tab" aria-selected="${currentView === view.id}" aria-controls="whale-watch-panel-${view.id}" tabindex="${currentView === view.id ? '0' : '-1'}" data-whale-view="${view.id}">${escapeHtml(view.label)}</button>`).join('')}
+        </div>
+            <nav class="whale-watch-tabs chamber-tabs" role="tablist" aria-label="Whale Watch views">
+                ${VIEWS.map((view) => `<button id="whale-watch-tab-${view.id}" class="chamber-tab" type="button" role="tab" aria-selected="${currentView === view.id}" aria-controls="whale-watch-panel-${view.id}" tabindex="${currentView === view.id ? '0' : '-1'}" data-whale-view="${view.id}">${escapeHtml(view.label)}</button>`).join('')}
             </nav>`;
 }
 
