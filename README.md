@@ -816,9 +816,10 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's September 23 review confirms Octez 25.2 and EVM node 0.66 using
-  their publication receipts and records FAST periods 693/694 plus the updated
-  launch-documentation notice. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
+  Release Radar's September 25 review reconfirms Octez 25.2 and EVM node 0.66 using
+  their publication receipts, unchanged FAST periods 693/694 and the current
+  launch-documentation notice. September 24 Ganesha-r2 maintenance is explicitly
+  scoped to Shadownet. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
   governance, and the wider Tezos X rollout remain distinct. The previous
   inference from one empty FAST window is explicitly corrected. The 36-hour
   review clock and 14-day expiry still require a new evidence review to extend.
@@ -2417,7 +2418,8 @@ Current smoke suites:
   desktop/mobile containment)
 - `launcher-projections` (proves Capital, Ecosystem Activity, and Maxis request only their compact
   summaries at first render, defers the Baker Directory governance ledger and
-  reviewed full artifacts until room open, preserves launcher parity, accepts
+  reviewed full artifacts until room open, compares complete launcher markup at
+  a fixed wall-clock instant while timers keep running, accepts
   a newer verified Capital deploy over a stale in-memory receipt, and falls
   back safely when a projection is unavailable)
 - First-class Chamber dialogs normalize through the shared accessibility seam

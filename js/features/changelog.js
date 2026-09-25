@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-25',
+        entries: [
+            { type: '🔧', text: 'Release checks compare Chamber previews at the same instant so a changing freshness label cannot trigger a false mismatch' },
+            { type: '🔧', text: 'Release Radar has a renewed primary-source review of current operator releases, governance and deployment records; the full Tezos X launch remains unconfirmed' }
+        ]
+    },
+    {
         date: '2026-09-24',
         entries: [
             { type: '🔧', text: 'Historical network snapshots get extra catch-up opportunities when scheduled collection is delayed, while preserving their two-hour capture target and five-hour freshness alarm' }
