@@ -313,7 +313,7 @@ function renderCtezChamber() {
             </div>
         </div>
 
-        ${renderChamberVerdict({ key: 'ctez', state: 'guide', sentence: 'This is an oven-recovery console, not a new ctez position: inspect an address before any wallet action.', receipts: [['Read-only', 'Address scan'], ['Signing', 'Separate wallet review']] })}
+        ${renderChamberVerdict({ key: 'ctez', state: 'guide', sentence: 'ctez is sunsetting: scan an address to find its ovens and what can be recovered.', note: 'This is an oven-recovery console, not a new ctez position; every wallet action is reviewed separately.', receipts: [['Read-only', 'Address scan'], ['Signing', 'Separate wallet review']] })}
         <section class="ctez-console-shell chamber-anim-fade" style="animation-delay:80ms">
             <div class="ctez-sunset-banner">
                 <span>Ctez is sunsetting, please close your ovens.</span>

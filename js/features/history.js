@@ -1,5 +1,6 @@
 import { setTextPending, loadingText } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 // Historical data visualization module
 // Handles sparklines and full charts using Chart.js
@@ -1690,7 +1691,6 @@ function renderCycleHistoryIntro(modal) {
     intro.setAttribute('aria-label', 'Cycle History Chamber guide');
     intro.innerHTML = `
 
-        <p class="cycle-history-lede">Fifteen captured signals. Each chart keeps its source, cadence, and returned coverage.</p>
         <div class="cycle-history-route-controls">
             <label for="cycle-history-metric">Focus a chart</label>
             <select id="cycle-history-metric" aria-describedby="cycle-history-route-status">
@@ -1702,7 +1702,7 @@ function renderCycleHistoryIntro(modal) {
         <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="history-sources"><summary>Sources, cadence &amp; coverage</summary><div class="chamber-disclosure-content"><section class="cycle-history-provenance" aria-labelledby="cycle-history-provenance-title">        <div class="cycle-history-system-strip" aria-label="History source ledgers">
             <span>Global</span><span>Market</span><span>Health</span><span>Tezos X</span><span>Governance</span>
         </div>
-            ${renderChamberVerdict({ key: 'history', state: 'archive', sentence: 'These charts show captured history, not continuous observation; each source keeps its own cadence and returned coverage.', receipts: [['Signals', CYCLE_HISTORY_METRICS.length], ['Source ledgers', HISTORY_SOURCE_DISCLOSURES.length]] })}
+            ${renderChamberVerdict({ key: 'history', state: 'archive', sentence: `${CYCLE_HISTORY_METRICS.length} captured signals from ${HISTORY_SOURCE_DISCLOSURES.length} source ledgers, each on its own capture cadence.`, note: 'These charts show captured history, not continuous observation; uncaptured intervals are never invented.', receipts: [['Signals', CYCLE_HISTORY_METRICS.length], ['Source ledgers', HISTORY_SOURCE_DISCLOSURES.length]] })}
             <div class="cycle-history-provenance-head">
                 <strong id="cycle-history-provenance-title">Sources, cadence &amp; coverage</strong>
                 <span>Scheduled capture · returned snapshots only</span>
@@ -1728,8 +1728,8 @@ function renderCycleHistoryIntro(modal) {
         </section></div></details>
 
     `;
-    const actionRail = modal.querySelector('.cycle-history-header-actions');
-    (actionRail || title).insertAdjacentElement('afterend', intro);
+    const header = modal.querySelector('[data-chamber-header="history"]');
+    (header || title).insertAdjacentElement('afterend', intro);
 }
 
 function decorateCycleHistoryChamber(modal) {
@@ -1737,9 +1737,24 @@ function decorateCycleHistoryChamber(modal) {
     const title = modal.querySelector('#history-modal-title');
     modal.classList.add('cycle-history-chamber');
     content?.classList.add('chamber-content', 'cycle-history-content');
-    if (title) {
-        title.textContent = 'Cycle History Chamber';
-        title.classList.add('chamber-title', 'cycle-history-title');
+    if (title && !modal.querySelector('[data-chamber-header="history"]')) {
+        // The room opens with the shared Chamber header; its share and link
+        // actions join the header instead of floating over the intro panel.
+        const holder = document.createElement('div');
+        holder.innerHTML = renderChamberHeader({
+            room: 'history',
+            strip: ['Tezos.Systems', 'Cycle History', 'Measured history'],
+            glyph: 'hist',
+            title: 'Cycle History Chamber',
+            titleId: 'history-modal-title',
+            chips: renderChamberChip('Archive', { tone: 'live' }),
+            summary: 'Captured signals, each with its own source, cadence and returned coverage',
+            className: 'cycle-history-header chamber-anim-fade'
+        });
+        const header = holder.firstElementChild;
+        title.replaceWith(header);
+        const rail = modal.querySelector('.cycle-history-header-actions');
+        if (rail) header.appendChild(rail);
     }
     const closeBtn = modal.querySelector('#history-modal-close');
     if (closeBtn) {

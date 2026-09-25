@@ -1,4 +1,5 @@
 import { setChamberReadingState, renderAgeingLabel, renderChamberStamp, renderChamberVerdict, renderChamberGuide, syncChamberReading } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 /**
  * Capital Chamber
  *
@@ -1079,11 +1080,23 @@ function syncCapitalFreshness(snapshot) {
     if (entrySource && entrySource.textContent !== entryLabel) entrySource.textContent = entryLabel;
 }
 
+function capitalHeaderMeta(snapshot) {
+    const tezos = chain(snapshot, 'tezos');
+    const etherlink = chain(snapshot, 'etherlink');
+    return `L1 DeFi TVL ${formatUsd(tezos.tvl?.currentUsd)} · L2 DeFi TVL ${formatUsd(etherlink.tvl?.currentUsd)} · generated proofbook`;
+}
+
 function capitalReading(snapshot) {
     const tezos = chain(snapshot, 'tezos');
     const etherlink = chain(snapshot, 'etherlink');
+    const l1 = Number(tezos.tvl?.currentUsd);
+    const l2 = Number(etherlink.tvl?.currentUsd);
+    const both = Number.isFinite(l1) && Number.isFinite(l2);
     return renderChamberVerdict({ key: 'capital', state: lastRefreshError || freshnessPresentation(snapshot).stale ? 'watch' : 'snapshot',
-        sentence: 'Tezos L1 and Etherlink capital are shown side by side; TVL is not trading volume or a measure of users.',
+        sentence: both
+            ? `${formatUsd(l1 + l2)} sits in tracked DeFi across Tezos L1 (${formatUsd(l1)}) and Etherlink (${formatUsd(l2)}).`
+            : 'Tezos L1 and Etherlink DeFi value is shown side by side as each source returns it.',
+        note: 'The layers stay side by side; TVL is not trading volume or a measure of users.',
         receipts: [['L1 DeFi TVL', formatUsd(tezos.tvl?.currentUsd)], ['L2 DeFi TVL', formatUsd(etherlink.tvl?.currentUsd)]]
     });
 }
@@ -1092,17 +1105,22 @@ function renderChamber(snapshot) {
     const view = VIEWS.find((item) => item.id === currentView) || VIEWS[0];
     const freshness = freshnessPresentation(snapshot);
     return `
-        <header class="capital-header market-room-header" data-quiet-key="capital-header">
-            <div class="capital-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>public-source capital intelligence</span></div>
-            <div class="capital-title-row market-room-title-row">
-                <h2 class="market-room-title is-display" id="capital-title">Capital Chamber</h2>
-                <span class="capital-badge market-room-badge">Generated proofbook</span>
-                <span class="capital-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="capital-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>
-            </div>
+        <div class="capital-header market-room-header" data-quiet-key="capital-header">
+            ${renderChamberHeader({
+                room: 'capital-room',
+                strip: ['Tezos.Systems', 'Capital', 'Public-source capital intelligence'],
+                glyph: 'cap',
+                title: 'Capital Chamber',
+                titleId: 'capital-title',
+                chips: `${renderChamberChip(freshness.stale ? 'Stale proofbook' : 'Proofbook', { tone: freshness.stale ? 'historical' : 'live' })}<span class="capital-freshness market-room-freshness lb-live-pill lb-refresh-pill${freshness.stale ? ' is-stale' : ''}" id="capital-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>`,
+                summary: 'Tezos L1 and Etherlink capital, kept semantically separate',
+                meta: escapeHtml(capitalHeaderMeta(snapshot)),
+                className: 'chamber-anim-fade'
+            })}
             ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources)}
 
-        </header><div class="capital-tabs market-room-tabs" role="tablist" aria-label="Capital Chamber views">
-                ${VIEWS.map((item) => `<button class="capital-tab market-room-tab" id="capital-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="capital-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-capital-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}
+        </div><div class="capital-tabs market-room-tabs chamber-tabs" role="tablist" aria-label="Capital Chamber views">
+                ${VIEWS.map((item) => `<button class="capital-tab market-room-tab chamber-tab" id="capital-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="capital-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-capital-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}
             </div>
         ${capitalReading(snapshot)}
         <section class="capital-view-shell market-room-view-shell" id="capital-view-panel" role="tabpanel" aria-labelledby="capital-tab-${view.id}" data-quiet-key="capital-view-panel">

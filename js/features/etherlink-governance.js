@@ -1661,7 +1661,7 @@ function renderChamber(data, container, { quiet = false } = {}) {
                 <div class="proposal-hash">Contract ${escapeHtml(track.contract || 'discovery unavailable')} · head ${escapeHtml(String(data.headLevel || '--'))} · updated ${escapeHtml(formatDate(data.updatedAt))}</div>
             </div>
         </div>
-        ${renderChamberVerdict({ key: 'l2-governance', state: track.contract ? 'observed' : 'unavailable', sentence: `${track.label} is shown on its own governance clock; the three tracks must not be combined into one vote.`, receipts: [['Track state', status.label], ['Period', track.period?.index ?? 'Unavailable']], timestamp: data.updatedAt, clockLabel: 'Read' })}
+        ${renderChamberVerdict({ key: 'l2-governance', state: track.contract ? 'observed' : 'unavailable', sentence: `${track.label}: ${status.label}${track.period?.index !== undefined && track.period?.index !== null ? ` in period ${track.period.index}` : ''}.`, note: 'Each track runs on its own governance clock; the three tracks must not be combined into one vote.', receipts: [['Track state', status.label], ['Period', track.period?.index ?? 'Unavailable']], timestamp: data.updatedAt, clockLabel: 'Read' })}
         <div class="etherlink-gov-tabs" role="tablist" aria-label="Tezos X governance tracks">
             ${data.tracks.map(renderTab).join('')}
         </div>

@@ -1,5 +1,6 @@
 import { loadingText, loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Baker Leaderboard — sortable ranking of all active Tezos bakers
@@ -1815,22 +1816,22 @@ function bakerDirectoryShellHtml() {
         : '';
     return `
         <div class="baker-directory-shell" data-quiet-key="baker-directory-shell">
-            <header class="baker-directory-header">
-                <div class="baker-directory-title-block">
-                    <span class="feature-kicker">Tezos Systems / Bakers</span>
-                    <h1 id="baker-directory-title">Baker Directory</h1>
-                    <p>Explore the complete funded active-baker set through current capacity and source-backed history—not a hidden quality score.</p>
-                </div>
-                <div class="baker-directory-receipt" aria-live="polite">
-                    <span class="baker-directory-live-dot ${leaderboardDataQuality.status === 'live' ? 'live' : ''}" aria-hidden="true"></span>
-                    <strong>${summary.active.toLocaleString('en-US')} active</strong>
-                    <small>${escapeHtml(formattedObservedAt())}</small>
-                </div>
-            </header>
+            ${renderChamberHeader({
+                room: 'baker-directory',
+                strip: ['Tezos.Systems', 'Bakers', 'Funded active-baker set'],
+                glyph: 'bkr',
+                title: 'Baker Directory',
+                titleId: 'baker-directory-title',
+                titleTag: 'h1',
+                chips: `${renderChamberChip(leaderboardDataQuality.status === 'live' ? 'Live' : leaderboardDataQuality.status === 'stale' ? 'Stale' : 'Cached', { tone: leaderboardDataQuality.status === 'live' ? 'live' : leaderboardDataQuality.status === 'stale' ? 'historical' : 'current' })}<span class="baker-directory-receipt lb-live-pill lb-refresh-pill" aria-live="polite"><span class="baker-directory-live-dot ${leaderboardDataQuality.status === 'live' ? 'live' : ''}" aria-hidden="true"></span><strong>${summary.active.toLocaleString('en-US')} active</strong><small>${escapeHtml(formattedObservedAt())}</small></span>`,
+                summary: 'Every funded active baker, by current capacity and source-backed history',
+                meta: `${summary.open.toLocaleString('en-US')} with open delegation room · ${summary.tz4.toLocaleString('en-US')} tz4 consensus keys · no hidden quality score`,
+                className: 'baker-directory-header chamber-anim-fade'
+            })}
             <div class="baker-directory-controls">
-                <div class="baker-directory-tabs" role="tablist" aria-label="Baker Directory views">
+                <div class="baker-directory-tabs chamber-tabs" role="tablist" aria-label="Baker Directory views">
                     ${BAKER_DIRECTORY_VIEWS.map((view) => `
-                        <button type="button" role="tab" id="baker-directory-tab-${view.id}" data-bdc-view="${view.id}" aria-controls="baker-directory-panel" aria-selected="${bakerDirectoryState.view === view.id ? 'true' : 'false'}" tabindex="${bakerDirectoryState.view === view.id ? '0' : '-1'}">${escapeHtml(view.label)}</button>
+                        <button type="button" class="chamber-tab" role="tab" id="baker-directory-tab-${view.id}" data-bdc-view="${view.id}" aria-controls="baker-directory-panel" aria-selected="${bakerDirectoryState.view === view.id ? 'true' : 'false'}" tabindex="${bakerDirectoryState.view === view.id ? '0' : '-1'}">${escapeHtml(view.label)}</button>
                     `).join('')}
                 </div>
                 <label class="baker-directory-search" for="baker-directory-search-input">
@@ -1842,7 +1843,7 @@ function bakerDirectoryShellHtml() {
                 </label>
             </div>
             ${lastGoodWarning}
-            ${renderChamberVerdict({ key: 'leaderboard', state: bakerDirectoryLastError || leaderboardDataQuality.status === 'stale' ? 'watch' : 'observed', sentence: `${summary.active.toLocaleString('en-US')} funded active bakers are in this receipt; discover them by disclosed filters, not an overall quality score.`, receipts: [['Open delegation room', summary.open], ['tz4 consensus keys', summary.tz4]], timestamp: leaderboardDataQuality.observedAt, clockLabel: 'Read' })}
+            ${renderChamberVerdict({ key: 'leaderboard', state: bakerDirectoryLastError || leaderboardDataQuality.status === 'stale' ? 'watch' : 'observed', sentence: `${summary.active.toLocaleString('en-US')} funded active ${summary.active === 1 ? 'baker' : 'bakers'}: ${summary.open.toLocaleString('en-US')} with open delegation room and ${summary.tz4.toLocaleString('en-US')} on tz4 consensus keys.`, note: 'Narrow them with disclosed filters; there is no overall quality score.', receipts: [['Open delegation room', summary.open], ['tz4 consensus keys', summary.tz4]], timestamp: leaderboardDataQuality.observedAt, clockLabel: 'Read' })}
             <div id="baker-directory-panel" class="baker-directory-panel" role="tabpanel" aria-labelledby="baker-directory-tab-${bakerDirectoryState.view}" tabindex="0">
                 ${bakerDirectoryViewHtml()}
             </div>

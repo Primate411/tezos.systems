@@ -39,13 +39,6 @@
     to { opacity: 1; }
 }
 
-#history-modal .cycle-history-title {
-    max-width: calc(100% - 150px);
-    margin: 2px 0 10px;
-    font-size: var(--type-room-title);
-    letter-spacing: 0.035em;
-    line-height: 1.1;
-}
 
 .cycle-history-intro {
     position: relative;
@@ -96,22 +89,14 @@
     overflow: hidden;
 }
 
-.cycle-history-lede {
-    max-width: 880px;
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: clamp(0.82rem, 1.5vw, 0.94rem);
-    line-height: 1.65;
-}
-
+/* Share and copy-link actions live in the shared header's action row. */
 .cycle-history-header-actions {
-    position: absolute;
-    top: calc(clamp(22px, 3vw, 38px) + 12px);
-    right: calc(clamp(22px, 3vw, 38px) + 70px);
-    z-index: 10;
+    position: static;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    margin-top: 10px;
 }
 
 #history-modal .cycle-history-header-actions .info-button {
@@ -605,17 +590,8 @@
         padding: 18px 14px 24px;
     }
 
-    #history-modal .cycle-history-title {
-        max-width: calc(100% - 52px);
-        margin-right: 52px;
-        font-size: var(--type-room-title);
-    }
-
     .cycle-history-header-actions {
-        position: static;
-        justify-content: flex-end;
-        margin: 2px 0 12px;
-        padding-right: 2px;
+        margin: 8px 0 4px;
     }
 
     .cycle-history-intro {
@@ -687,5 +663,5 @@
 /* Suppressing an entrance animation must never leave a chart transparent. */
 .cycle-history-content .chart-section { opacity: 1; transform: none; }
 @media (max-width: 759px) {
-    .cycle-history-content .cycle-history-header-actions { position: static; justify-content: flex-start; padding-right: 54px; }
+
 }

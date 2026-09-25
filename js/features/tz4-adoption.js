@@ -1059,7 +1059,7 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
                 <div class="proposal-hash">Current cycle ${Number.isFinite(data.currentCycle) ? formatCount(data.currentCycle) : 'unknown'} · ${formatCount(data.activeCount)} active · ${formatCount(data.pendingCount)} pending</div>
             </div>
         </div>
-        ${renderChamberVerdict({ key: 'tz4', state: 'observed', sentence: `${formatPercent(data.adoptionPct)} of active bakers currently use tz4 consensus keys; pending switches are not active adoption.`, receipts: [['Active tz4', formatCount(data.activeCount)], ['Pending', formatCount(data.pendingCount)]] })}
+        ${renderChamberVerdict({ key: 'tz4', state: 'observed', sentence: `${formatPercent(data.adoptionPct)} of active bakers use tz4 consensus keys, with ${formatCount(data.pendingCount)} ${Number(data.pendingCount) === 1 ? 'switch' : 'switches'} pending.`, note: 'Pending switches are not active adoption until they activate.', receipts: [['Active tz4', formatCount(data.activeCount)], ['Pending', formatCount(data.pendingCount)]] })}
         ${renderBakerStatus(data, activeFilter)}
         <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="tz4-guide"><summary>Consensus keys &amp; adoption context</summary>${renderIntro(data)}</details>
         <div class="lb-dashboard-grid tz4-dashboard-grid">

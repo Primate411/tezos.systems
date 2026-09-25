@@ -206,61 +206,22 @@
         linear-gradient(#06131e, #071725 62%, #06131e);
 }
 
+/* The room opens with the shared Chamber header (js/ui/chamber-header.js);
+   this wrapper only groups it with the reading banner and source strip. */
 .whale-watch-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    padding: 17px 66px 0 24px;
+    position: static;
+    padding: 0 0 2px;
     border-bottom: 1px solid var(--whale-line);
-    background: rgba(6, 19, 30, .94);
-    backdrop-filter: blur(18px);
 }
 
-.whale-watch-system-line {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 18px;
-    color: #6e94aa;
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
-    letter-spacing: .095em;
-    text-transform: uppercase;
-}
+.whale-watch-header > .chamber-reading-verdict { margin-inline: 24px; }
 
-.whale-watch-system-line span + span::before {
-    content: "/";
-    margin-right: 18px;
-    color: rgba(99, 211, 238, .36);
-}
-
-.whale-watch-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-    gap: 20px;
-    padding: 12px 0 14px;
-}
-
-.whale-watch-kicker,
 .whale-watch-eyebrow {
     margin: 0 0 4px;
     color: var(--whale-cyan);
-    font: 700 9px/1.3 "JetBrains Mono", monospace;
+    font: 700 9px/1.3 var(--font-data, "JetBrains Mono", monospace);
     letter-spacing: .1em;
     text-transform: uppercase;
-}
-
-.whale-watch-title-row h2 {
-    margin: 0;
-    color: #f1fbff;
-    font-size: clamp(1.85rem, 4vw, 3.2rem);
-    line-height: 1;
-    letter-spacing: -.05em;
-}
-
-.whale-watch-title-row p:last-child {
-    margin: 6px 0 0;
-    color: var(--whale-muted);
-    font-size: 12px;
 }
 
 .whale-watch-refresh,
@@ -330,8 +291,8 @@
     flex-wrap: wrap;
     gap: 7px 12px;
     align-items: center;
-    margin: 0 -66px 0 -24px;
-    padding: 7px 66px 8px 24px;
+    margin: 0;
+    padding: 7px 24px 8px;
     border-top: 1px solid rgba(99, 211, 238, .08);
     color: #7f9cad;
     background: rgba(1, 10, 18, .42);
@@ -771,11 +732,6 @@
         linear-gradient(#06131e, #071725 62%, #06131e);
 }
 
-[data-theme="clean"] #whale-watch-modal .whale-watch-header {
-    background: rgba(6, 19, 30, .94);
-}
-
-[data-theme="clean"] #whale-watch-modal #whale-watch-title,
 [data-theme="clean"] #whale-watch-modal .whale-watch-view-heading h3,
 [data-theme="clean"] #whale-watch-modal .whale-watch-panel-title h4,
 [data-theme="clean"] #whale-watch-modal .whale-watch-metrics strong,
@@ -822,16 +778,11 @@
     .whale-watch-overlay { padding: 0; }
     .whale-watch-content { width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; }
     .whale-watch-content > .chamber-close { top: 11px; right: 11px; }
-    .whale-watch-header { padding: 13px 50px 0 14px; }
-    .whale-watch-system-line { gap: 5px 10px; font-size: 7px; }
-    .whale-watch-system-line span + span::before { margin-right: 10px; }
-    .whale-watch-title-row { align-items: start; padding: 10px 0 11px; }
-    .whale-watch-title-row h2 { font-size: 2rem; }
-    .whale-watch-title-row p:last-child { font-size: 10px; line-height: 1.4; }
     .whale-watch-refresh { display: none; }
     .whale-watch-tabs { margin-right: -50px; }
     .whale-watch-tabs button { padding: 9px 10px 11px; font-size: 9px; }
-    .whale-watch-source-strip { margin: 0 -50px 0 -14px; padding: 6px 14px; font-size: 8px; }
+    .whale-watch-header > .chamber-reading-verdict { margin-inline: 14px; }
+    .whale-watch-source-strip { padding: 6px 14px; font-size: 8px; }
     .whale-watch-source-strip a { margin-left: 0; }
     .whale-watch-main { width: calc(100% - 24px); padding: 17px 0 28px; }
     .whale-watch-view-heading { grid-template-columns: 1fr; gap: 8px; }

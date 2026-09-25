@@ -1248,7 +1248,7 @@ function updateLiquidityBakingInPlace(data, container, activeFilter = _lbActiveF
 }
 
 function liquidityReading(data) {
-    return { key: 'liquidity-baking', state: data.disabled ? 'watch' : 'observed', sentence: data.disabled ? 'The subsidy is disabled by the toggle EMA; individual block votes are not the same as that accumulated signal.' : 'The toggle EMA has not disabled the subsidy; individual block votes feed an accumulated signal.', receipts: [['Toggle EMA', `${data.emaPct.toFixed(1)}%`], ['Head', data.latest ? formatLevel(data.latest.level) : 'Unavailable']], timestamp: data.latest?.timestamp, clockLabel: 'Head' };
+    return { key: 'liquidity-baking', state: data.disabled ? 'watch' : 'observed', sentence: data.disabled ? `The liquidity baking subsidy is off: the toggle EMA sits at ${data.emaPct.toFixed(1)}%.` : `The liquidity baking subsidy is on: the toggle EMA sits at ${data.emaPct.toFixed(1)}%.`, note: 'Individual block votes are not the same as the accumulated EMA signal.', receipts: [['Toggle EMA', `${data.emaPct.toFixed(1)}%`], ['Head', data.latest ? formatLevel(data.latest.level) : 'Unavailable']], timestamp: data.latest?.timestamp, clockLabel: 'Head' };
 }
 
 function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) {

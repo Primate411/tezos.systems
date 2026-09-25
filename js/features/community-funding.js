@@ -4,7 +4,8 @@ import { quietlySyncHtml } from '../core/quiet-refresh.js';
 import { FUNDING_MAX_BYTES, FUNDING_PREVIEW_MAX_BYTES, FUNDING_SOURCES, isFundingCampaign, campaignState, campaignProgress, fundingStale, formatFundingAmount, validateFundingSnapshot, validateFundingPreview, fundingPreviewPath } from '../core/community-funding.mjs';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher, requestChamberClose, bindChamberVisibility, getChamberScrollContainer } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
-import { renderChamberStamp, renderChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberStamp, renderChamberVerdict, syncChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 
 const VIEWS = { support: 'Support builders', campaigns: 'Open campaigns', history: 'Campaign history' };
 const REFRESH_MS = 5 * 60 * 1000;
@@ -172,6 +173,23 @@ function sourceStatus(source) {
     </div>`;
 }
 
+/** Lead with what is open right now; where support happens stays visible. */
+function fundingReading() {
+    const tips = receipts.hacktez?.items?.length;
+    const campaigns = Object.keys(FUNDING_SOURCES).filter(isFundingCampaign)
+        .flatMap(source => receipts[source]?.items || [])
+        .filter(item => campaignState(item) === 'open').length;
+    const ready = Boolean(receipts.hacktez) || Object.keys(FUNDING_SOURCES).filter(isFundingCampaign).some(source => receipts[source]);
+    return {
+        key: 'funding',
+        state: ready ? 'snapshot' : 'guide',
+        sentence: ready
+            ? `${tips ?? 0} builder ${tips === 1 ? 'project accepts' : 'projects accept'} tips and ${campaigns} ${campaigns === 1 ? 'campaign is' : 'campaigns are'} open for funding.`
+            : 'Builder projects and open campaigns from three community platforms.',
+        note: 'TezTree and TTCrowd campaigns track funding goals; HackTez projects accept ongoing tips. Support always opens on the original platform.'
+    };
+}
+
 function render() {
     if (!mayRefresh()) return;
     const overlay = document.getElementById('funding-modal');
@@ -182,6 +200,7 @@ function render() {
         .map(item => ({ item, source })));
     const shown = rows.filter(({ item, source }) => `${item.title} ${item.summary} ${item.builder} ${FUNDING_SOURCES[source].name}`.toLowerCase().includes(query.trim().toLowerCase()));
     quietlySyncHtml(overlay.querySelector('#funding-source-status'), Object.keys(FUNDING_SOURCES).map(sourceStatus).join(''));
+    syncChamberVerdict(overlay, fundingReading());
     for (const [key] of Object.entries(VIEWS)) {
         const button = overlay.querySelector(`[data-funding-view="${key}"]`);
         button.setAttribute('aria-selected', String(view === key));
@@ -276,12 +295,22 @@ function ensureOverlay() {
     overlay.innerHTML = `<div class="modal-content modal-large chamber-content funding-content" role="dialog" aria-modal="true" aria-labelledby="funding-title" tabindex="-1">
         <button class="modal-close chamber-close" type="button" aria-label="Close Community Funding">&times;</button>
         <div class="chamber-body funding-body">
-            <header class="funding-hero"><div class="funding-kicker">Made by the community · Kept going by you</div><h1 id="funding-title">Community <span>Funding</span></h1><p>Back an idea. Keep a good project going.</p><div class="funding-powered-by">Powered by the community’s funding platforms</div><div class="funding-platforms" aria-label="Funding platform credits">${platformCredits({ teztree: 'Campaigns & reported funding', ttcrowd: 'Platform by TheTezos', hacktez: 'Projects & builder support' })}</div><p class="funding-attribution-note">Listings, artwork and reported figures supplied by TezTree, TTCrowd (TheTezos) and HackTez. Browse here; support on the original platform.</p><div class="funding-hero-symbol" aria-hidden="true">✳</div></header>
-            ${renderChamberVerdict({ key: 'funding', state: 'guide', sentence: 'TezTree and TTCrowd campaigns track funding goals. HackTez projects accept ongoing tips. Support opens on the original platform.' })}
-            <div class="funding-toolbar"><div class="funding-tabs" role="tablist" aria-label="Funding opportunities">${Object.entries(VIEWS).map(([key, label]) => `<button id="funding-tab-${key}" type="button" role="tab" aria-controls="funding-panel" aria-selected="${key === view}" tabindex="${key === view ? 0 : -1}" data-funding-view="${key}">${label}</button>`).join('')}</div>
+            <div class="funding-hero">${renderChamberHeader({
+                room: 'funding',
+                strip: ['Tezos.Systems', 'Community Funding', 'Made by the community'],
+                glyph: 'fund',
+                title: 'Community Funding',
+                titleId: 'funding-title',
+                titleTag: 'h1',
+                chips: renderChamberChip('3 platforms', { tone: 'live' }),
+                summary: 'Back an idea. Keep a good project going.',
+                className: 'chamber-anim-fade'
+            })}<div class="funding-platforms" aria-label="Funding platform credits">${platformCredits({ teztree: 'Campaigns & reported funding', ttcrowd: 'Platform by TheTezos', hacktez: 'Projects & builder support' })}</div><p class="funding-attribution-note">Listings, artwork and reported figures supplied by TezTree, TTCrowd (TheTezos) and HackTez. Browse here; support on the original platform.</p></div>
+            ${renderChamberVerdict(fundingReading())}
+            <div class="funding-toolbar"><div class="funding-tabs chamber-tabs" role="tablist" aria-label="Funding opportunities">${Object.entries(VIEWS).map(([key, label]) => `<button id="funding-tab-${key}" class="chamber-tab" type="button" role="tab" aria-controls="funding-panel" aria-selected="${key === view}" tabindex="${key === view ? 0 : -1}" data-funding-view="${key}">${label}</button>`).join('')}</div>
             <label class="funding-search"><input id="funding-search" aria-label="Find a project or builder" type="search" placeholder="Find a project or builder…" autocomplete="off"></label></div>
-            <div class="funding-source-row"><div id="funding-source-status"></div><button id="funding-refresh" type="button" aria-label="Check funding snapshots again">↻ Refresh</button></div>
             <div id="funding-panel" role="tabpanel" aria-labelledby="funding-tab-${view}"></div>
+            <div class="funding-source-row"><div id="funding-source-status"></div><button id="funding-refresh" type="button" aria-label="Check funding snapshots again">↻ Refresh</button></div>
             <details class="funding-method" data-chamber-disclosure><summary>How this room works</summary><div><p>TezTree campaigns have goals and deadlines. TTCrowd campaigns may run without a deadline and retain their chosen valuation currency. HackTez projects appear only when project tips are explicitly enabled. Project descriptions and statuses are provided by their creators.</p><p>Support opens the original campaign or project page. You can browse here without connecting a wallet. Availability and amounts may change between checks; confirm the details on the platform.</p><p>Snapshots refresh on the site’s scheduled data job. “Checked” is the successful collection time; HackTez’s separate platform clock is preserved; TezTree and TTCrowd do not provide a catalog generation clock. A snapshot becomes stale after 18 hours. A failed refresh keeps the last successful snapshot with its original timestamp.</p><p>TezTree closed flags and deadlines take precedence over its generic status field. TezTree goal progress is calculated from reported mutez. TTCrowd progress and valuations come from its public catalog, with campaign summaries supplying the steward, acceptance state and accounting basis. Its treasury accounting can include initial funds and rewards. Closed, paused or non-accepting campaigns stay in history; reaching a goal alone does not close a campaign. HackTez counters are shown only for an exact project receipt, with totals separate for each asset; missing totals stay unavailable.</p><p>Sources: ${external(FUNDING_SOURCES.teztree.url, 'TezTree campaigns')} · ${external(FUNDING_SOURCES.ttcrowd.url, 'TTCrowd campaigns')} · ${external(FUNDING_SOURCES.hacktez.url, 'HackTez projects')} · ${external('https://hacktez.com/api/v1/members?tips=1', 'HackTez project counters')}</p></div></details>
         </div></div>`;
     document.body.appendChild(overlay);

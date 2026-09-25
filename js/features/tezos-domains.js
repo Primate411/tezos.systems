@@ -1172,7 +1172,7 @@ function renderChamber(data, options = {}) {
             </div>
         </div>
 
-        ${renderChamberVerdict({ key: 'domains', state: 'observed', sentence: 'The latest returned identity events, live auctions, and expiring names are separate market signals—not completed sales.', receipts: [['Live auctions', liveAuctionCount], ['Registrations in event page', registrationCount]], timestamp: data.freshTimestamp, clockLabel: 'Latest event' })}
+        ${renderChamberVerdict({ key: 'domains', state: 'observed', sentence: `${formatCount(liveAuctionCount)} live ${liveAuctionCount === 1 ? 'auction' : 'auctions'} and ${formatCount(registrationCount)} ${registrationCount === 1 ? 'registration' : 'registrations'} in the latest event page.`, note: 'Identity events, live auctions, and expiring names are separate market signals, not completed sales.', receipts: [['Live auctions', liveAuctionCount], ['Registrations in event page', registrationCount]], timestamp: data.freshTimestamp, clockLabel: 'Latest event' })}
         ${renderLookupPanel()}
         <nav class="chamber-context-nav" aria-label="Domains sections"><button type="button" data-chamber-scroll-to="td-urgent">Urgent names</button><button type="button" data-chamber-scroll-to="td-asks">Ask prices</button><button type="button" data-chamber-scroll-to="td-bids">Bid offers</button><button type="button" data-chamber-scroll-to="td-history">Recent events</button></nav>
 

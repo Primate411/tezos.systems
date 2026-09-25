@@ -85,7 +85,6 @@
 }
 
 .staking-entry-threshold,
-.staking-live-pill,
 .staking-complete-badge {
     display: inline-flex;
     align-items: center;
@@ -274,21 +273,6 @@
     color: var(--text-primary);
 }
 
-.staking-chamber-header {
-    min-width: 0;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.25rem 3.4rem 0.9rem 0;
-    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 80%, transparent);
-}
-
-.staking-chamber-header > div {
-    min-width: 0;
-}
-
-.staking-chamber-kicker,
 .staking-panel-head > div > span,
 .staking-method-panel > div > span {
     display: block;
@@ -298,27 +282,6 @@
     font-weight: 900;
     letter-spacing: 0.11em;
     text-transform: uppercase;
-}
-
-.staking-chamber-header .chamber-title {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: var(--type-room-title);
-    line-height: 1.08;
-}
-
-.staking-chamber-header p {
-    max-width: 42rem;
-    margin: 0.42rem 0 0;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    line-height: 1.5;
-}
-
-.staking-live-pill {
-    flex: 0 0 auto;
-    min-height: 1.75rem;
-    padding: 0.42rem 0.68rem;
 }
 
 .staking-guide-panel {
@@ -1453,16 +1416,6 @@
         width: calc(100vw - 0.875rem) !important;
         max-height: 94vh !important;
         padding: 1rem 0.85rem 1.2rem !important;
-    }
-
-    .staking-chamber-header {
-        flex-direction: column;
-        gap: 0.65rem;
-        padding-right: 3.2rem;
-    }
-
-    .staking-live-pill {
-        align-self: flex-start;
     }
 
     .staking-guide-panel > summary {

@@ -1,4 +1,5 @@
 import { setChamberReadingState, renderAgeingLabel, renderChamberStamp, renderChamberVerdict, renderChamberGuide, syncChamberReading } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 /**
  * Uranium Chamber
  *
@@ -1448,16 +1449,33 @@ function syncUraniumFreshness(snapshot) {
     if (proofGenerated) quietlySyncHtml(proofGenerated, proofLabel);
 }
 
+/** Lead with the token market read; the evidence boundary stays beside it. */
+function uraniumAnswer(snapshot) {
+    const coin = coinModel(snapshot);
+    if (coin.price === null) return 'The xU3O8 token market has not returned a price in this receipt.';
+    const change = coin.change24h === null ? '' : `, ${coin.change24h >= 0 ? 'up' : 'down'} ${Math.abs(coin.change24h).toFixed(2)}% over 24 hours`;
+    return `xU3O8 last traded at ${formatUsd(coin.price)} on its token market${change}.`;
+}
+
 function renderChamber(snapshot) {
     const view = VIEWS.find(({ id }) => id === currentView) || VIEWS[0];
     const freshness = freshnessPresentation(snapshot);
     return `
-        <header class="uranium-header market-room-header" data-quiet-key="uranium-header">
-            <div class="uranium-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>commodity market intelligence</span></div>
-            <div class="uranium-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="uranium-title">Uranium Chamber</h2><span class="uranium-badge market-room-badge">xU3O8</span><span class="uranium-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="uranium-freshness" aria-live="polite">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span></div>
+        <div class="uranium-header market-room-header" data-quiet-key="uranium-header">
+            ${renderChamberHeader({
+                room: 'uranium-room',
+                strip: ['Tezos.Systems', 'Uranium', 'Commodity market intelligence'],
+                glyph: 'u3o8',
+                title: 'Uranium Chamber',
+                titleId: 'uranium-title',
+                chips: `${renderChamberChip(freshness.stale ? 'Last-good receipt' : 'xU3O8', { tone: freshness.stale ? 'historical' : 'live' })}<span class="uranium-freshness market-room-freshness lb-live-pill lb-refresh-pill${freshness.stale ? ' is-stale' : ''}" id="uranium-freshness" aria-live="polite">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>`,
+                summary: 'The token, the physical claim, the market, and the boundaries between them',
+                meta: escapeHtml(`xU3O8 ${formatUsd(coinModel(snapshot).price)} · Etherlink token · dated physical evidence`),
+                className: 'chamber-anim-fade'
+            })}
             ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources)}
 
-        </header><div class="uranium-tabs market-room-tabs" role="tablist" aria-label="Uranium Chamber views">${VIEWS.map((item) => `<button class="uranium-tab market-room-tab" id="uranium-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="uranium-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-uranium-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div>${renderChamberVerdict({ key: 'uranium', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'xU3O8 trading and physical uranium evidence are separate receipts, not proof of a fixed peg or present redeemability.', receipts: [['Token market', formatUsd(coinModel(snapshot).price)], ['Network', 'Etherlink']] })}
+        </div><div class="uranium-tabs market-room-tabs chamber-tabs" role="tablist" aria-label="Uranium Chamber views">${VIEWS.map((item) => `<button class="uranium-tab market-room-tab chamber-tab" id="uranium-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="uranium-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-uranium-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div>${renderChamberVerdict({ key: 'uranium', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: uraniumAnswer(snapshot), note: 'xU3O8 trading and physical uranium evidence are separate receipts, not proof of a fixed peg or present redeemability.', receipts: [['Token market', formatUsd(coinModel(snapshot).price)], ['Network', 'Etherlink']] })}
         <section class="uranium-view-shell market-room-view-shell" id="uranium-view-panel" role="tabpanel" aria-labelledby="uranium-tab-${view.id}" data-quiet-key="uranium-view-panel">
             <div class="uranium-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div>
             <div class="uranium-view-content market-room-view-content" id="uranium-view-content" data-quiet-key="uranium-view-content">${renderView(snapshot)}</div>

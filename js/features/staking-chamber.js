@@ -1,5 +1,6 @@
 import { loadingText, loadingRows } from '../ui/text-loading.js';
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberChip, renderChamberHeader } from '../ui/chamber-header.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Staking Chamber
@@ -727,19 +728,28 @@ function ensureOverlay() {
     return overlay;
 }
 
+/** Staking opens with the shared Network Health header anatomy. */
+function stakingHeader({ chip, tone, meta }) {
+    return renderChamberHeader({
+        room: 'staking',
+        strip: ['Tezos.Systems', 'Staking', 'Capital movement'],
+        glyph: 'stk',
+        title: 'Staking Chamber',
+        titleId: 'staking-chamber-title',
+        titleTag: 'h1',
+        chips: renderChamberChip(chip, { tone }),
+        summary: 'Who staked or unstaked more than 10,000 ꜩ',
+        meta,
+        className: 'chamber-anim-fade'
+    });
+}
+
 function renderLoadingRoom() {
     const body = document.querySelector('#staking-chamber-modal .staking-chamber-body');
     if (!body) return;
     body.setAttribute('aria-busy', 'true');
     body.innerHTML = `
-        <header class="staking-chamber-header chamber-anim-fade">
-            <div>
-                <span class="staking-chamber-kicker">Tezos capital movement</span>
-                <h1 class="chamber-title" id="staking-chamber-title">Staking Chamber</h1>
-                <p>Applied explicit stake and unstake receipts, filtered client-side by their actual processed amount.</p>
-            </div>
-            <span class="staking-live-pill">&gt;10,000 ꜩ</span>
-        </header>
+        ${stakingHeader({ chip: 'Scanning', tone: 'current', meta: 'Building the complete &gt;10,000 ꜩ stake / unstake tape' })}
         ${renderStakingGuide(overviewData)}
         <section class="staking-overview-grid" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary"><span>Current staked</span><strong id="staking-loading-ratio">—</strong><small>own + external stake / supply</small></div>
@@ -1029,18 +1039,11 @@ function renderRoom() {
     const stake = entryData?.stake || richRowCache.get(archiveRows.find((row) => row.action === 'stake')?.id);
     const unstake = entryData?.unstake || richRowCache.get(archiveRows.find((row) => row.action === 'unstake')?.id);
     body.innerHTML = `
-        <header class="staking-chamber-header chamber-anim-fade">
-            <div>
-                <span class="staking-chamber-kicker">Tezos capital movement</span>
-                <h1 class="chamber-title" id="staking-chamber-title">Staking Chamber</h1>
-                <p>Who explicitly staked or unstaked more than 10,000 ꜩ, where they staked, and every qualifying receipt since staking began.</p>
-            </div>
-            <span class="staking-live-pill">complete &gt;10K tape</span>
-        </header>
+        ${stakingHeader({ chip: 'Complete tape', tone: 'live', meta: `${escapeHtml(formatRatio(overviewData.stakingRatio))} staked · ${formatCount(overviewData.totalStakers)} stakers · ${formatCount(archiveRows.length)} moves over 10,000 ꜩ since staking began` })}
 
         ${renderStakingGuide(overviewData)}
 
-        ${renderChamberVerdict({ key: 'staking-chamber', state: 'observed', sentence: 'Large explicit staking moves show gross activity, not total inflows from all holders or a change in ownership.', receipts: [['Stake operations · 24h', summary.stakeCount24h], ['Unstake operations · 24h', summary.unstakeCount24h]] })}
+        ${renderChamberVerdict({ key: 'staking-chamber', state: 'observed', sentence: `${formatRatio(overviewData.stakingRatio)} of supply is staked. In the last 24 hours ${formatCount(summary.stakeCount24h)} ${pluralize(summary.stakeCount24h, 'stake')} and ${formatCount(summary.unstakeCount24h)} ${pluralize(summary.unstakeCount24h, 'unstake')} moved more than 10,000 ꜩ.`, note: 'Large explicit moves show gross activity, not total inflows from all holders or a change in ownership.', receipts: [['Stake operations · 24h', summary.stakeCount24h], ['Unstake operations · 24h', summary.unstakeCount24h]] })}
         <section class="staking-overview-grid chamber-anim-fade" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary">
                 <span>Current staked</span>
@@ -1131,10 +1134,7 @@ function renderRoomError(error) {
     if (!body) return;
     body.setAttribute('aria-busy', 'false');
     body.innerHTML = `
-        <header class="staking-chamber-header">
-            <div><span class="staking-chamber-kicker">Tezos capital movement</span><h1 class="chamber-title" id="staking-chamber-title">Staking Chamber</h1></div>
-            <span class="staking-live-pill">&gt;10,000 ꜩ</span>
-        </header>
+        ${stakingHeader({ chip: 'Tape unavailable', tone: 'historical', meta: `${escapeHtml(formatRatio(overviewData?.stakingRatio))} staked · the stake / unstake tape could not be completed` })}
         ${renderStakingGuide(overviewData)}
         <section class="staking-overview-grid">
             <div class="staking-overview-card is-primary"><span>Current staked</span><strong>${escapeHtml(formatRatio(overviewData?.stakingRatio))}</strong><small>The ratio remains available independently of the tape.</small></div>

@@ -29,12 +29,16 @@ export function renderAgeingLabel(label, value, previousAge) {
     return `<span>${escapeHtml(before)}${renderChamberStamp(value, '')}${escapeHtml(after)}</span>`;
 }
 
-/** All text is escaped; no verdict infers a score from unrelated metrics. */
-export function renderChamberVerdict({ key, state = 'snapshot', sentence, receipts = [], timestamp, clockLabel = 'Generated' }) {
+/**
+ * All text is escaped; no verdict infers a score from unrelated metrics.
+ * `sentence` answers the room's question first; `note` keeps the reading
+ * boundary (what the numbers do not prove) visible as a secondary line.
+ */
+export function renderChamberVerdict({ key, state = 'snapshot', sentence, note = '', receipts = [], timestamp, clockLabel = 'Generated' }) {
     const status = STATES.has(state) ? state : 'unavailable';
     return `<section class="chamber-reading-verdict" data-quiet-key="verdict-${escapeHtml(key)}" data-chamber-verdict="${escapeHtml(key)}" data-state="${status}" aria-label="Room summary">
         <span class="chamber-reading-state">${escapeHtml(status)}</span>
-        <div class="chamber-reading-copy"><p>${escapeHtml(sentence)}</p><div class="chamber-reading-receipts">${receipts.map(([label, value]) => `<span><span>${escapeHtml(label)}</span> <strong data-chamber-arrival="value" data-chamber-arrival-key="${escapeHtml(`${key}-${label}`)}">${escapeHtml(value ?? 'Unavailable')}</strong></span>`).join('')}${timestamp !== undefined ? renderChamberStamp(timestamp, clockLabel) : ''}</div></div>
+        <div class="chamber-reading-copy"><p>${escapeHtml(sentence)}</p>${note ? `<p class="chamber-reading-note">${escapeHtml(note)}</p>` : ''}<div class="chamber-reading-receipts">${receipts.map(([label, value]) => `<span><span>${escapeHtml(label)}</span> <strong data-chamber-arrival="value" data-chamber-arrival-key="${escapeHtml(`${key}-${label}`)}">${escapeHtml(value ?? 'Unavailable')}</strong></span>`).join('')}${timestamp !== undefined ? renderChamberStamp(timestamp, clockLabel) : ''}</div></div>
     </section>`;
 }
 
