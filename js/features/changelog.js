@@ -13,7 +13,9 @@ export const CHANGELOG = [
             { type: '🎨', text: 'Metals, Critical Minerals and Uranium show their figures on the first phone screen instead of a full-height illustrated poster' },
             { type: '🎨', text: 'Chambers use the active theme’s fonts and accent, and stay dark rooms under the light Clean theme' },
             { type: '🔧', text: 'My Tezos figures use ꜩ, status labels use colour dots instead of emoji, the Baker Signal next right uses a calmer card, and the standalone page is centred on wide screens' },
-            { type: '🔧', text: 'Fixed the empty Tezos X account picker, a run-on reward sentence, spaced-out Cycle History labels, a dangling separator in Sources & refresh, and several small tap targets' }
+            { type: '🔧', text: 'Fixed the empty Tezos X account picker, a run-on reward sentence, spaced-out Cycle History labels, a dangling separator in Sources & refresh, and several small tap targets' },
+            { type: '🔧', text: 'Release checks compare Chamber previews at the same instant so a changing freshness label cannot trigger a false mismatch' },
+            { type: '🔧', text: 'Release Radar has a renewed primary-source review of current operator releases, governance and deployment records; the full Tezos X launch remains unconfirmed' }
         ]
     },
     {

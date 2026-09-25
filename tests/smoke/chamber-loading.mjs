@@ -244,6 +244,9 @@ export function createChamberLoadingSmokeSuites({
     });
     const page = await context.newPage();
     attachIssueCollectors(page, 'launcher projections', issues);
+    // Compare projection and full-data markup at the same instant so a valid
+    // freshness-age rollover cannot look like data drift. Timers keep running.
+    await page.clock.setFixedTime(Date.now());
     page.on('request', (request) => {
       try {
         initialPaths.push(new URL(request.url()).pathname.replace(/^\/data\/transports\/v1(?=\/data\/)/, ''));
