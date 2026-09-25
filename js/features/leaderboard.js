@@ -745,7 +745,7 @@ function render(container, { focusSort = '', quiet = false } = {}) {
             </button>
         </div>
         <div class="leaderboard-table-wrap">
-            <table class="leaderboard-table">
+            <table class="chamber-table leaderboard-table">
                 <caption class="leaderboard-table-caption">Active Tezos bakers with tenure, governance, and growth signals. Choose a baker name to open full details and sharing.</caption>
                 <thead>
                     <tr>
@@ -893,7 +893,7 @@ function renderLeaderboardSkeleton() {
                 <span>Ranking funded active bakers by staking balance.</span>
             </div>
             <div class="leaderboard-table-wrap" aria-hidden="true">
-                <table class="leaderboard-table">
+                <table class="chamber-table leaderboard-table">
                     <thead>
                         <tr>
                             <th scope="col" class="lb-th lb-rank">#</th>
@@ -1609,7 +1609,7 @@ function bakerDirectoryDiscoverHtml() {
 
     return `
         <section class="baker-directory-view baker-directory-discover" aria-labelledby="baker-directory-discover-title">
-            <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="directory-overview"><summary>Network overview</summary><div class="chamber-disclosure-content"><div class="baker-directory-kpis" aria-label="Baker directory overview">
+            <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="directory-overview"><summary>Network overview</summary><div class="chamber-disclosure-content"><div class="baker-directory-kpis chamber-stats" aria-label="Baker directory overview">
                 ${directoryKpiHtml('Funded active bakers', summary.active.toLocaleString('en-US'), 'Positive current baking power')}
                 ${directoryKpiHtml('Current staking balance', `${compactXtz(summary.totalStake)} XTZ`, 'Sum across this funded set')}
                 ${directoryKpiHtml('Open delegation room', summary.open.toLocaleString('en-US'), 'At least 50K XTZ room and under 80% used')}
@@ -1697,7 +1697,7 @@ function bakerDirectoryDirectoryHtml() {
             </div>
             ${directoryBakerDetailHtml(selected)}
             <div class="baker-directory-table-wrap">
-                <table class="baker-directory-table">
+                <table class="chamber-table baker-directory-table">
                     <caption>Funded active Tezos bakers. Sorting reflects the chosen factual column and is not a performance ranking.</caption>
                     <thead><tr>
                         ${bakerDirectorySortHeader('name', 'Baker')}

@@ -1618,10 +1618,14 @@ export function createShellStaticChecks({
       ['Theme picker copy control accessible label', 'aria-label="Copy ${label} theme link"', themeUi],
       ['Theme picker copy control focus style', '.theme-link-copy:focus-visible', shellExtrasCss],
       ['Clean dark Chamber surface token', '--chamber-surface-bg: #07101D', styles],
-      ['Clean dark Chamber semantic exclusion', '.chamber-content:not(.maxis-content):not(.staking-chamber-content)', styles]
+      ['Clean dark Chamber covers every room', '[data-theme="clean"] .chamber-content {', styles]
     ];
     for (const [label, snippet, text] of deepLinkContracts) {
       if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+    }
+    const historyChamberCssForClean = await readText('css/history-chamber.css');
+    if (styles.includes('.chamber-content:not(.maxis-content)') || /\[data-theme=['"]clean['"]\] #history-modal \.cycle-history-content/.test(historyChamberCssForClean)) {
+      fail('Chambers stay dark under Clean: no room may opt back into a light Clean surface');
     }
     if (heroSearchCss.includes('body.hero-search-mode .main-content')
         || heroSearchCss.includes('body.hero-search-mode .command-deck')

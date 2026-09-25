@@ -1453,9 +1453,10 @@ export function createMaxisStaticChecks({
       fail('TezosCRP must distinguish an unpublished payout amount from an explicit numeric amount');
     }
     if (feature.includes('setInterval(')) fail('TezosCRP client must not poll; the committed archive is refreshed by the repository workflow');
-    for (const selector of ['.tezoscrp-entry-card', '.tezoscrp-entry-identity-strip', '.tezoscrp-entry-pulse', '.tezoscrp-system-strip', '.tezoscrp-hero-badges', '.tezoscrp-overlay', '.tezoscrp-tabs', '.tezoscrp-ranking', '.tezoscrp-record-board', '.tezoscrp-record-holder-grid', '.tezoscrp-category-grid', '.tezoscrp-archive-list']) {
+    for (const selector of ['.tezoscrp-entry-card', '.tezoscrp-entry-identity-strip', '.tezoscrp-entry-pulse', '.tezoscrp-hero-badges', '.tezoscrp-overlay', '.tezoscrp-tabs', '.tezoscrp-ranking', '.tezoscrp-record-board', '.tezoscrp-record-holder-grid', '.tezoscrp-category-grid', '.tezoscrp-archive-list']) {
       if (!css.includes(selector)) fail(`TezosCRP CSS is missing ${selector}`);
     }
+    if (!feature.includes("renderChamberHeader({") || !feature.includes("room: 'tezoscrp'")) fail('TezosCRP must open with the shared Chamber header');
     for (const contract of ['data-tezoscrp-place="${index + 1}"', 'Most recognized TezosCRP identities', 'Human identity archive', '${overviewMetrics()}', "records: 'Records'", 'function renderRecords()', 'data-tezoscrp-record-year']) {
       if (!feature.includes(contract)) fail(`TezosCRP Maxis-inspired presentation contract is missing: ${contract}`);
     }

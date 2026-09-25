@@ -452,7 +452,7 @@ function headerMarkup() {
 
 function thresholdTableMarkup(rows = []) {
     return `
-        <div class="whale-watch-table-wrap"><table class="whale-watch-table">
+        <div class="whale-watch-table-wrap"><table class="whale-watch-table chamber-table">
             <thead><tr><th>Threshold</th><th>Operations</th><th>Groups</th><th>Gross observed legs</th></tr></thead>
             <tbody>${rows.map((row) => `<tr><th>≥ ${compact(row.thresholdXtz)} ꜩ</th><td>${exact(row.operationCount)}</td><td>${exact(row.operationGroupCount)}</td><td>${xtz(row.grossObservedMutez, 2)}</td></tr>`).join('')}</tbody>
         </table></div>`;
@@ -476,7 +476,7 @@ function overviewMarkup() {
     return `
         <section class="whale-watch-view" id="whale-watch-panel-overview" role="tabpanel" aria-labelledby="whale-watch-tab-overview" tabindex="0">
             <div class="whale-watch-view-heading"><div><p class="whale-watch-eyebrow">Complete paged window</p><h3>Twenty-four hours, counted end to end</h3></div><p>${escapeHtml(transfer.semantics)}</p></div>
-            <div class="whale-watch-metrics">
+            <div class="whale-watch-metrics chamber-stats">
                 <article><span>Applied transfers</span><strong>${exact(transfer.operationCount)}</strong><small>${exact(transfer.operationGroupCount)} operation groups</small></article>
                 <article><span>Distinct endpoints</span><strong>${exact(transfer.uniqueSenders)} / ${exact(transfer.uniqueTargets)}</strong><small>senders / targets; sets may overlap</small></article>
                 <article><span>Gross observed legs</span><strong>${xtz(transfer.grossObservedMutez, 2)}</strong><small>not economic volume</small></article>

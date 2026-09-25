@@ -366,6 +366,7 @@ export function createMaxisSmokeSuites({
       const hero = bounds('.maxis-protocol-hero');
       const orb = bounds('.maxis-season-orb');
       const close = bounds('#maxis-modal .chamber-close');
+      const room = bounds('#maxis-modal .maxis-content');
       return {
         title: document.querySelector('#maxis-title')?.textContent?.trim() || '',
         orbLabel: document.querySelector('.maxis-season-orb')?.getAttribute('aria-label') || '',
@@ -377,11 +378,12 @@ export function createMaxisSmokeSuites({
           transform: getComputedStyle(document.querySelector('.maxis-protocol-hero')).transform,
           animation: document.querySelector('.maxis-protocol-hero').getAnimations().map(animation => ({ state: animation.playState, currentTime: animation.currentTime })),
           topDelta: Math.abs(orb.top - close.top),
-          insetDelta: Math.abs((orb.left - hero.left) - (hero.right - close.right)),
-          leftInset: orb.left - hero.left,
-          rightInset: hero.right - close.right,
-          orbInside: orb.left >= hero.left && orb.top >= hero.top && orb.right <= hero.right && orb.bottom <= hero.bottom,
-          closeInside: close.left >= hero.left && close.top >= hero.top && close.right <= hero.right && close.bottom <= hero.bottom,
+          // The orb mirrors the shared Chamber exit at the room frame, not the hero card.
+          insetDelta: Math.abs((orb.left - room.left) - (room.right - close.right)),
+          leftInset: orb.left - room.left,
+          rightInset: room.right - close.right,
+          orbInside: orb.left >= room.left && orb.top >= room.top && orb.right <= room.right && orb.bottom <= room.bottom,
+          closeInside: close.left >= room.left && close.top >= room.top && close.right <= room.right && close.bottom <= room.bottom,
           orbSize: Math.min(orb.width, orb.height),
           closeSize: Math.min(close.width, close.height)
         } : null
@@ -712,12 +714,13 @@ export function createMaxisSmokeSuites({
         heroOverflow: (hero?.scrollWidth || 0) - (hero?.clientWidth || 0),
         kickerOverflow: (kicker?.scrollWidth || 0) - (kicker?.clientWidth || 0),
         cornerTopDelta: heroBounds && orbBounds && closeBounds ? Math.abs(orbBounds.top - closeBounds.top) : Infinity,
-        cornerInsetDelta: heroBounds && orbBounds && closeBounds ? Math.abs((orbBounds.left - heroBounds.left) - (heroBounds.right - closeBounds.right)) : Infinity,
-        cornerLeftInset: heroBounds && orbBounds ? orbBounds.left - heroBounds.left : -1,
-        cornerRightInset: heroBounds && closeBounds ? heroBounds.right - closeBounds.right : -1,
-        controlsInsideHero: Boolean(heroBounds && orbBounds && closeBounds
-          && orbBounds.left >= heroBounds.left && orbBounds.top >= heroBounds.top && orbBounds.right <= heroBounds.right && orbBounds.bottom <= heroBounds.bottom
-          && closeBounds.left >= heroBounds.left && closeBounds.top >= heroBounds.top && closeBounds.right <= heroBounds.right && closeBounds.bottom <= heroBounds.bottom)
+        // The orb mirrors the shared Chamber exit at the room frame (content), not the hero card.
+        cornerInsetDelta: content && orbBounds && closeBounds ? Math.abs((orbBounds.left - content.left) - (content.right - closeBounds.right)) : Infinity,
+        cornerLeftInset: content && orbBounds ? orbBounds.left - content.left : -1,
+        cornerRightInset: content && closeBounds ? content.right - closeBounds.right : -1,
+        controlsInsideHero: Boolean(content && orbBounds && closeBounds
+          && orbBounds.left >= content.left && orbBounds.top >= content.top && orbBounds.right <= content.right && orbBounds.bottom <= content.bottom
+          && closeBounds.left >= content.left && closeBounds.top >= content.top && closeBounds.right <= content.right && closeBounds.bottom <= content.bottom)
       };
     });
     assert(mobileState.roomHeights.every((height) => height >= 44) && mobileState.laneHeights.every((height) => height >= 44) && mobileState.rowMenuHeights.every((height) => height >= 44), `tezos maxis chamber: mobile targets are below 44px ${JSON.stringify(mobileState)}`);

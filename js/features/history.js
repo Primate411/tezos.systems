@@ -1340,6 +1340,8 @@ export function createFullChart(canvasId, data, metric, label, unit = '', option
 
     // Check theme for colors
     const expandedTheme = getCurrentTheme();
+    // Chambers stay dark under every theme, so only a chart outside one uses Clean's light axes.
+    const lightSurface = expandedTheme === 'clean' && !canvas.closest('.chamber-content');
     const themeColorMap = {
         matrix:    { primary: '#00ff00',  glow: 'rgba(0, 255, 0, 0.8)',    fill: [0.4, 0.15] },
         dark:      { primary: '#999999',  glow: 'rgba(153, 153, 153, 0.8)', fill: [0.25, 0.08] },
@@ -1443,11 +1445,11 @@ export function createFullChart(canvasId, data, metric, label, unit = '', option
                         displayFormats: timeScale.displayFormats
                     },
                     grid: {
-                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+                        color: lightSurface ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
                         drawBorder: false
                     },
                     ticks: {
-                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+                        color: lightSurface ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
                         font: { size: 11 },
                         maxRotation: 0
                     }
@@ -1455,11 +1457,11 @@ export function createFullChart(canvasId, data, metric, label, unit = '', option
                 y: {
                     beginAtZero: false,
                     grid: {
-                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
+                        color: lightSurface ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
                         drawBorder: false
                     },
                     ticks: {
-                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
+                        color: lightSurface ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
                         font: { size: 11 },
                         callback: (value) => value.toLocaleString(undefined, {maximumFractionDigits: 1}) + unit,
                         padding: 10
@@ -1754,7 +1756,8 @@ function decorateCycleHistoryChamber(modal) {
         const header = holder.firstElementChild;
         title.replaceWith(header);
         const rail = modal.querySelector('.cycle-history-header-actions');
-        if (rail) header.appendChild(rail);
+        // The icon actions share the chip row, like Whale Watch's Refresh, so they never cost a line.
+        if (rail) (header.querySelector('.chamber-title-row') || header).appendChild(rail);
     }
     const closeBtn = modal.querySelector('#history-modal-close');
     if (closeBtn) {

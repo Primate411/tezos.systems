@@ -44,7 +44,7 @@
     gap: 0.7rem;
     margin-bottom: 0.85rem;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.58rem;
     font-weight: 800;
     letter-spacing: 0.1em;
@@ -89,7 +89,7 @@
     gap: 0.34rem;
     margin: 0.18rem 0 0;
     color: var(--maxis-readable-muted);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.62rem;
     font-weight: 750;
     letter-spacing: 0.055em;
@@ -118,8 +118,8 @@
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 7px;
     background: rgba(255, 255, 255, 0.025);
-    color: var(--text-tertiary);
-    font-size: 0.66rem;
+    color: var(--maxis-readable-muted);
+    font-size: 0.7rem;
     line-height: 1.25;
 }
 
@@ -128,7 +128,7 @@
     overflow: hidden;
     margin-bottom: 0.16rem;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.76rem;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -153,7 +153,7 @@
 
 .maxis-category-nav-label {
     color: color-mix(in srgb, var(--maxis-gold) 66%, var(--text-tertiary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.5rem;
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -187,7 +187,7 @@
 .maxis-category-jump span {
     flex: 0 0 auto;
     color: var(--maxis-gold);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
 }
 
@@ -301,7 +301,7 @@
     border-radius: 50%;
     color: var(--maxis-card-accent);
     background: color-mix(in srgb, var(--maxis-card-accent) 9%, transparent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.72rem;
     font-weight: 900;
 }
@@ -323,7 +323,7 @@
     flex: 0 0 auto;
     margin-left: auto;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.55rem;
     font-weight: 750;
     letter-spacing: 0.05em;
@@ -353,7 +353,7 @@
 
 .maxis-card-score {
     color: color-mix(in srgb, var(--maxis-card-accent) 76%, var(--text-primary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: clamp(0.86rem, 1.45vw, 1rem);
     font-variant-numeric: tabular-nums;
     line-height: 1.25;
@@ -478,7 +478,7 @@
     align-items: center;
     justify-content: center;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.72rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
@@ -496,7 +496,7 @@
 
 .maxis-rank-position b {
     color: #ffd866;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.58rem;
     font-weight: 950;
     text-shadow: 0 0 9px rgba(255, 208, 90, 0.42);
@@ -579,7 +579,7 @@
 .maxis-rank-score {
     max-width: 100%;
     color: color-mix(in srgb, var(--maxis-card-accent) 76%, var(--text-primary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.66rem;
     font-variant-numeric: tabular-nums;
     line-height: 1.25;
@@ -659,75 +659,66 @@
     border-radius: 6px;
     color: var(--text-tertiary);
 }
-.maxis-methodology-facts strong { display: block; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+.maxis-methodology-facts strong { display: block; color: var(--text-primary); font-family: var(--font-data, "JetBrains Mono"), monospace; }
 .maxis-methodology-note { color: color-mix(in srgb, var(--maxis-gold) 58%, var(--text-secondary)); }
 
 .maxis-footer { margin-top: 0.9rem; }
 
-/* Clean is a genuinely light theme; keep its text tokens on a light chamber. */
-[data-theme="clean"] .maxis-content {
-    border-color: rgba(137, 98, 18, 0.24) !important;
-    background:
-        radial-gradient(circle at 85% 5%, rgba(124, 58, 237, 0.08), transparent 34%),
-        radial-gradient(circle at 8% 22%, rgba(190, 127, 18, 0.08), transparent 32%),
-        linear-gradient(180deg, rgba(252, 252, 254, 0.995), rgba(244, 246, 250, 0.995)) !important;
-    box-shadow: 0 24px 80px rgba(25, 32, 48, 0.24), inset 0 1px 0 #fff !important;
-}
-
-[data-theme="clean"] .maxis-hero,
-[data-theme="clean"] .maxis-card-method,
-[data-theme="clean"] .maxis-ranking-list,
-[data-theme="clean"] .maxis-rank-row {
+/* Clean lightens the home card only; the Maxis room stays a dark chamber. */
+[data-theme="clean"] .maxis-hero:not(.maxis-content *),
+[data-theme="clean"] .maxis-card-method:not(.maxis-content *),
+[data-theme="clean"] .maxis-ranking-list:not(.maxis-content *),
+[data-theme="clean"] .maxis-rank-row:not(.maxis-content *) {
     border-color: rgba(26, 29, 38, 0.1);
 }
 
-[data-theme="clean"] .maxis-hero-meta span,
-[data-theme="clean"] .maxis-category-nav,
-[data-theme="clean"] .maxis-card,
-[data-theme="clean"] .maxis-methodology,
-[data-theme="clean"] .maxis-entry-leader {
+[data-theme="clean"] .maxis-hero-meta span:not(.maxis-content *),
+[data-theme="clean"] .maxis-category-nav:not(.maxis-content *),
+[data-theme="clean"] .maxis-card:not(.maxis-content *),
+[data-theme="clean"] .maxis-methodology:not(.maxis-content *),
+[data-theme="clean"] .maxis-entry-leader:not(.maxis-content *) {
     border-color: rgba(26, 29, 38, 0.1);
     background-color: rgba(255, 255, 255, 0.76);
 }
 
-[data-theme="clean"] .maxis-category-nav {
+[data-theme="clean"] .maxis-category-nav:not(.maxis-content *) {
     background:
         linear-gradient(110deg, rgba(190, 127, 18, 0.06), rgba(124, 58, 237, 0.045)),
         rgba(250, 250, 253, 0.94);
     box-shadow: 0 10px 28px rgba(38, 43, 58, 0.13), inset 0 1px 0 #fff;
 }
 
-[data-theme="clean"] .maxis-category-jump {
+[data-theme="clean"] .maxis-category-jump:not(.maxis-content *) {
     border-color: rgba(26, 29, 38, 0.11);
     background: rgba(26, 29, 38, 0.025);
 }
 
-[data-theme="clean"] .maxis-rank-crown,
-[data-theme="clean"] .maxis-rank-position b {
+[data-theme="clean"] .maxis-rank-crown:not(.maxis-content *),
+[data-theme="clean"] .maxis-rank-position b:not(.maxis-content *) {
     color: #a86800;
     text-shadow: 0 0 7px rgba(190, 127, 18, 0.3);
 }
 
-[data-theme="clean"] .maxis-card-featured {
+[data-theme="clean"] .maxis-card-featured:not(.maxis-content *) {
     background:
         radial-gradient(circle at 85% 50%, rgba(124, 58, 237, 0.08), transparent 32%),
         linear-gradient(120deg, rgba(190, 127, 18, 0.08), transparent 52%),
         rgba(255, 255, 255, 0.8);
 }
 
-[data-theme="clean"] .maxis-card-context span,
-[data-theme="clean"] .maxis-action,
-[data-theme="clean"] .maxis-source-action,
-[data-theme="clean"] .maxis-rank-action,
-[data-theme="clean"] .maxis-entry-unicorn,
-[data-theme="clean"] .maxis-entry-meta span,
-[data-theme="clean"] .maxis-entry-icon,
-[data-theme="clean"] .maxis-methodology-facts span {
+[data-theme="clean"] .maxis-card-context span:not(.maxis-content *),
+[data-theme="clean"] .maxis-action:not(.maxis-content *),
+[data-theme="clean"] .maxis-source-action:not(.maxis-content *),
+[data-theme="clean"] .maxis-rank-action:not(.maxis-content *),
+[data-theme="clean"] .maxis-entry-unicorn:not(.maxis-content *),
+[data-theme="clean"] .maxis-entry-meta span:not(.maxis-content *),
+[data-theme="clean"] .maxis-entry-icon:not(.maxis-content *),
+[data-theme="clean"] .maxis-methodology-facts span:not(.maxis-content *) {
     border-color: rgba(26, 29, 38, 0.1);
     background-color: rgba(26, 29, 38, 0.035);
 }
 
-[data-theme="clean"] .maxis-ledger-action {
+[data-theme="clean"] .maxis-ledger-action:not(.maxis-content *) {
     background-color: color-mix(in srgb, var(--maxis-card-accent) 8%, white);
 }
 
@@ -836,7 +827,7 @@
     border-radius: 999px;
     color: var(--text-tertiary);
     background: rgba(255, 255, 255, 0.025);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.48rem;
     font-weight: 750;
     letter-spacing: 0.04em;
@@ -881,7 +872,7 @@
     border-radius: 999px;
     color: #0a0e1a;
     background: var(--maxis-gold);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.38rem;
     font-weight: 950;
 }
@@ -909,7 +900,7 @@
     gap: 0.75rem;
     padding-inline: 0.08rem;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.47rem;
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -952,7 +943,7 @@
     border-radius: 50%;
     color: var(--maxis-gold);
     background: color-mix(in srgb, var(--maxis-gold) 6%, transparent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     line-height: 1;
     text-align: center;
 }
@@ -963,8 +954,8 @@
 .maxis-entry-leader small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .maxis-entry-lane { color: var(--text-tertiary); font-size: 0.46rem; font-weight: 850; letter-spacing: 0.07em; text-transform: uppercase; }
 .maxis-entry-leader strong { color: var(--text-primary); font-size: 0.65rem; line-height: 1.08; }
-.maxis-entry-leader > small { color: color-mix(in srgb, var(--maxis-gold) 58%, var(--text-tertiary)); font-family: 'JetBrains Mono', monospace; font-size: 0.49rem; line-height: 1.08; }
-.maxis-entry-loading { color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+.maxis-entry-leader > small { color: color-mix(in srgb, var(--maxis-gold) 58%, var(--text-tertiary)); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.49rem; line-height: 1.08; }
+.maxis-entry-loading { color: var(--text-secondary); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.72rem; }
 
 @media (min-width: 1180px) {
     #chambers-grid .maxis-entry-card.chamber-entry-wide {
@@ -1152,7 +1143,7 @@
     display: grid;
     gap: 0;
     color: inherit;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.66rem;
     font-weight: 950;
     letter-spacing: -0.035em;
@@ -1214,7 +1205,7 @@
     gap: 0.75rem;
     padding: 0.35rem 0.45rem 0.55rem;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
     font-weight: 850;
     letter-spacing: 0.11em;
@@ -1273,7 +1264,7 @@
     border: 1px solid color-mix(in srgb, var(--maxis-cyan) 30%, transparent);
     border-radius: 999px;
     color: color-mix(in srgb, var(--maxis-cyan) 70%, var(--text-primary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.55rem;
     font-weight: 900;
     letter-spacing: 0.08em;
@@ -1379,7 +1370,7 @@
     overflow: hidden;
     margin-bottom: 0.12rem;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.72rem;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1394,43 +1385,14 @@
     gap: 0.32rem;
     margin: 0 0 0.72rem;
     padding: 0.42rem 0.42rem 0.42rem 3.55rem;
-    border: 1px solid var(--maxis-line);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--bg-primary, #080c16) 92%, transparent);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: var(--bg-primary, #080c16);
 }
 
 .maxis-experience:not(.has-season-context) .maxis-room-tabs { padding-left: 0.42rem; }
 
-.maxis-room-tab {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.38rem;
-    min-width: 0;
-    min-height: 36px;
-    padding: 0.4rem 0.5rem;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    color: var(--maxis-readable-muted);
-    background: transparent;
-    font: inherit;
-    font-size: 0.68rem;
-    font-weight: 850;
-    cursor: pointer;
-    transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease, transform 0.16s ease;
-}
-
+/* The tab parts come from the shared Chamber vocabulary; Maxis keeps its gold glyphs. */
+.maxis-room-tab { display: inline-flex; align-items: center; gap: 0.38rem; }
 .maxis-room-tab span { color: color-mix(in srgb, var(--maxis-gold) 72%, var(--text-primary)); }
-.maxis-room-tab:is(:hover, :focus-visible) { outline: none; color: var(--text-primary); transform: translateY(-1px); }
-.maxis-room-tab[aria-selected="true"] {
-    border-color: color-mix(in srgb, var(--maxis-gold) 30%, transparent);
-    color: var(--text-primary);
-    background: linear-gradient(110deg, color-mix(in srgb, var(--maxis-gold) 9%, transparent), color-mix(in srgb, var(--maxis-violet) 7%, transparent));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
 
 .maxis-room-panel { animation: maxis-room-enter 0.2s ease both; }
 
@@ -1447,7 +1409,7 @@
 .maxis-room-intro .maxis-room-kicker {
     display: block;
     color: color-mix(in srgb, var(--maxis-gold) 72%, var(--text-tertiary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
     font-weight: 900;
     letter-spacing: 0.12em;
@@ -1542,7 +1504,7 @@
     border-radius: 50%;
     color: var(--maxis-card-accent);
     background: color-mix(in srgb, var(--maxis-card-accent) 7%, transparent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.78rem;
 }
 
@@ -1556,7 +1518,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
     color: var(--maxis-readable-muted);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
     font-weight: 850;
     letter-spacing: 0.05em;
@@ -1687,7 +1649,7 @@
 .maxis-podium-number {
     display: block;
     color: color-mix(in srgb, var(--maxis-podium-metal) 62%, var(--text-primary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
     font-weight: 950;
 }
@@ -1696,7 +1658,7 @@
 .maxis-podium-place small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .maxis-podium-place strong { margin-top: 0.28rem; color: var(--text-primary); font-size: 0.7rem; }
 .maxis-podium-place code { margin-top: 0.15rem; color: var(--maxis-readable-muted); font-size: 0.56rem; }
-.maxis-podium-place small { margin-top: 0.34rem; color: color-mix(in srgb, var(--maxis-podium-metal) 42%, var(--text-primary)); font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
+.maxis-podium-place small { margin-top: 0.34rem; color: color-mix(in srgb, var(--maxis-podium-metal) 42%, var(--text-primary)); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.6rem; }
 .maxis-podium-place .maxis-row-menu-wrap { margin-top: 0.72rem; }
 .maxis-podium-place .maxis-row-menu-toggle {
     border-color: color-mix(in srgb, var(--maxis-podium-metal) 34%, transparent);
@@ -1723,14 +1685,14 @@
     margin-top: 0.18rem;
     padding: 0.65rem 0 0.18rem;
 }
-.maxis-compact-rank { color: var(--maxis-readable-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 900; }
+.maxis-compact-rank { color: var(--maxis-readable-muted); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.62rem; font-weight: 900; }
 .maxis-compact-identity { min-width: 0; }
 .maxis-compact-identity strong,
 .maxis-compact-identity code { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .maxis-compact-identity strong { color: var(--text-primary); font-size: 0.65rem; }
 .maxis-compact-identity code { margin-top: 0.08rem; color: var(--maxis-readable-muted); font-size: 0.56rem; }
-.maxis-compact-score { min-width: 0; overflow: hidden; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; font-weight: 800; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.maxis-rank-delta { color: #75e5b2; font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; font-weight: 900; }
+.maxis-compact-score { min-width: 0; overflow: hidden; color: var(--text-secondary); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.6rem; font-weight: 800; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.maxis-rank-delta { color: #75e5b2; font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.58rem; font-weight: 900; }
 .maxis-rank-delta.down { color: #ff8fa6; }
 .maxis-rank-delta.flat { color: var(--text-tertiary); }
 
@@ -1761,7 +1723,7 @@
 .maxis-honors-panel { padding: 0.78rem; }
 .maxis-side-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.55rem; }
 .maxis-side-heading strong { color: var(--text-primary); font-size: 0.72rem; }
-.maxis-side-heading span { color: var(--maxis-readable-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.maxis-side-heading span { color: var(--maxis-readable-muted); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; }
 .maxis-honor-list { display: grid; gap: 0.42rem; }
 .maxis-honor-card {
     display: grid;
@@ -1813,7 +1775,7 @@
     outline: none;
     color: var(--text-primary);
     background: rgba(0, 0, 0, 0.18);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.72rem;
 }
 .maxis-passport-input:focus { border-color: color-mix(in srgb, var(--maxis-gold) 48%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--maxis-gold) 9%, transparent); }
@@ -1883,7 +1845,7 @@
 .maxis-passport-scope-head > span:first-child {
     display: block;
     color: color-mix(in srgb, var(--maxis-gold) 74%, var(--text-tertiary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.6rem;
     font-weight: 900;
     letter-spacing: 0.11em;
@@ -1941,7 +1903,7 @@
 }
 .maxis-passport-lane-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .maxis-passport-lane-head strong { color: var(--text-primary); font-size: 0.72rem; }
-.maxis-passport-lane-head span { color: var(--maxis-readable-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
+.maxis-passport-lane-head span { color: var(--maxis-readable-muted); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.6rem; }
 .maxis-progress-track { height: 5px; margin-top: 0.48rem; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.065); }
 .maxis-progress-fill { display: block; height: 100%; width: var(--maxis-progress, 0%); border-radius: inherit; background: linear-gradient(90deg, var(--maxis-violet), var(--maxis-gold)); box-shadow: 0 0 12px color-mix(in srgb, var(--maxis-gold) 28%, transparent); }
 .maxis-passport-lane p { margin: 0.38rem 0 0; color: var(--maxis-readable-muted); font-size: 0.66rem; line-height: 1.4; }
@@ -1976,7 +1938,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
 .maxis-crown-card span { color: var(--maxis-gold); font-size: 0.6rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
 .maxis-crown-card strong { margin-top: 0.32rem; color: var(--text-primary); font-size: 0.78rem; }
 .maxis-crown-card code { margin-top: 0.13rem; color: var(--maxis-readable-muted); font-size: 0.58rem; }
-.maxis-crown-card small { margin-top: 0.4rem; color: color-mix(in srgb, var(--maxis-gold) 60%, var(--text-secondary)); font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; }
+.maxis-crown-card small { margin-top: 0.4rem; color: color-mix(in srgb, var(--maxis-gold) 60%, var(--text-secondary)); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.62rem; }
 
 .maxis-identity-card {
     display: grid;
@@ -2027,7 +1989,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     border-radius: 999px;
     color: color-mix(in srgb, var(--maxis-cyan) 68%, var(--text-secondary));
     background: color-mix(in srgb, var(--maxis-cyan) 4%, transparent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.58rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -2058,7 +2020,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     border-radius: 999px;
     color: color-mix(in srgb, var(--maxis-cyan) 76%, var(--text-primary));
     background: color-mix(in srgb, var(--maxis-cyan) 7%, transparent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.52rem;
     font-weight: 900;
     letter-spacing: 0.06em;
@@ -2093,9 +2055,9 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     color: var(--maxis-readable-muted);
     font-size: 0.6rem;
 }
-.maxis-detail-heading > span { color: color-mix(in srgb, var(--maxis-gold) 72%, var(--text-tertiary)); font-family: 'JetBrains Mono', monospace; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+.maxis-detail-heading > span { color: color-mix(in srgb, var(--maxis-gold) 72%, var(--text-tertiary)); font-family: var(--font-data, "JetBrains Mono"), monospace; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
 .maxis-detail-heading strong { overflow: hidden; color: var(--text-primary); font-size: 0.74rem; text-overflow: ellipsis; white-space: nowrap; }
-.maxis-detail-heading small { color: color-mix(in srgb, var(--maxis-cyan) 62%, var(--text-tertiary)); font-family: 'JetBrains Mono', monospace; }
+.maxis-detail-heading small { color: color-mix(in srgb, var(--maxis-cyan) 62%, var(--text-tertiary)); font-family: var(--font-data, "JetBrains Mono"), monospace; }
 
 .maxis-governance-context {
     display: grid;
@@ -2113,7 +2075,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
 .maxis-governance-context strong { display: block; }
 .maxis-governance-context span {
     color: color-mix(in srgb, var(--maxis-cyan) 66%, var(--text-tertiary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.58rem;
     font-weight: 900;
     letter-spacing: 0.08em;
@@ -2238,7 +2200,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
 .maxis-entry-season-front { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(18rem, 0.88fr); gap: 0.72rem; height: 100%; min-height: 0; padding-bottom: 3.35rem !important; }
 .maxis-entry-maxis-front { padding-bottom: 0 !important; }
 .maxis-entry-season-copy { min-width: 0; }
-.maxis-entry-season-label { display: inline-flex; align-items: center; gap: 0.34rem; color: var(--maxis-gold); font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.maxis-entry-season-label { display: inline-flex; align-items: center; gap: 0.34rem; color: var(--maxis-gold); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
 .maxis-entry-season-title { margin-top: 0.28rem; color: var(--text-primary); font-family: var(--font-display, 'Orbitron', sans-serif); font-size: clamp(1.1rem, 2vw, 1.55rem); font-weight: 900; line-height: 1.15; }
 #chambers-grid .maxis-entry-season-title.chamber-entry-title { color: var(--text-secondary); font-family: var(--font-ui) !important; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; line-height: normal; text-transform: uppercase; }
 .maxis-entry-season-copy p { max-width: 33rem; margin: 0.32rem 0 0; color: var(--text-secondary); font-size: 0.75rem; line-height: 1.45; }
@@ -2277,7 +2239,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     border-radius: 50%;
     color: var(--maxis-gold);
     background: color-mix(in srgb, var(--maxis-gold) 6%, transparent);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.56rem;
 }
 .maxis-entry-identity-copy,
@@ -2306,7 +2268,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
 .maxis-entry-identity-copy small {
     margin-top: 0.09rem;
     color: color-mix(in srgb, var(--maxis-gold) 58%, var(--maxis-readable-muted));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.5rem;
     font-weight: 700;
 }
@@ -2373,20 +2335,8 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
 .maxis-entry-race small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .maxis-entry-race span { color: var(--maxis-readable-muted); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.07em; }
 .maxis-entry-race strong { margin-top: 0.12rem; color: var(--text-primary); font-size: 0.68rem; }
-.maxis-entry-race small { margin-top: 0.12rem; color: color-mix(in srgb, var(--maxis-gold) 58%, var(--maxis-readable-muted)); font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; }
+.maxis-entry-race small { margin-top: 0.12rem; color: color-mix(in srgb, var(--maxis-gold) 58%, var(--maxis-readable-muted)); font-family: var(--font-data, "JetBrains Mono"), monospace; font-size: 0.58rem; }
 
-[data-theme="clean"] .maxis-season-menu,
-[data-theme="clean"] .maxis-room-tabs,
-[data-theme="clean"] .maxis-identity-card,
-[data-theme="clean"] .maxis-lane-board,
-[data-theme="clean"] .maxis-honors-panel,
-[data-theme="clean"] .maxis-passport-shell,
-[data-theme="clean"] .maxis-champions-shell {
-    background-color: rgba(252, 253, 255, 0.97);
-    box-shadow: 0 14px 36px rgba(32, 45, 72, 0.13);
-}
-[data-theme="clean"] .maxis-season-orb { background-color: rgba(31, 39, 62, 0.95); }
-[data-theme="clean"] .maxis-passport-input { background: rgba(255, 255, 255, 0.9); }
 
 @keyframes maxis-season-orbit {
     to { transform: rotate(360deg); }
@@ -2437,7 +2387,8 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
         top: 54px;
         right: auto;
         bottom: auto;
-        left: 0;
+        /* The orb sits at the shared 12px exit inset; the menu opens inside the content clip. */
+        left: 4px;
         width: min(17.5rem, calc(100vw - 6.5rem));
         max-height: min(68vh, 34rem);
         padding: 0.7rem;
@@ -2449,10 +2400,7 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     .maxis-protocol-hero { padding: 1rem 0.75rem 0.9rem; }
     .maxis-protocol-lead { font-size: 0.74rem; }
     .maxis-season-telemetry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .maxis-room-tabs { grid-template-columns: repeat(4, max-content); justify-content: start; padding-left: 3.55rem; overflow-x: auto; }
-    .maxis-room-tab { min-width: 7rem; min-height: 44px; }
-    .maxis-experience:not(.has-season-context) .maxis-room-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); justify-content: stretch; overflow-x: visible; }
-    .maxis-experience:not(.has-season-context) .maxis-room-tab { min-width: 0; padding-inline: 0.28rem; font-size: 0.64rem; }
+    .maxis-room-tabs { padding-left: 3.55rem; }
     .maxis-lane-chip { min-height: 44px; }
     .maxis-row-menu-toggle { width: 44px; height: 44px; }
     .maxis-rank-action { min-height: 44px; }

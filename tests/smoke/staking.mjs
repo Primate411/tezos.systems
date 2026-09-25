@@ -93,7 +93,7 @@ export function createStakingSmokeSuites({
 
     await page.locator('#staking-entry-card .chamber-expand-cue').click();
     await page.locator('#staking-chamber-modal.active .staking-chamber-content').waitFor({ state: 'visible', timeout: 10000 });
-    await assertNormalizedChamberShell(page, '#staking-chamber-modal.active', '.staking-chamber-content', 'narrow', label);
+    await assertNormalizedChamberShell(page, '#staking-chamber-modal.active', '.staking-chamber-content', 'standard', label);
     await page.waitForFunction(() => /Showing 4 of 4 complete >10K moves/.test(document.querySelector('#staking-archive-count')?.textContent || ''), null, { timeout: 30000 });
 
     assert(!(await page.locator('#staking-guide').evaluate((guide) => guide.open)), `${label}: live movement room should keep the explanatory guide collapsed by default`);

@@ -573,6 +573,12 @@ Stamping gotchas:
 
 - `js/ui/pulse-ticker.js`: continuously drifting Live Pulse bar, intent pause,
   two-step touch activation, source shelf, and quiet-refresh phase retention.
+- `js/ui/chamber-header.js`: the shared Network Health header anatomy for every
+  Chamber. New rooms use it with `renderChamberVerdict` (figure-first answer,
+  boundary as `note`) and the `chamber-tabs`/`chamber-stats`/`chamber-table`
+  vocabulary in `css/shell-extras.css`; set `--chamber-room-accent` for the
+  room's identity instead of restyling the parts. Chambers stay dark under the
+  light Clean theme; do not add light Clean room surfaces.
 - `js/ui/theme.js`: theme registry, picker, first-visit landing redirect.
 - `js/ui/wayfinder.js`: injects four semantic next steps into chamber overlays
   that do not already provide a native adjacent-room map. Keep contextual

@@ -315,7 +315,7 @@
     top: 10px;
     right: 10px;
     color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.68rem;
 }
 
@@ -959,7 +959,7 @@
 
 .baker-directory-match-order {
     color: var(--text-tertiary, var(--text-secondary));
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
     font-size: 0.61rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -1548,7 +1548,7 @@
     border-radius: 5px;
     color: var(--text-secondary, rgba(255,255,255,0.62));
     background: color-mix(in srgb, var(--accent-cyan, #00d4ff) 7%, transparent);
-    font: 650 9px/1.2 "JetBrains Mono", monospace;
+    font: 650 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 [data-theme="clean"] .lb-badge-tz4 {
@@ -1956,4 +1956,13 @@
     .baker-action-facts { grid-template-columns: 1fr; }
     .baker-action-footer { align-items: stretch; flex-direction: column; }
     .baker-action-footer button { width: 100%; }
+}
+
+/* Phones read the candidates first; the fit questions follow as refinements. */
+@media (max-width: 759px) {
+    .baker-directory-fit { display: flex; flex-direction: column; }
+    .baker-directory-fit > .baker-directory-section-heading { order: 0; }
+    .baker-directory-fit > .baker-directory-match-grid { order: 1; }
+    .baker-directory-fit > .baker-directory-fit-questions { order: 2; }
+    .baker-directory-fit > .chamber-disclosure { order: 3; }
 }

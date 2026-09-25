@@ -2213,6 +2213,19 @@ through the existing quiet-refresh helpers, preserving focus, selection, nodes,
 scroll, and charts. The `chamber-reading` smoke tests this at 1440, 390, and 320px;
 the all-route completion matrix requires exactly one summary in every room.
 
+Every Chamber shares the Network Health frame: one 1180px room width, the exit
+at a 12px inset that gains an opaque band once the room scrolls, and a header
+from `js/ui/chamber-header.js` (system strip, glyph, title and status chips, a
+plain-language summary over a mono meta line). Reading summaries answer the
+room's question with a figure first; the reading boundary follows as a
+secondary note. Tabs, stat tiles, tables and section titles share the
+`chamber-tabs`, `chamber-stats` and `chamber-table` vocabulary in
+`css/shell-extras.css`, tinted by each room's `--chamber-room-accent`. Rooms
+use the active theme's font tokens, generic accents follow the theme outside
+Aurora, and every Chamber stays a dark room under the light Clean theme; only
+home cards and My Tezos follow Clean's light surface. The `ux-regressions`
+smoke asserts this frame, dark-room contract and first-screen answers.
+
 TezosCRP's browser uses `data/tezoscrp-awards.compact.json`, decoded once at the
 read boundary by `js/core/tezoscrp-codec.mjs`. Schema `2.0.0` stores each complete
 source record and raw category label once; `category_raw_id` and ordered

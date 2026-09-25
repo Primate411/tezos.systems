@@ -234,7 +234,7 @@ export function createLoadingStaticChecks({
       fail('Shared Chambers must fill the available tall viewport without a fixed height cap');
     }
     for (const snippet of [
-      'const WIDE_CHAMBER_DIALOG_SELECTOR',
+      "const CHAMBER_ROOM_SIZE = 'standard'",
       'dialog.dataset.roomSize = roomSize',
       "scrollContainer.classList.add('chamber-room-scroll')",
       "'tezos:chamber-dialog-active'",
@@ -248,8 +248,6 @@ export function createLoadingStaticChecks({
     }
     for (const snippet of [
       '.market-room-shell',
-      '.market-room-title.is-display',
-      '.market-room-title.is-editorial',
       '.market-room-tabs',
       '.market-room-view-shell',
       '.market-room-core-stage figcaption',
@@ -257,10 +255,16 @@ export function createLoadingStaticChecks({
     ]) {
       if (!marketRoomStyles.includes(snippet)) fail(`market-room component layer is missing contract: ${snippet}`);
     }
-    if (!marketRoomStyles.includes('font-size: var(--type-room-title)')
-      || !stakingChamberStyles.includes('font-size: var(--type-room-title)')
-      || !historyChamberStyles.includes('font-size: var(--type-room-title)')) {
+    // Every room title now comes from the shared Network Health header, so the
+    // one .chamber-title scale owns them and no room may re-declare its own.
+    const sharedHeader = await readText('js/ui/chamber-header.js');
+    if (!/\.chamber-title \{\n    min-width: 0;\n    font-size: var\(--type-room-title\);/.test(shellExtras)
+      || !sharedHeader.includes('class="chamber-title"')
+      || [marketRoomStyles, stakingChamberStyles, historyChamberStyles].some((css) => /\.(market-room|staking-chamber|cycle-history)-title[^{]*\{[^}]*font-size/.test(css))) {
       fail('shared Chamber title scale must own market, Staking, and Cycle History room titles');
+    }
+    if (/WIDE_CHAMBER_DIALOG_SELECTOR|data-room-size="(wide|narrow)"|\[data-room-size="(wide|narrow)"\]/.test(chamberAccessibility + shellExtras)) {
+      fail('Chambers must share one room width; wide/narrow room sizes are retired');
     }
     for (const snippet of [
       "window.addEventListener('wheel', markReaderScrollIntent, scrollIntentOptions)",

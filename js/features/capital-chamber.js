@@ -717,7 +717,7 @@ function renderReturnMatrix(snapshot) {
         </tr>
     `).join('');
     return `
-        <div class="capital-table-wrap"><table class="capital-table capital-return-table">
+        <div class="capital-table-wrap"><table class="chamber-table capital-table capital-return-table">
             <caption class="sr-only">XTZ return matrix from generated daily closes</caption>
             <thead><tr><th>Window</th><th class="is-number">USD</th><th class="is-number">BTC</th><th class="is-number">ETH</th></tr></thead>
             <tbody>${rows}</tbody>
@@ -754,7 +754,7 @@ function renderTickerTable(tickers, caption, limit = 28) {
         `;
     }).join('');
     return `
-        <div class="capital-table-wrap"><table class="capital-table">
+        <div class="capital-table-wrap"><table class="chamber-table capital-table">
             <caption class="sr-only">${escapeHtml(caption)}</caption>
             <thead><tr><th>Venue</th><th>Pair</th><th class="is-number">24h volume</th><th class="is-number">Spread</th><th class="is-number">+2% depth</th><th class="is-number">−2% depth</th><th>Quality</th></tr></thead>
             <tbody>${rows || '<tr><td colspan="7">No rows.</td></tr>'}</tbody>
@@ -930,17 +930,17 @@ function renderAssets(snapshot) {
     const tokens = Array.isArray(snapshot.rwa?.tokens) ? snapshot.rwa.tokens : [];
     const asset = snapshot.rwa?.assets?.find((row) => row.id === 'xu3o8') || snapshot.rwa?.assets?.[0] || {};
     const protocolTable = `
-        <div class="capital-table-wrap"><table class="capital-table"><caption class="sr-only">Protocol TVL and exact-chain share</caption>
+        <div class="capital-table-wrap"><table class="chamber-table capital-table"><caption class="sr-only">Protocol TVL and exact-chain share</caption>
             <thead><tr><th>Protocol</th><th>Layer</th><th>Category</th><th class="is-number">TVL</th><th class="is-number">Index-row share</th></tr></thead>
             <tbody>${protocols.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.network)}</td><td>${escapeHtml(row.category || 'Other')}</td><td class="is-number">${escapeHtml(formatUsd(row.tvlUsd))}</td><td class="is-number">${escapeHtml(formatPct(row.sharePct))}</td></tr>`).join('')}</tbody>
         </table></div>`;
     const rwaProtocolTable = `
-        <div class="capital-table-wrap"><table class="capital-table"><caption class="sr-only">Etherlink RWA protocol TVL</caption>
+        <div class="capital-table-wrap"><table class="chamber-table capital-table"><caption class="sr-only">Etherlink RWA protocol TVL</caption>
             <thead><tr><th>Protocol</th><th>Category</th><th>Chains</th><th class="is-number">TVL</th><th class="is-number">Etherlink TVL</th></tr></thead>
             <tbody>${rwaProtocols.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.category)}</td><td>${escapeHtml((row.chains || []).join(', '))}</td><td class="is-number">${escapeHtml(formatUsd(row.tvlUsd))}</td><td class="is-number">${escapeHtml(formatUsd(row.chainTvlUsd?.etherlink))}</td></tr>`).join('')}</tbody>
         </table></div>`;
     const tokenTable = `
-        <div class="capital-table-wrap"><table class="capital-table"><caption class="sr-only">Mapped real-world asset tokens</caption>
+        <div class="capital-table-wrap"><table class="chamber-table capital-table"><caption class="sr-only">Mapped real-world asset tokens</caption>
             <thead><tr><th>Token</th><th>Provider</th><th>Network / contract</th><th>Verification</th></tr></thead>
             <tbody>${tokens.map((token) => {
                 const platform = token.platforms?.[0] || {};
@@ -982,7 +982,7 @@ function renderAssets(snapshot) {
 
 function renderLeaderTable(rows, caption, roleLabel) {
     return `
-        <div class="capital-table-wrap"><table class="capital-table"><caption class="sr-only">${escapeHtml(caption)}</caption>
+        <div class="capital-table-wrap"><table class="chamber-table capital-table"><caption class="sr-only">${escapeHtml(caption)}</caption>
             <thead><tr><th>Rank</th><th>${escapeHtml(roleLabel)}</th><th>Address</th><th class="is-number">Gross volume</th></tr></thead>
             <tbody>${rows.slice(0, 12).map((row, index) => `<tr><td>${escapeHtml(row.rank || index + 1)}</td><td>${escapeHtml(row.name || 'Unnamed')}</td><td title="${escapeHtml(row.address)}">${escapeHtml(truncate(row.address, 20))}</td><td class="is-number">${escapeHtml(formatXtz(row.volumeXtz))}</td></tr>`).join('')}</tbody>
         </table></div>`;
@@ -1004,7 +1004,7 @@ function renderArt(snapshot) {
         const share = volume !== null && numeric(grossVolume) !== null && grossVolume > 0 ? (volume / grossVolume) * 100 : null;
         return `<tr><td>${escapeHtml(row.name || row.id || 'Unknown')}</td><td class="is-number">${escapeHtml(formatXtz(row.volumeXtz))}</td><td class="is-number">${escapeHtml(formatPct(share))}</td><td class="is-number">${escapeHtml(formatNumber(row.salesCount))}</td><td class="is-number">${escapeHtml(formatNumber(row.buyers))}</td><td class="is-number">${escapeHtml(formatNumber(row.sellers))}</td></tr>`;
     }).join('');
-    const marketplaceTable = `<div class="capital-table-wrap"><table class="capital-table"><caption class="sr-only">Marketplace gross-volume share and participant roles</caption><thead><tr><th>Marketplace</th><th class="is-number">Gross volume</th><th class="is-number">Volume share</th><th class="is-number">Sales</th><th class="is-number">Buyer roles</th><th class="is-number">Seller roles</th></tr></thead><tbody>${marketplaceRows}</tbody></table></div>`;
+    const marketplaceTable = `<div class="capital-table-wrap"><table class="chamber-table capital-table"><caption class="sr-only">Marketplace gross-volume share and participant roles</caption><thead><tr><th>Marketplace</th><th class="is-number">Gross volume</th><th class="is-number">Volume share</th><th class="is-number">Sales</th><th class="is-number">Buyer roles</th><th class="is-number">Seller roles</th></tr></thead><tbody>${marketplaceRows}</tbody></table></div>`;
     const salesChart = renderChart([
         { label: 'Gross sale volume · XTZ', color: '#69e7c3', points: pointsForRange(coveredDailySales, 'volumeXtz', '30D') }
     ], 'Daily gross art sale volume');
@@ -1013,7 +1013,7 @@ function renderArt(snapshot) {
         { label: 'Mint operations', color: '#62b6ff', points: pointsForRange(coveredDailyMints, 'mintOperations', '30D') }
     ], 'Daily Tezos art mint activity');
     const collectionRows = (art.topCollections30d || []).slice(0, 16).map((row) => `<tr><td>${escapeHtml(row.name || 'Unnamed')}</td><td title="${escapeHtml(row.contract)}">${escapeHtml(truncate(row.contract, 21))}</td><td class="is-number">${escapeHtml(formatNumber(row.salesCount))}</td><td class="is-number">${escapeHtml(formatXtz(row.volumeXtz))}</td><td class="is-number">${escapeHtml(formatNumber(row.buyers))}</td><td class="is-number">${escapeHtml(formatNumber(row.sellers))}</td></tr>`).join('');
-    const collectionTable = `<div class="capital-table-wrap"><table class="capital-table"><caption class="sr-only">Top collections in the bounded 30-day sales prefix</caption><thead><tr><th>Collection</th><th>Contract</th><th class="is-number">Sales</th><th class="is-number">Gross volume</th><th class="is-number">Buyers</th><th class="is-number">Sellers</th></tr></thead><tbody>${collectionRows}</tbody></table></div>`;
+    const collectionTable = `<div class="capital-table-wrap"><table class="chamber-table capital-table"><caption class="sr-only">Top collections in the bounded 30-day sales prefix</caption><thead><tr><th>Collection</th><th>Contract</th><th class="is-number">Sales</th><th class="is-number">Gross volume</th><th class="is-number">Buyers</th><th class="is-number">Sellers</th></tr></thead><tbody>${collectionRows}</tbody></table></div>`;
     return `
         <div class="capital-kpi-grid">
             ${kpi('Gross marketplace volume', formatXtz(grossVolume), 'Summed marketplace groups; not creator profit')}

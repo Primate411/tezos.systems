@@ -5,6 +5,18 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-25',
+        entries: [
+            { type: '🎨', text: 'Every Chamber now shares the Network Health frame: one room width, one close button position, and a header band that appears once you scroll' },
+            { type: '🎨', text: 'Chamber headers follow one anatomy, and each room opens with a banner that answers its question in numbers before explaining the caveats' },
+            { type: '🎨', text: 'Chamber tabs, stat tiles, tables and section titles share one style, with each room keeping its own accent colour; tabs stay on one scrolling row on phones' },
+            { type: '🎨', text: 'Metals, Critical Minerals and Uranium show their figures on the first phone screen instead of a full-height illustrated poster' },
+            { type: '🎨', text: 'Chambers use the active theme’s fonts and accent, and stay dark rooms under the light Clean theme' },
+            { type: '🔧', text: 'My Tezos figures use ꜩ, status labels use colour dots instead of emoji, the Baker Signal next right uses a calmer card, and the standalone page is centred on wide screens' },
+            { type: '🔧', text: 'Fixed the empty Tezos X account picker, a run-on reward sentence, spaced-out Cycle History labels, a dangling separator in Sources & refresh, and several small tap targets' }
+        ]
+    },
+    {
         date: '2026-09-24',
         entries: [
             { type: '🔧', text: 'Historical network snapshots get extra catch-up opportunities when scheduled collection is delayed, while preserving their two-hour capture target and five-hour freshness alarm' }

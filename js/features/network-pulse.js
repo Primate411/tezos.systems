@@ -1213,7 +1213,8 @@ function hasSeedStats(stats) {
 }
 
 /** Lead with the headline network read; each card keeps its own clock. */
-function pulseAnswer(stats = {}) {
+function pulseAnswer(stats) {
+    stats = stats || {};
     const bakers = numericValue(stats.totalBakers);
     const staked = numericValue(stats.stakingRatio);
     const cycle = numericValue(stats.cycle);

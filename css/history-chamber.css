@@ -77,7 +77,7 @@
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.18);
     color: var(--text-secondary);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.64rem;
     font-weight: 700;
     letter-spacing: 0.055em;
@@ -92,11 +92,10 @@
 /* Share and copy-link actions live in the shared header's action row. */
 .cycle-history-header-actions {
     position: static;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 6px;
+    margin: 0;
 }
 
 #history-modal .cycle-history-header-actions .info-button {
@@ -176,7 +175,7 @@
     border-radius: 999px;
     background: color-mix(in srgb, var(--history-accent) 9%, transparent);
     color: var(--history-accent);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.55rem;
     font-weight: 750;
     line-height: 1;
@@ -228,7 +227,7 @@
     padding-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     color: var(--text-tertiary, var(--text-secondary));
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.57rem;
     line-height: 1.45;
 }
@@ -271,7 +270,7 @@
     border-radius: 8px;
     background: var(--bg-secondary, #0b1020);
     color: var(--text-primary);
-    font: 700 0.78rem/1.2 'JetBrains Mono', 'SF Mono', monospace;
+    font: 700 0.78rem/1.2 var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     cursor: pointer;
 }
 
@@ -331,7 +330,7 @@
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.42);
     color: var(--history-accent);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.56rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -362,7 +361,7 @@
 
 .cycle-history-entry-heading .feature-kicker {
     color: var(--cycle-history-entry-accent);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.58rem;
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -410,7 +409,7 @@
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.025);
     color: var(--text-secondary);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.6rem;
     font-weight: 750;
     line-height: 1;
@@ -456,7 +455,7 @@
 .cycle-history-entry-metrics strong {
     display: block;
     color: var(--text-primary);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.82rem;
 }
 
@@ -467,7 +466,7 @@
     justify-self: start;
     min-height: 24px;
     color: var(--cycle-history-entry-accent);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: var(--font-data, "JetBrains Mono"), 'SF Mono', monospace;
     font-size: 0.64rem;
     font-weight: 800;
     letter-spacing: 0.035em;
@@ -503,65 +502,6 @@
     }
 }
 
-[data-theme='clean'] #history-modal .cycle-history-content {
-    /* This room already has a light Clean treatment. Keep its text and controls
-       on the same palette instead of inheriting the generic dark Chamber skin. */
-    --history-panel: rgba(255, 255, 255, 0.94);
-    --history-accent: #2563eb;
-    --history-accent-alt: #7c3aed;
-    --bg-primary: #f8f9fc;
-    --bg-secondary: #fff;
-    --bg-tertiary: #f0f2f8;
-    --glass-bg: rgba(255, 255, 255, 0.95);
-    --glass-border: rgba(0, 50, 120, 0.08);
-    --text-primary: #1a1d26;
-    --text-secondary: #4a5568;
-    --text-tertiary: #5f6f86;
-    --text-muted: #5f6f86;
-    --surface-heading-color: #1e2022;
-    --surface-data-color: #1e2022;
-    --surface-link-color: #0369a1;
-    --surface-link-hover: #0369a1;
-    --surface-control-bg: rgba(255, 255, 255, 0.5);
-    --surface-control-border: #d5dae2;
-    --surface-control-color: #4a5568;
-    --accent-cyan: #2563eb;
-    --accent-purple: #7c3aed;
-    --accent-pink: #dc2626;
-    --accent-blue: #2563eb;
-    color: var(--text-primary);
-    color-scheme: light;
-    background:
-        radial-gradient(circle at 8% 0%, rgba(7, 132, 195, 0.11), transparent 34%),
-        radial-gradient(circle at 92% 8%, rgba(124, 58, 237, 0.08), transparent 30%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.995)) !important;
-}
-
-[data-theme='clean'] #history-modal .cycle-history-source-coverage.is-empty { color: #92400e; }
-[data-theme='clean'] #history-modal .cycle-history-source-coverage.is-unavailable { color: #b91c1c; }
-
-[data-theme='clean'] .cycle-history-intro,
-[data-theme='clean'] #history-modal .history-controls {
-    background-color: rgba(255, 255, 255, 0.72);
-    border-color: rgba(15, 23, 42, 0.1);
-}
-
-[data-theme='clean'] .cycle-history-system-strip span,
-[data-theme='clean'] .cycle-history-route-controls,
-[data-theme='clean'] .cycle-history-provenance,
-[data-theme='clean'] .cycle-history-source,
-[data-theme='clean'] .cycle-history-source-coverage {
-    border-color: rgba(15, 23, 42, 0.1);
-}
-
-[data-theme='clean'] .cycle-history-system-strip span {
-    background: rgba(15, 23, 42, 0.035);
-}
-
-[data-theme='clean'] .cycle-history-source {
-    background: rgba(15, 23, 42, 0.025);
-}
-
 [data-theme='clean'] .cycle-history-entry-range span,
 [data-theme='clean'] .cycle-history-entry-metrics > span {
     border-color: rgba(15, 23, 42, 0.1);
@@ -590,9 +530,6 @@
         padding: 18px 14px 24px;
     }
 
-    .cycle-history-header-actions {
-        margin: 8px 0 4px;
-    }
 
     .cycle-history-intro {
         padding: 14px;
@@ -629,15 +566,19 @@
         font-size: 16px;
     }
 
+    /* Four ranges share one row so the first chart reaches the first screen. */
     #history-modal .history-controls {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
         border-radius: 12px;
     }
 
     #history-modal .history-controls .time-range-btn {
         width: 100%;
-        padding-inline: 8px;
+        padding-inline: 2px;
+        font-size: 11px;
+        letter-spacing: 0.02em;
     }
 
     #history-modal .chart-section.is-route-focus::after {
@@ -656,7 +597,8 @@
 
 /* The picker and range lead directly into the charts. Full receipts expand on demand. */
 .cycle-history-content .cycle-history-intro { padding: 12px 14px; margin-bottom: 12px; }
-.cycle-history-content .cycle-history-route-controls { margin-top: 10px; padding-top: 10px; }
+/* The controls now open the panel (the lede moved into the shared header), so they carry no separator. */
+.cycle-history-content .cycle-history-route-controls { margin-top: 0; padding-top: 0; border-top: 0; }
 .cycle-history-content .history-controls { position: sticky; top: 0; z-index: 20; background: var(--bg-primary, #10151e); padding-right: 54px; }
 .cycle-history-content .history-controls .time-range-btn { min-height: 44px; }
 
@@ -664,4 +606,12 @@
 .cycle-history-content .chart-section { opacity: 1; transform: none; }
 @media (max-width: 759px) {
 
+}
+
+/* Narrow phones: the first chart must reach the first screen. */
+@media (max-width: 480px) {
+    #history-modal .cycle-history-intro { padding-top: 12px; }
+}
+@media (max-width: 360px) {
+    #history-modal .history-controls .time-range-btn { font-size: 10px; white-space: nowrap; }
 }

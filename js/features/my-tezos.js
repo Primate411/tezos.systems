@@ -704,12 +704,17 @@ function calcBakerHealth(participation) {
     return 25;
 }
 
+/** A quiet status dot; replaces emoji so labels share one type rhythm. */
+function myTezosDot(color) {
+    return `<span class="my-tezos-dot" style="--dot:${color}" aria-hidden="true"></span>`;
+}
+
 function healthLabel(score) {
-    if (score === null) return { text: '—', color: 'var(--text-dim)', icon: '⚪' };
-    if (score >= 95) return { text: 'Excellent', color: 'var(--color-success, #10b981)', icon: '🟢' };
-    if (score >= 75) return { text: 'Good', color: 'var(--color-success, #10b981)', icon: '🟡' };
-    if (score >= 50) return { text: 'Fair', color: 'var(--color-warning, #f59e0b)', icon: '🟠' };
-    return { text: 'At Risk', color: 'var(--color-error, #ef4444)', icon: '🔴' };
+    if (score === null) return { text: '—', color: 'var(--text-dim)', icon: myTezosDot('var(--text-dim)') };
+    if (score >= 95) return { text: 'Excellent', color: 'var(--color-success, #10b981)', icon: myTezosDot('var(--color-success, #10b981)') };
+    if (score >= 75) return { text: 'Good', color: 'var(--color-success, #10b981)', icon: myTezosDot('var(--color-success, #10b981)') };
+    if (score >= 50) return { text: 'Fair', color: 'var(--color-warning, #f59e0b)', icon: myTezosDot('var(--color-warning, #f59e0b)') };
+    return { text: 'At Risk', color: 'var(--color-error, #ef4444)', icon: myTezosDot('var(--color-error, #ef4444)') };
 }
 
 function fmtCompact(xtz) {
@@ -720,10 +725,10 @@ function fmtCompact(xtz) {
 
 function fmtMutez(mutez) {
     const xtz = (mutez || 0) / 1e6;
-    if (!Number.isFinite(xtz) || xtz <= 0) return '0 XTZ';
-    if (xtz < 0.01) return '<0.01 XTZ';
-    if (xtz < 100) return `${xtz.toFixed(2).replace(/\.?0+$/, '')} XTZ`;
-    return `${fmtCompact(xtz)} XTZ`;
+    if (!Number.isFinite(xtz) || xtz <= 0) return '0 ꜩ';
+    if (xtz < 0.01) return '<0.01 ꜩ';
+    if (xtz < 100) return `${xtz.toFixed(2).replace(/\.?0+$/, '')} ꜩ`;
+    return `${fmtCompact(xtz)} ꜩ`;
 }
 
 function fmtCount(count) {
@@ -1391,7 +1396,7 @@ function renderTezosStoryBody(data) {
     const since = formatStoryDate(story.firstActivityTime || story.joinedDate);
     const nftValue = Number.isFinite(story.nftAssetsCollected)
         ? `${fmtCount(story.nftAssetsCollected)} ${pluralize(story.nftAssetsCollected, 'NFT')}`
-        : `${fmtCompact(data.totalXTZ)} XTZ`;
+        : `${fmtCompact(data.totalXTZ)} ꜩ`;
     const nftDetail = Number.isFinite(story.nftAssetsCollected)
         ? `Collected ${fmtCount(story.nftAssetsCollected)} ${pluralize(story.nftAssetsCollected, 'NFT')}`
         : 'Portfolio footprint';
@@ -1503,7 +1508,7 @@ function buildOvernightCard(data, snapshot) {
         const sign = balDelta >= 0 ? '+' : '';
         accountBullets.push({
             lead: '',
-            value: `${sign}${balDelta.toFixed(2)} XTZ`,
+            value: `${sign}${balDelta.toFixed(2)} ꜩ`,
             tail: ' balance change',
             tone: balDelta >= 0 ? 'positive' : 'negative'
         });
@@ -1543,7 +1548,7 @@ function buildOvernightCard(data, snapshot) {
         const cycle = Number.isFinite(data.latestRewardCycle) ? ` in cycle ${data.latestRewardCycle}` : '';
         accountBullets.push({
             lead: 'Latest reward record: ',
-            value: `+${data.rewardsLastCycle.toFixed(2)} XTZ`,
+            value: `+${data.rewardsLastCycle.toFixed(2)} ꜩ`,
             tail: `${usd}${cycle}`,
             tone: 'positive'
         });
@@ -1555,7 +1560,7 @@ function buildOvernightCard(data, snapshot) {
         accountBullets.push({
             lead: 'Baker cycle attestation power ',
             value: better ? 'improved' : 'declined',
-            tail: ` — ${data.health.icon} ${data.attestRate || ''}%`,
+            tail: ` — ${data.health.text} · ${data.attestRate || ''}%`,
             tone: better ? 'positive' : 'negative'
         });
     }
@@ -1565,7 +1570,7 @@ function buildOvernightCard(data, snapshot) {
         accountBullets.push({
             lead: 'Reward streak: ',
             value: `${data.rewardStreak} cycles`,
-            tail: ' 🔥',
+            tail: '',
             tone: 'positive'
         });
     }
@@ -1573,13 +1578,13 @@ function buildOvernightCard(data, snapshot) {
     // Calm account fallback
     if (accountBullets.length === 0) {
         if (!data.hasRewardRole) {
-            accountBullets.push({ lead: 'Your ', value: `${fmtCompact(data.totalXTZ)} XTZ`, tail: ' has no active baking, staking, or delegation reward role', tone: 'neutral' });
+            accountBullets.push({ lead: 'Your ', value: `${fmtCompact(data.totalXTZ)} ꜩ`, tail: ' has no active baking, staking, or delegation reward role', tone: 'neutral' });
         } else if (data.activeRewardEstimate && Number.isFinite(data.apyRate)) {
             accountBullets.push({ lead: 'Your eligible stake has a current estimate of ', value: `${data.apyRate}% APY`, tone: 'neutral' });
         } else if (data.apyBasis === 'gross-delegation-context' && Number.isFinite(data.apyRate)) {
             accountBullets.push({ lead: 'Gross delegation context is ', value: `${data.apyRate}%`, tail: ' before your baker’s off-chain fee and payout policy', tone: 'neutral' });
         } else {
-            accountBullets.push({ lead: 'Your ', value: `${fmtCompact(data.totalXTZ)} XTZ`, tail: ' is connected, but the current APY estimate is unavailable', tone: 'neutral' });
+            accountBullets.push({ lead: 'Your ', value: `${fmtCompact(data.totalXTZ)} ꜩ`, tail: ' is connected, but the current APY estimate is unavailable', tone: 'neutral' });
         }
     }
 
@@ -1689,27 +1694,27 @@ function buildMorningBrief(data) {
     const bakerInactive = data.bakerInactive;
     let earningsLine, dailyLine;
     if (!data.hasRewardRole) {
-        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> — not currently baking, staking, or delegating`;
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} ꜩ</strong> — not currently baking, staking, or delegating`;
         dailyLine = 'No active reward estimate';
     } else if (bakerInactive) {
-        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> — <strong style="color:#ef4444">baker inactive</strong>`;
-        dailyLine = `<span style="color:#ef4444">⚠️ No forward reward estimate shown; review or re-delegate</span>`;
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} ꜩ</strong> — <strong style="color:#ef4444">baker inactive</strong>`;
+        dailyLine = `<span style="color:#ef4444">${myTezosDot('#ef4444')}No forward reward estimate shown; review or re-delegate</span>`;
     } else if (data.rewardsLastCycle > 0) {
         const cycle = Number.isFinite(data.latestRewardCycle) ? ` in cycle ${data.latestRewardCycle}` : '';
-        earningsLine = `<strong>+${data.rewardsLastCycle.toFixed(2)} XTZ</strong> recorded${cycle}${usdNote}`;
+        earningsLine = `<strong>+${data.rewardsLastCycle.toFixed(2)} ꜩ</strong> recorded${cycle}.${usdNote}`;
         dailyLine = data.activeRewardEstimate && Number.isFinite(data.estDaily) && Number.isFinite(data.apyRate)
             ? `~${data.estDaily.toFixed(2)} XTZ/day · ${data.apyRate}% APY estimate`
             : data.apyBasis === 'gross-delegation-context' && Number.isFinite(data.apyRate)
                 ? `${data.apyRate}% gross protocol context; baker payout policy varies`
                 : 'Current APY estimate unavailable';
     } else if (data.activeRewardEstimate && Number.isFinite(data.apyRate) && Number.isFinite(data.estDaily)) {
-        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> with an estimated <strong>${data.apyRate}% APY</strong>`;
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} ꜩ</strong> with an estimated <strong>${data.apyRate}% APY</strong>`;
         dailyLine = `~${data.estDaily.toFixed(2)} XTZ/day estimate`;
     } else if (data.apyBasis === 'gross-delegation-context' && Number.isFinite(data.apyRate)) {
-        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> · <strong>${data.apyRate}% gross protocol context</strong>`;
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} ꜩ</strong> · <strong>${data.apyRate}% gross protocol context</strong>`;
         dailyLine = 'No personal projection: your baker’s off-chain fee and payout policy determine delegation rewards';
     } else {
-        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> — reward rate unavailable`;
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} ꜩ</strong> — reward rate unavailable`;
         dailyLine = 'Could not calculate a current APY estimate';
     }
     cards.push({
@@ -1721,11 +1726,11 @@ function buildMorningBrief(data) {
 
     // Card 2: Baker health + streak + governance vote status
     const streakText = data.rewardStreak > 0
-        ? `<strong>${data.rewardStreak}-cycle streak</strong> 🔥`
+        ? `<strong>${data.rewardStreak}-cycle streak</strong>`
         : '';
     let healthText;
     if (data.bakerInactive) {
-        healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:#ef4444">inactive ⚠️</strong>`;
+        healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:#ef4444">inactive</strong>`;
     } else if (data.operatorStatus?.live) {
         const live = data.operatorStatus.live;
         const color = live.state === 'issue' ? 'var(--color-error, #ef4444)' : live.state === 'watch' ? 'var(--chamber-watch-color, #f5d65b)' : live.state === 'ok' ? 'var(--color-success, #10b981)' : 'var(--text-dim, #888)';
@@ -1743,25 +1748,25 @@ function buildMorningBrief(data) {
         
         if (v.voted) {
             if (v.voteType === 'upvote') {
-                voteText = `<br><span class="brief-sub">✅ Upvoted proposals this period</span>`;
+                voteText = `<br><span class="brief-sub">${myTezosDot('var(--color-success, #10b981)')}Upvoted proposals this period</span>`;
             } else {
-                const voteEmoji = v.vote === 'yay' ? '✅' : v.vote === 'nay' ? '❌' : '⏸️';
-                voteText = `<br><span class="brief-sub">${voteEmoji} Voted <strong>${v.vote}</strong> on ${escapeHtml(v.proposal)}</span>`;
+                const voteEmoji = myTezosDot(v.vote === 'yay' ? 'var(--color-success, #10b981)' : v.vote === 'nay' ? 'var(--color-error, #ef4444)' : 'var(--text-dim, #888)');
+                voteText = `<br><span class="brief-sub">${voteEmoji}Voted <strong>${v.vote}</strong> on ${escapeHtml(v.proposal)}</span>`;
             }
         } else {
             // Time-weighted urgency: gentle early, red alert late
             const isLate = urgency > 0.7;
             const isUrgent = urgency > 0.85;
             const color = isUrgent ? 'var(--color-error, #ef4444)' : isLate ? 'var(--color-warning, #f59e0b)' : 'var(--text-dim, #888)';
-            const icon = isUrgent ? '🚨' : '⚠️';
+            const icon = myTezosDot(color);
             const timeLeft = v.endTime ? formatGovTimeLeft(v.endTime) : '';
             const urgencyNote = isUrgent ? ' — TIME RUNNING OUT' : isLate ? ' — period ending soon' : '';
             
             if (v.voteType === 'upvote') {
-                voteText = `<br><span class="brief-sub" style="color:${color}">${icon} <strong>No proposal upvotes</strong> this period${urgencyNote}${timeLeft ? ' (' + timeLeft + ' left)' : ''}</span>`;
+                voteText = `<br><span class="brief-sub" style="color:${color}">${icon}<strong>No proposal upvotes</strong> this period${urgencyNote}${timeLeft ? ' (' + timeLeft + ' left)' : ''}</span>`;
             } else {
                 const leftCopy = timeLeft ? `${timeLeft} left` : 'time remains';
-                voteText = `<br><span class="brief-sub" style="color:${color}">${icon} Your baker hasn't weighed in on ${escapeHtml(v.proposal)} yet — ${escapeHtml(leftCopy)}. History is written by the ones who show up.</span>`;
+                voteText = `<br><span class="brief-sub" style="color:${color}">${icon}Your baker hasn't weighed in on ${escapeHtml(v.proposal)} yet — ${escapeHtml(leftCopy)}. History is written by the ones who show up.</span>`;
             }
         }
         
@@ -1776,8 +1781,8 @@ function buildMorningBrief(data) {
                 ? 'Time remains.'
                 : `${daysLeft} days remain.`;
             const quorumCopy = lateAndLow && quorumNeeded !== null
-                ? `🗳️ ${v.quorumPct.toFixed(1)}% — quorum needs ${quorumNeeded.toFixed(1)}%. ${daysCopy}`
-                : `🗳️ ${v.quorumPct.toFixed(1)}% so far — ballots usually land in the final days. ${daysCopy}`;
+                ? `${v.quorumPct.toFixed(1)}% — quorum needs ${quorumNeeded.toFixed(1)}%. ${daysCopy}`
+                : `${v.quorumPct.toFixed(1)}% so far — ballots usually land in the final days. ${daysCopy}`;
             voteText += `<br><span class="brief-sub" style="font-size:0.85em;color:${qColor}">${escapeHtml(quorumCopy)}${supermajority}</span>`;
         }
     }
@@ -2594,7 +2599,7 @@ function renderBriefCards(items) {
     return items.map(card => {
         const accent = safeTone(card.accent);
         return `<div class="brief-section brief-section-${accent}" data-brief-accent="${accent}">
-            <h4 class="brief-section-title">${card.icon} ${card.title}</h4>
+            <h4 class="brief-section-title">${myTezosDot(`var(--my-tezos-${card.accent}, var(--accent-cyan))`)}${card.title}</h4>
             <div class="brief-body">${card.body}</div>
         </div>`;
     }).join('');
@@ -2656,9 +2661,9 @@ function renderBakerStatusCard(data, loading = false) {
         </a>`;
     }).join('');
     return `<section class="brief-section brief-section-baker${loading ? ' drawer-loading-card drawer-loading-card-baker' : ''}" data-brief-accent="baker" data-quiet-key="baker-status" aria-busy="${loading}">
-        <h4 class="brief-section-title">🍞 Baker Status</h4>
+        <h4 class="brief-section-title">${myTezosDot('var(--my-tezos-baker, var(--accent-cyan))')}Baker Status</h4>
         <div class="drawer-status-summary">
-            <strong>${loading ? 'Reading reward history…' : data.rewardStreak > 0 ? `${data.rewardStreak}-cycle streak 🔥` : 'No consecutive rewarded cycles'}</strong>
+            <strong>${loading ? 'Reading reward history…' : data.rewardStreak > 0 ? `${data.rewardStreak}-cycle streak` : 'No consecutive rewarded cycles'}</strong>
             <span title="${escapeHtml(status)}" data-state="${data.bakerInactive ? 'issue' : live?.state || 'unknown'}">${escapeHtml(status)}</span>
         </div>
         <div class="drawer-baker-incidents" data-quiet-key="baker-incidents" data-incident-state="${state}">
@@ -2717,9 +2722,9 @@ function renderStoryPanel(card, data) {
     if (!container) return;
     const html = card
         ? `<div class="brief-section brief-section-story my-tezos-story-card" data-brief-accent="story">
-            <h4 class="brief-section-title">${card.icon} ${card.title}</h4>
+            <h4 class="brief-section-title">${myTezosDot(`var(--my-tezos-${card.accent}, var(--accent-cyan))`)}${card.title}</h4>
             <div class="brief-body">${card.body}</div>
-            ${card.shareBtn ? '<button class="glass-button drawer-share-btn story-share-btn">📸 Share Your Story</button>' : ''}
+            ${card.shareBtn ? '<button class="glass-button drawer-share-btn story-share-btn">Share Your Story</button>' : ''}
         </div>`
         : '<div class="portfolio-memory-empty"><strong>No on-chain story yet</strong><span>This address does not have enough public history to build a story.</span></div>';
     if (container.children.length) quietlySyncHtml(container, html);
@@ -3235,7 +3240,7 @@ function storyLoadingCard() {
             ${renderStoryEraRail({ joinedEra: '', currentEra: '' })}
             <div class="tezos-story-next"><span>Now watching</span><strong>Reading your next signal…</strong></div>
         </div></div>
-        <button class="glass-button drawer-share-btn story-share-btn" disabled>📸 Share Your Story</button>
+        <button class="glass-button drawer-share-btn story-share-btn" disabled>Share Your Story</button>
     </div>`;
 }
 

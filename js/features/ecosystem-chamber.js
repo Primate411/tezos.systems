@@ -438,7 +438,7 @@ function renderKpis(rows, snapshot) {
         ? snapshot.universe?.eligibleApps
         : snapshot.universe?.layers?.[currentLayer];
     return `
-        <div class="ecosystem-kpis">
+        <div class="ecosystem-kpis chamber-stats">
             <article class="is-network-primary" data-ecosystem-network-kpi><span>${escapeHtml(`${networkLabel} addresses`)}</span><strong>${escapeHtml(formatNumber(network?.activeWallets))}</strong><small>${escapeHtml(currentLayer === 'all' ? networkSplit(networkWeek) : layerLabel())} · completed week</small></article>
             <article><span>Tracked-app wallets</span><strong>${escapeHtml(formatNumber(tracked.activeWallets))}</strong><small>${escapeHtml(formatNumber(trackedAppCount))} reviewed dapps · same week</small></article>
             <article><span>Tracked interactions</span><strong>${escapeHtml(formatNumber(tracked.interactions))}</strong><small>${escapeHtml(formatNumber(tracked.callsPerWallet, 2))} calls / tracked wallet</small></article>
@@ -467,7 +467,7 @@ function renderRankTable(snapshot) {
         <section class="ecosystem-panel" data-quiet-key="ecosystem-top-ten">
             <div class="ecosystem-panel-head"><div><span class="ecosystem-eyebrow">Reviewed-app ranking</span><h3>Top 10 dapps</h3><p>Distinct addresses that called reviewed app contracts in the last completed Monday-to-Monday UTC week; this ranking is separate from the network-wide total above.</p></div><span class="ecosystem-week-label">${escapeHtml(formatWeek(snapshot.completeWeek?.weekStart))}</span></div>
             <div class="ecosystem-table-wrap">
-                <table class="ecosystem-table">
+                <table class="ecosystem-table chamber-table">
                     <caption class="sr-only">Top dapps by weekly active wallet address</caption>
                     <thead><tr><th>#</th><th>Dapp</th><th>Layer</th><th class="is-number">Active wallets</th><th class="is-number">Interactions</th><th class="is-number">WoW</th><th class="is-number">YoY</th></tr></thead>
                     <tbody>${rows}</tbody>
@@ -511,7 +511,7 @@ function renderHistoryTable(rows) {
         <details class="ecosystem-history-ledger">
             <summary>Inspect ${rows.length} weekly rows</summary>
             <div class="ecosystem-table-wrap">
-                <table class="ecosystem-table">
+                <table class="ecosystem-table chamber-table">
                     <caption class="sr-only">Weekly active wallet and interaction history</caption>
                     <thead><tr><th>Week beginning</th><th class="is-number">Active wallets</th><th class="is-number">Interactions</th><th class="is-number">Calls / wallet</th><th class="is-number">Returning</th></tr></thead>
                     <tbody>${body}</tbody>

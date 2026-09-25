@@ -152,8 +152,9 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             });
             const palette = await page.locator('.funding-content').evaluate(node => ({ text: getComputedStyle(node).getPropertyValue('--text-primary').trim(), background: getComputedStyle(node).backgroundColor }));
             if (width !== 1440) {
-                assert.equal(palette.text, '#1a1d26', 'light room must retain dark readable text');
-                assert.equal(palette.background, 'rgb(248, 249, 252)', 'light room keeps its light background');
+                // Chambers stay dark rooms under the light Clean theme.
+                assert.equal(palette.text, '#F2F7FF', 'dark room under Clean must keep light readable text');
+                assert.equal(palette.background, 'rgb(7, 16, 29)', 'dark room under Clean keeps the shared dark surface');
             }
             const geometry = await page.evaluate(() => ({
                 overflow: [...document.querySelectorAll('.funding-content,.funding-body,.funding-card,.funding-tabs')].some(node => node.scrollWidth > node.clientWidth + 1),

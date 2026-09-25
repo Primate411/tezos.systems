@@ -1417,6 +1417,165 @@ export function createHomeSmokeSuites({
     await context.close();
     assert(issues.length === 0, `ux changes browser issues:\n${issues.join('\n')}`);
     log('ok - UX changes smoke');
+    await smokeChamberHouseStyle(browser, baseUrl);
+  }
+
+  // Regressions from the Chamber house-style pass: every visual defect it fixed
+  // is asserted here in the rendered browser, populated, under the light theme.
+  async function smokeChamberHouseStyle(browser, baseUrl) {
+    const issues = [];
+    const openRoom = async (route, viewport, { address = '' } = {}) => {
+      const context = await browser.newContext({ viewport, serviceWorkers: 'block', isMobile: viewport.width < 500, hasTouch: viewport.width < 500 });
+      await installFeatureMocks(context, { whaleChamberMocks: true, ledgerFlowMocks: true });
+      await context.addInitScript((saved) => {
+        localStorage.setItem('tezos-systems-theme', 'clean');
+        localStorage.setItem('tezos-toured', '1');
+        localStorage.setItem('tezos-welcomed', '1');
+        localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+        if (saved) localStorage.setItem('tezos-systems-my-baker-address', saved);
+      }, address);
+      const page = await context.newPage();
+      attachIssueCollectors(page, `house style ${route} ${viewport.width}`, issues);
+      const response = await page.goto(`${baseUrl}/${route}/`, { waitUntil: 'domcontentloaded' });
+      assert(response?.ok(), `house style: /${route}/ failed with HTTP ${response?.status()}`);
+      return { context, page };
+    };
+    const roomState = () => {
+      const dialog = document.querySelector('.chamber-overlay.active .chamber-room-shell, .modal.active .chamber-room-shell');
+      const close = dialog?.querySelector(':scope > .chamber-close, :scope > .modal-close');
+      const header = dialog?.querySelector('[data-chamber-header]');
+      const verdict = dialog?.querySelector('.chamber-reading-verdict .chamber-reading-copy > p');
+      const tabs = [...(dialog?.querySelectorAll('[role="tab"]') || [])].filter((tab) => tab.getBoundingClientRect().width > 0);
+      const d = dialog?.getBoundingClientRect();
+      const c = close?.getBoundingClientRect();
+      const bg = getComputedStyle(dialog || document.body).backgroundColor.match(/[\d.]+/g)?.map(Number) || [255, 255, 255];
+      return {
+        width: Math.round(d?.width || 0),
+        closeTop: c && d ? Math.round(c.top - d.top) : null,
+        closeRight: c && d ? Math.round(d.right - c.right) : null,
+        header: Boolean(header),
+        verdict: verdict?.textContent?.trim() || '',
+        verdictTop: Math.round(dialog?.querySelector('.chamber-reading-verdict')?.getBoundingClientRect().top ?? 9999),
+        tabRows: new Set(tabs.map((tab) => Math.round(tab.getBoundingClientRect().top))).size,
+        luminance: (0.2126 * bg[0] + 0.7152 * bg[1] + 0.0722 * bg[2]) / 255,
+        pageOverflow: document.scrollingElement.scrollWidth - innerWidth
+      };
+    };
+
+    for (const [route, viewport] of [['whales', { width: 1440, height: 900 }], ['metals', { width: 1440, height: 900 }], ['maxis', { width: 1440, height: 900 }], ['stake', { width: 390, height: 844 }], ['minerals', { width: 390, height: 844 }], ['uranium', { width: 390, height: 844 }], ['tezoscrp', { width: 390, height: 844 }]]) {
+      const { context, page } = await openRoom(route, viewport);
+      await page.waitForFunction(() => {
+        const text = document.querySelector('.chamber-room-shell .chamber-reading-verdict .chamber-reading-copy > p')?.textContent || '';
+        const shell = document.querySelector('.chamber-room-shell');
+        // Measure the settled room, never a frame of its entrance scale.
+        return /\d/.test(text) && !document.querySelector('.chamber-room-shell [aria-busy="true"]')
+          && shell.getAnimations({ subtree: false }).every((animation) => animation.playState === 'finished')
+          && Math.abs(shell.getBoundingClientRect().width - shell.offsetWidth) < 1;
+      }, null, { timeout: 20000 });
+      const state = await page.evaluate(roomState);
+      const label = `house style /${route}/ ${viewport.width}px`;
+      assert(state.header, `${label}: room must open with the shared Chamber header ${JSON.stringify(state)}`);
+      assert(/\d/.test(state.verdict.split(/[;.]/)[0]), `${label}: the reading banner must answer with a figure first ${JSON.stringify(state)}`);
+      assert(state.luminance < 0.2, `${label}: Chambers must stay dark under the light Clean theme ${JSON.stringify(state)}`);
+      assert(state.tabRows <= 1, `${label}: Chamber tabs must stay on one row ${JSON.stringify(state)}`);
+      assert(state.pageOverflow <= 0, `${label}: room must not scroll the page sideways ${JSON.stringify(state)}`);
+      if (viewport.width >= 1200) {
+        assert(state.width === 1180, `${label}: every room shares the 1180px Network Health width ${JSON.stringify(state)}`);
+        assert(Math.abs(state.closeTop - 13) <= 1 && Math.abs(state.closeRight - 13) <= 1 && state.closeTop === state.closeRight, `${label}: the exit must sit at the shared 12px inset ${JSON.stringify(state)}`);
+      } else {
+        assert(state.verdictTop < viewport.height, `${label}: the answer banner must be on the first phone screen ${JSON.stringify(state)}`);
+      }
+      const scrolled = await page.evaluate(async () => {
+        const dialog = document.querySelector('.chamber-room-shell');
+        const scroller = dialog.classList.contains('chamber-room-scroll') ? dialog : dialog.querySelector('.chamber-room-scroll') || dialog;
+        scroller.scrollTop = 240;
+        scroller.dispatchEvent(new Event('scroll'));
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        return dialog.dataset.chamberScrolled;
+      });
+      assert(scrolled === 'true', `${label}: a scrolled room must mark itself so the exit gains its opaque band (got ${scrolled})`);
+      if (['minerals', 'uranium'].includes(route)) {
+        const hero = await page.evaluate(() => {
+          const stage = document.querySelector('.minerals-core-stage.is-room, .uranium-core-stage.is-room');
+          const header = document.querySelector('[data-chamber-header]');
+          const s = stage?.getBoundingClientRect();
+          const h = header?.getBoundingClientRect();
+          return { stageTop: Math.round(s?.top ?? 0), headerBottom: Math.round(h?.bottom ?? 0), metric: Math.round(document.querySelector('.minerals-hero-metrics, .uranium-hero-price')?.getBoundingClientRect().top ?? 9999) };
+        });
+        assert(hero.stageTop >= hero.headerBottom, `${label}: hero artwork must stay inside its hero, never behind the header ${JSON.stringify(hero)}`);
+      }
+      if (route === 'metals') {
+        const status = await page.evaluate(() => getComputedStyle(document.querySelector('.chamber-source-status .chamber-snapshot-status')).display);
+        assert(status === 'inline', `${label}: the source status must share the Sources & refresh line, not strand its separator (${status})`);
+      }
+      await context.close();
+    }
+
+    {
+      const { context, page } = await openRoom('history', { width: 1440, height: 900 });
+      await page.locator('#history-modal .chamber-house-header').waitFor({ state: 'visible', timeout: 20000 });
+      const history = await page.evaluate(() => ({
+        spacing: getComputedStyle(document.querySelector('#history-modal .lb-system-strip span')).wordSpacing,
+        actionsInHeader: Boolean(document.querySelector('#history-modal .chamber-house-header .cycle-history-header-actions button, #history-modal .chamber-house-header .cycle-history-header-actions a'))
+      }));
+      assert(history.spacing === '0px' || history.spacing === 'normal', `house style history: Cycle History labels must not inherit the protocol-history word spacing ${JSON.stringify(history)}`);
+      assert(history.actionsInHeader, `house style history: share and copy actions must live in the shared header ${JSON.stringify(history)}`);
+      await context.close();
+    }
+
+    {
+      const { context, page } = await openRoom('chambers', { width: 1440, height: 900 });
+      await page.locator('#chambers-grid').waitFor({ state: 'visible', timeout: 20000 });
+      const link = await page.evaluate(() => {
+        const anchor = document.querySelector('#standalone-chamber-shell #main-content > p > a[href="/"]');
+        if (!anchor || !anchor.getClientRects().length) return null;
+        const style = getComputedStyle(anchor);
+        return { decoration: style.textDecorationLine, transform: style.textTransform, height: Math.round(anchor.getBoundingClientRect().height) };
+      });
+      assert(!link || (link.decoration === 'none' && link.transform === 'uppercase' && link.height >= 24), `house style chambers: the route home must read as the site back link ${JSON.stringify(link)}`);
+      const target = await page.evaluate(() => {
+        const button = document.querySelector('.live-head-info');
+        if (!button || !button.getClientRects().length) return 'absent';
+        const r = button.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.right + 3, r.top + r.height / 2);
+        return hit === button || button.contains(hit) ? 'hit' : `miss ${hit?.className || hit?.tagName}`;
+      });
+      assert(target === 'absent' || target === 'hit', `house style: the Live Head info control needs a 24px hit area (${target})`);
+      await context.close();
+    }
+
+    {
+      const { context, page } = await openRoom('my', { width: 1440, height: 900 });
+      await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 20000 });
+      // Measure after the open slide settles; it enters from the right edge.
+      const offCentre = () => { const r = document.querySelector('#my-tezos-drawer').getBoundingClientRect(); return Math.round(Math.abs((r.left + r.right) / 2 - innerWidth / 2)); };
+      await page.waitForFunction(() => document.querySelector('#my-tezos-drawer').getAnimations().every((animation) => animation.playState !== 'running'), null, { timeout: 5000 });
+      await page.waitForTimeout(450);
+      const centred = await page.evaluate(offCentre);
+      assert(centred <= 2, `house style /my/: the standalone page must be centred, not a drawer beside a blank half (${centred}px off centre)`);
+      await context.close();
+    }
+
+    {
+      const { context, page } = await openRoom('my', { width: 390, height: 844 }, { address: SAMPLE_ADDRESS });
+      await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 20000 });
+      await page.locator('[data-my-tezos-view="tezos-x"]').first().click();
+      await page.locator('#my-tezos-panel-tezos-x').waitFor({ state: 'visible', timeout: 20000 });
+      const my = await page.evaluate(() => {
+        const text = document.querySelector('#my-tezos-drawer')?.innerText || '';
+        return {
+          emptyPicker: (() => { const select = document.querySelector('#tezosx-account-scope'); return Boolean(select && !select.options.length && !select.hidden); })(),
+          runOn: /\d That's/.test(text),
+          emoji: /[\u{1F300}-\u{1FAFF}\u2705\u274C\u26A0]/u.test([...document.querySelectorAll('#my-tezos-drawer .brief-section-title, #drawer-share-btn')].map((node) => node.textContent).join(' '))
+        };
+      });
+      assert(!my.emptyPicker, `house style My Tezos: an empty Tezos X account picker must stay hidden ${JSON.stringify(my)}`);
+      assert(!my.runOn && !my.emoji, `house style My Tezos: sentences end before the USD note and labels use dots, not emoji ${JSON.stringify(my)}`);
+      await context.close();
+    }
+
+    assert(issues.length === 0, `house style browser issues:\n${issues.join('\n')}`);
+    log('ok - Chamber house-style regressions');
   }
 
   async function smokeCycleMilestone(browser, baseUrl) {

@@ -623,7 +623,7 @@ export function createChambersStaticChecks({
       'last completed Monday-to-Monday UTC week',
       'All active addresses',
       'Tracked-app wallets',
-      'network-wide + app activity',
+      'Network-wide addresses and the reviewed-app subset, measured separately.',
       "const RANGES = Object.freeze([",
       'data-ecosystem-category',
       'data-ecosystem-app',
@@ -658,7 +658,7 @@ export function createChambersStaticChecks({
     }
     if (!css.includes('@media (max-width: 720px)')
       || !css.includes('animation: none;')
-      || !css.includes('position: relative;')) {
+      || /\.ecosystem-header[^{]*\{[^}]*position:\s*(sticky|fixed)/.test(css)) {
       fail('Ecosystem mobile shell must suppress entrance geometry and let the header scroll with the room');
     }
     if (!css.includes('.ecosystem-entry-leader:nth-child(2)')
@@ -1182,7 +1182,7 @@ export function createChambersStaticChecks({
       'offset += limit',
       'positive current baking power',
       'Complete funded set',
-      'not a hidden quality score',
+      'no hidden quality score',
       'function bakerMatchesFit',
       'function compareBakerFit',
       'function factualBakerFits',

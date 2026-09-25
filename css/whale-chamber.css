@@ -4,7 +4,7 @@
     --whale-ink: #e8f5ff;
     --whale-muted: #8faabd;
     --whale-panel: rgba(7, 22, 34, .82);
-    --whale-line: rgba(99, 211, 238, .18);
+    --whale-line: color-mix(in srgb, var(--whale-cyan) 18%, transparent);
     --whale-cyan: #63d3ee;
     --whale-blue: #5d8cff;
     --whale-mint: #68e0bc;
@@ -15,9 +15,9 @@
 #whale-watch-entry-card.whale-watch-entry-card {
     min-height: 270px;
     overflow: hidden;
-    border-color: rgba(99, 211, 238, .24);
+    border-color: color-mix(in srgb, var(--whale-cyan) 24%, transparent);
     background:
-        radial-gradient(circle at 78% 48%, rgba(99, 211, 238, .13), transparent 23%),
+        radial-gradient(circle at 78% 48%, color-mix(in srgb, var(--whale-cyan) 13%, transparent), transparent 23%),
         linear-gradient(135deg, rgba(4, 18, 31, .98), rgba(8, 32, 46, .95));
 }
 
@@ -27,8 +27,8 @@
     inset: 0;
     pointer-events: none;
     background:
-        repeating-linear-gradient(0deg, transparent 0 21px, rgba(99, 211, 238, .025) 22px),
-        linear-gradient(90deg, transparent, rgba(99, 211, 238, .04), transparent);
+        repeating-linear-gradient(0deg, transparent 0 21px, color-mix(in srgb, var(--whale-cyan) 2.5%, transparent) 22px),
+        linear-gradient(90deg, transparent, color-mix(in srgb, var(--whale-cyan) 4%, transparent), transparent);
 }
 
 .whale-watch-entry-front {
@@ -59,11 +59,11 @@
     display: inline-flex;
     width: max-content;
     padding: 4px 8px;
-    border: 1px solid rgba(99, 211, 238, .24);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 24%, transparent);
     border-radius: 999px;
     color: var(--whale-cyan);
-    background: rgba(99, 211, 238, .08);
-    font: 700 9px/1.1 "JetBrains Mono", monospace;
+    background: color-mix(in srgb, var(--whale-cyan) 8%, transparent);
+    font: 700 9px/1.1 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -88,9 +88,9 @@
     justify-self: center;
     width: 128px;
     height: 128px;
-    border: 1px solid rgba(99, 211, 238, .2);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 20%, transparent);
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(99, 211, 238, .13), transparent 64%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--whale-cyan) 13%, transparent), transparent 64%);
 }
 
 .whale-watch-entry-sonar::before,
@@ -99,21 +99,21 @@
     content: "";
     position: absolute;
     inset: 17%;
-    border: 1px solid rgba(99, 211, 238, .18);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 18%, transparent);
     border-radius: 50%;
 }
 
 .whale-watch-entry-sonar::after { inset: 34%; }
-.whale-watch-entry-sonar i:nth-child(1) { inset: 49% 0 auto 0; border: 0; border-top: 1px solid rgba(99, 211, 238, .16); border-radius: 0; }
-.whale-watch-entry-sonar i:nth-child(2) { inset: 0 auto 0 49%; border: 0; border-left: 1px solid rgba(99, 211, 238, .16); border-radius: 0; }
-.whale-watch-entry-sonar i:nth-child(3) { inset: 7%; border-color: rgba(99, 211, 238, .09); }
+.whale-watch-entry-sonar i:nth-child(1) { inset: 49% 0 auto 0; border: 0; border-top: 1px solid color-mix(in srgb, var(--whale-cyan) 16%, transparent); border-radius: 0; }
+.whale-watch-entry-sonar i:nth-child(2) { inset: 0 auto 0 49%; border: 0; border-left: 1px solid color-mix(in srgb, var(--whale-cyan) 16%, transparent); border-radius: 0; }
+.whale-watch-entry-sonar i:nth-child(3) { inset: 7%; border-color: color-mix(in srgb, var(--whale-cyan) 9%, transparent); }
 .whale-watch-entry-sonar b {
     position: absolute;
     left: 50%;
     top: 50%;
     translate: -50% -50%;
     font-size: 30px;
-    filter: drop-shadow(0 0 12px rgba(99, 211, 238, .5));
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--whale-cyan) 50%, transparent));
 }
 
 .whale-watch-entry-metrics {
@@ -125,7 +125,7 @@
 .whale-watch-entry-metrics > div {
     min-width: 0;
     padding: 9px 10px;
-    border: 1px solid rgba(99, 211, 238, .12);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 12%, transparent);
     border-radius: 10px;
     background: rgba(1, 11, 20, .45);
 }
@@ -136,7 +136,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: "JetBrains Mono", monospace;
+    font-family: var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .whale-watch-entry-metrics span {
@@ -163,8 +163,8 @@
     padding: 4px 7px;
     border-radius: 5px;
     color: #a9c4d5;
-    background: rgba(99, 211, 238, .065);
-    font: 600 9px/1.2 "JetBrains Mono", monospace;
+    background: color-mix(in srgb, var(--whale-cyan) 6.5%, transparent);
+    font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .whale-watch-overlay {
@@ -181,7 +181,7 @@
     max-height: calc(100vh - 28px);
     padding: 0;
     overflow: hidden;
-    border: 1px solid rgba(99, 211, 238, .28);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 28%, transparent);
     border-radius: 19px;
     color: var(--whale-ink);
     background: #06131e;
@@ -199,10 +199,10 @@
     height: 100%;
     overflow: auto;
     overscroll-behavior: contain;
-    scrollbar-color: rgba(99, 211, 238, .3) transparent;
+    scrollbar-color: color-mix(in srgb, var(--whale-cyan) 30%, transparent) transparent;
     background:
         radial-gradient(circle at 9% -2%, rgba(93, 140, 255, .11), transparent 28%),
-        radial-gradient(circle at 98% 3%, rgba(99, 211, 238, .085), transparent 26%),
+        radial-gradient(circle at 98% 3%, color-mix(in srgb, var(--whale-cyan) 8.5%, transparent), transparent 26%),
         linear-gradient(#06131e, #071725 62%, #06131e);
 }
 
@@ -229,11 +229,11 @@
 .whale-watch-unavailable button {
     flex: none;
     padding: 8px 12px;
-    border: 1px solid rgba(99, 211, 238, .25);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 25%, transparent);
     border-radius: 8px;
     color: #c8f6ff;
-    background: rgba(99, 211, 238, .08);
-    font: 700 10px/1.2 "JetBrains Mono", monospace;
+    background: color-mix(in srgb, var(--whale-cyan) 8%, transparent);
+    font: 700 10px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .04em;
     cursor: pointer;
 }
@@ -243,7 +243,7 @@
 .whale-watch-notification button:hover,
 .whale-watch-notification button:focus-visible {
     border-color: var(--whale-cyan);
-    background: rgba(99, 211, 238, .14);
+    background: color-mix(in srgb, var(--whale-cyan) 14%, transparent);
     outline: none;
 }
 
@@ -263,7 +263,7 @@
     border: 0;
     color: #7899ad;
     background: transparent;
-    font: 700 10px/1.2 "JetBrains Mono", monospace;
+    font: 700 10px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .045em;
     cursor: pointer;
 }
@@ -277,7 +277,7 @@
     bottom: 0;
     height: 2px;
     background: linear-gradient(90deg, var(--whale-blue), var(--whale-cyan));
-    box-shadow: 0 0 12px rgba(99, 211, 238, .6);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--whale-cyan) 60%, transparent);
 }
 
 .whale-watch-tabs button:focus-visible {
@@ -293,10 +293,10 @@
     align-items: center;
     margin: 0;
     padding: 7px 24px 8px;
-    border-top: 1px solid rgba(99, 211, 238, .08);
+    border-top: 1px solid color-mix(in srgb, var(--whale-cyan) 8%, transparent);
     color: #7f9cad;
     background: rgba(1, 10, 18, .42);
-    font: 600 9px/1.3 "JetBrains Mono", monospace;
+    font: 600 9px/1.3 var(--font-data, "JetBrains Mono"), monospace;
 }
 
 .whale-watch-source-strip strong { color: #b7d8e6; }
@@ -369,7 +369,7 @@
 .whale-watch-metrics span,
 .whale-watch-dormant-summary span {
     color: #7695a9;
-    font: 700 9px/1.2 "JetBrains Mono", monospace;
+    font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .07em;
     text-transform: uppercase;
 }
@@ -379,7 +379,7 @@
     margin: 7px 0 4px;
     overflow: hidden;
     color: #effcff;
-    font: 750 clamp(1.05rem, 2.3vw, 1.6rem)/1.1 "JetBrains Mono", monospace;
+    font: 750 clamp(1.05rem, 2.3vw, 1.6rem)/1.1 var(--font-data, "JetBrains Mono"), monospace;
     text-overflow: ellipsis;
 }
 
@@ -412,7 +412,7 @@
     display: block;
     margin-bottom: 3px;
     color: #6f8fa4;
-    font: 700 9px/1.2 "JetBrains Mono", monospace;
+    font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .07em;
     text-transform: uppercase;
 }
@@ -429,21 +429,21 @@
     gap: 16px;
     align-items: center;
     padding: 14px;
-    border: 1px solid rgba(99, 211, 238, .12);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 12%, transparent);
     border-radius: 10px;
     color: inherit;
-    background: rgba(99, 211, 238, .045);
+    background: color-mix(in srgb, var(--whale-cyan) 4.5%, transparent);
     text-decoration: none;
 }
 
 .whale-watch-largest span,
 .whale-watch-largest small,
 .whale-watch-largest strong { display: block; min-width: 0; }
-.whale-watch-largest small { margin-bottom: 5px; color: #7191a6; font: 600 9px/1.3 "JetBrains Mono", monospace; }
+.whale-watch-largest small { margin-bottom: 5px; color: #7191a6; font: 600 9px/1.3 var(--font-data, "JetBrains Mono"), monospace; }
 .whale-watch-largest strong { overflow: hidden; color: #eaffff; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.whale-watch-largest span:first-child strong { color: var(--whale-cyan); font: 750 18px/1.2 "JetBrains Mono", monospace; }
-.whale-watch-largest .whale-watch-receipt-cue { color: var(--whale-cyan); font: 700 9px/1.2 "JetBrains Mono", monospace; }
-.whale-watch-largest:hover { border-color: rgba(99, 211, 238, .32); }
+.whale-watch-largest span:first-child strong { color: var(--whale-cyan); font: 750 18px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-largest .whale-watch-receipt-cue { color: var(--whale-cyan); font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-largest:hover { border-color: color-mix(in srgb, var(--whale-cyan) 32%, transparent); }
 
 .whale-watch-endpoint-sample {
     display: grid;
@@ -454,18 +454,18 @@
 .whale-watch-endpoint-sample div {
     padding: 10px;
     border-radius: 8px;
-    background: rgba(99, 211, 238, .04);
+    background: color-mix(in srgb, var(--whale-cyan) 4%, transparent);
 }
 
 .whale-watch-endpoint-sample span,
 .whale-watch-endpoint-sample strong { display: block; }
-.whale-watch-endpoint-sample span { color: #718fa1; font: 600 9px/1.2 "JetBrains Mono", monospace; }
-.whale-watch-endpoint-sample strong { margin-top: 5px; color: #ddf7ff; font: 700 12px/1.2 "JetBrains Mono", monospace; }
+.whale-watch-endpoint-sample span { color: #718fa1; font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-endpoint-sample strong { margin-top: 5px; color: #ddf7ff; font: 700 12px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
 .whale-watch-panel > p { margin: 12px 0 0; color: #809dad; font-size: 11px; line-height: 1.55; }
 
 .whale-watch-label-receipts {
     margin-top: 11px;
-    border-top: 1px solid rgba(99, 211, 238, .1);
+    border-top: 1px solid color-mix(in srgb, var(--whale-cyan) 10%, transparent);
     padding-top: 9px;
 }
 
@@ -473,7 +473,7 @@
     width: max-content;
     max-width: 100%;
     color: var(--whale-cyan);
-    font: 700 9px/1.3 "JetBrains Mono", monospace;
+    font: 700 9px/1.3 var(--font-data, "JetBrains Mono"), monospace;
     cursor: pointer;
 }
 
@@ -490,23 +490,23 @@
     gap: 2px 8px;
     min-width: 0;
     padding: 8px;
-    border: 1px solid rgba(99, 211, 238, .1);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 10%, transparent);
     border-radius: 7px;
     color: #bdd7e3;
-    background: rgba(99, 211, 238, .035);
+    background: color-mix(in srgb, var(--whale-cyan) 3.5%, transparent);
     text-decoration: none;
 }
 
-.whale-watch-label-receipts a:hover { border-color: rgba(99, 211, 238, .3); }
+.whale-watch-label-receipts a:hover { border-color: color-mix(in srgb, var(--whale-cyan) 30%, transparent); }
 .whale-watch-label-receipts a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .whale-watch-label-receipts code { color: #7191a6; font-size: 9px; }
-.whale-watch-label-receipts small { grid-column: 1 / -1; color: #607f92; font: 600 8px/1.2 "JetBrains Mono", monospace; }
+.whale-watch-label-receipts small { grid-column: 1 / -1; color: #607f92; font: 600 8px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
 
 .whale-watch-thresholds { margin-bottom: 12px; }
 .whale-watch-table-wrap { overflow-x: auto; }
-.whale-watch-table { width: 100%; border-collapse: collapse; color: #bcd2df; font: 600 11px/1.35 "JetBrains Mono", monospace; }
+.whale-watch-table { width: 100%; border-collapse: collapse; color: #bcd2df; font: 600 11px/1.35 var(--font-data, "JetBrains Mono"), monospace; }
 .whale-watch-table th,
-.whale-watch-table td { padding: 10px 12px; border-top: 1px solid rgba(99, 211, 238, .1); text-align: right; white-space: nowrap; }
+.whale-watch-table td { padding: 10px 12px; border-top: 1px solid color-mix(in srgb, var(--whale-cyan) 10%, transparent); text-align: right; white-space: nowrap; }
 .whale-watch-table th:first-child { text-align: left; }
 .whale-watch-table thead th { border: 0; color: #6f8da0; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
 .whale-watch-table tbody th { color: var(--whale-cyan); }
@@ -538,21 +538,21 @@
 }
 
 .whale-watch-filters label { display: grid; gap: 5px; min-width: 0; }
-.whale-watch-filters label > span { color: #718fa2; font: 700 9px/1.2 "JetBrains Mono", monospace; letter-spacing: .06em; text-transform: uppercase; }
+.whale-watch-filters label > span { color: #718fa2; font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; letter-spacing: .06em; text-transform: uppercase; }
 .whale-watch-filters select,
 .whale-watch-filters input {
     width: 100%;
     min-width: 0;
     height: 36px;
     padding: 7px 9px;
-    border: 1px solid rgba(99, 211, 238, .18);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 18%, transparent);
     border-radius: 7px;
     color: #d9eff8;
     background: #081b28;
-    font: 600 11px/1.2 "JetBrains Mono", monospace;
+    font: 600 11px/1.2 var(--font-data, "JetBrains Mono"), monospace;
 }
 .whale-watch-filters select:focus,
-.whale-watch-filters input:focus { border-color: var(--whale-cyan); outline: 2px solid rgba(99, 211, 238, .14); }
+.whale-watch-filters input:focus { border-color: var(--whale-cyan); outline: 2px solid color-mix(in srgb, var(--whale-cyan) 14%, transparent); }
 
 .whale-watch-result-line {
     display: flex;
@@ -560,7 +560,7 @@
     gap: 12px;
     margin: 0 2px 9px;
     color: #6f8c9e;
-    font: 600 9px/1.3 "JetBrains Mono", monospace;
+    font: 600 9px/1.3 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .035em;
     text-transform: uppercase;
 }
@@ -577,42 +577,42 @@
     align-items: center;
     min-width: 0;
     padding: 12px 13px;
-    border: 1px solid rgba(99, 211, 238, .12);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 12%, transparent);
     border-radius: 10px;
     background: rgba(5, 20, 31, .7);
 }
-.whale-watch-tape-row:hover { border-color: rgba(99, 211, 238, .26); background: rgba(8, 28, 41, .78); }
+.whale-watch-tape-row:hover { border-color: color-mix(in srgb, var(--whale-cyan) 26%, transparent); background: rgba(8, 28, 41, .78); }
 .whale-watch-tape-kind { display: grid; grid-template-columns: auto 1fr; gap: 3px 7px; align-items: center; min-width: 0; }
 .whale-watch-tape-kind span { grid-row: 1 / span 2; font-size: 19px; }
 .whale-watch-tape-kind strong { color: #bdd7e3; font-size: 11px; }
 .whale-watch-tape-kind small,
-.whale-watch-tape-amount small { color: #6c8899; font: 600 9px/1.3 "JetBrains Mono", monospace; }
-.whale-watch-tape-amount strong { display: block; color: #eaffff; font: 750 14px/1.3 "JetBrains Mono", monospace; }
+.whale-watch-tape-amount small { color: #6c8899; font: 600 9px/1.3 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-tape-amount strong { display: block; color: #eaffff; font: 750 14px/1.3 var(--font-data, "JetBrains Mono"), monospace; }
 .whale-watch-tape-flow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; min-width: 0; }
 .whale-watch-tape-flow span { overflow: hidden; color: #a7c2d0; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .whale-watch-tape-flow b { color: var(--whale-cyan); }
-.whale-watch-tape-row > a { color: var(--whale-cyan); font: 700 9px/1.2 "JetBrains Mono", monospace; text-decoration: none; white-space: nowrap; }
+.whale-watch-tape-row > a { color: var(--whale-cyan); font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; text-decoration: none; white-space: nowrap; }
 
 .whale-watch-story {
     padding: 15px;
-    border: 1px solid rgba(99, 211, 238, .14);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 14%, transparent);
     border-radius: 12px;
     background: rgba(5, 20, 31, .72);
 }
 .whale-watch-story-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 13px; align-items: center; }
-.whale-watch-story-rank { color: rgba(99, 211, 238, .45); font: 750 21px/1 "JetBrains Mono", monospace; }
-.whale-watch-story-head span:not(.whale-watch-story-rank) { color: #6e8b9d; font: 600 9px/1.2 "JetBrains Mono", monospace; }
+.whale-watch-story-rank { color: color-mix(in srgb, var(--whale-cyan) 45%, transparent); font: 750 21px/1 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-story-head span:not(.whale-watch-story-rank) { color: #6e8b9d; font: 600 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
 .whale-watch-story-head h4 { margin: 3px 0 0; color: #dff5fc; font-size: 14px; }
-.whale-watch-story-head > strong { color: var(--whale-cyan); font: 750 15px/1.2 "JetBrains Mono", monospace; text-align: right; }
+.whale-watch-story-head > strong { color: var(--whale-cyan); font: 750 15px/1.2 var(--font-data, "JetBrains Mono"), monospace; text-align: right; }
 .whale-watch-story-head > strong small { display: block; margin-top: 3px; color: #678799; font-size: 8px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .whale-watch-story ol { display: grid; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
-.whale-watch-story li { display: grid; grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr) minmax(100px, auto) minmax(90px, auto); gap: 8px; align-items: center; padding: 7px 9px; border-radius: 7px; color: #9db8c6; background: rgba(99, 211, 238, .04); font-size: 10px; }
+.whale-watch-story li { display: grid; grid-template-columns: minmax(110px, 1fr) auto minmax(110px, 1fr) minmax(100px, auto) minmax(90px, auto); gap: 8px; align-items: center; padding: 7px 9px; border-radius: 7px; color: #9db8c6; background: color-mix(in srgb, var(--whale-cyan) 4%, transparent); font-size: 10px; }
 .whale-watch-story li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .whale-watch-story li b { color: var(--whale-cyan); }
-.whale-watch-story li strong { color: #d8eff7; font-family: "JetBrains Mono", monospace; text-align: right; }
-.whale-watch-story li small { color: #6c8797; font-family: "JetBrains Mono", monospace; text-align: right; }
+.whale-watch-story li strong { color: #d8eff7; font-family: var(--font-data, "JetBrains Mono"), monospace; text-align: right; }
+.whale-watch-story li small { color: #6c8797; font-family: var(--font-data, "JetBrains Mono"), monospace; text-align: right; }
 .whale-watch-story-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 10px; color: #6e8a9a; font-size: 9px; }
-.whale-watch-story-foot a { color: var(--whale-cyan); font-family: "JetBrains Mono", monospace; text-decoration: none; white-space: nowrap; }
+.whale-watch-story-foot a { color: var(--whale-cyan); font-family: var(--font-data, "JetBrains Mono"), monospace; text-decoration: none; white-space: nowrap; }
 
 .whale-watch-dormant-summary {
     display: grid;
@@ -628,22 +628,22 @@
     align-items: center;
     min-width: 0;
     padding: 12px 13px;
-    border: 1px solid rgba(99, 211, 238, .12);
+    border: 1px solid color-mix(in srgb, var(--whale-cyan) 12%, transparent);
     border-radius: 10px;
     color: inherit;
     background: rgba(5, 20, 31, .7);
     text-decoration: none;
 }
-.whale-watch-dormant-row:hover { border-color: rgba(99, 211, 238, .3); }
-.whale-watch-dormant-rank { color: rgba(99, 211, 238, .48); font: 750 16px/1 "JetBrains Mono", monospace; }
+.whale-watch-dormant-row:hover { border-color: color-mix(in srgb, var(--whale-cyan) 30%, transparent); }
+.whale-watch-dormant-rank { color: color-mix(in srgb, var(--whale-cyan) 48%, transparent); font: 750 16px/1 var(--font-data, "JetBrains Mono"), monospace; }
 .whale-watch-dormant-row > span { min-width: 0; }
 .whale-watch-dormant-row small,
 .whale-watch-dormant-row strong,
 .whale-watch-dormant-row em { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.whale-watch-dormant-row small { margin-bottom: 4px; color: #6e8b9d; font: 600 8px/1.2 "JetBrains Mono", monospace; letter-spacing: .04em; text-transform: uppercase; }
-.whale-watch-dormant-row strong { color: #d8eef7; font: 700 11px/1.25 "JetBrains Mono", monospace; }
-.whale-watch-dormant-row em { margin-top: 3px; color: #688696; font: normal 8px/1.2 "JetBrains Mono", monospace; }
-.whale-watch-dormant-row > b { color: var(--whale-cyan); font: 700 9px/1.2 "JetBrains Mono", monospace; white-space: nowrap; }
+.whale-watch-dormant-row small { margin-bottom: 4px; color: #6e8b9d; font: 600 8px/1.2 var(--font-data, "JetBrains Mono"), monospace; letter-spacing: .04em; text-transform: uppercase; }
+.whale-watch-dormant-row strong { color: #d8eef7; font: 700 11px/1.25 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-dormant-row em { margin-top: 3px; color: #688696; font: normal 8px/1.2 var(--font-data, "JetBrains Mono"), monospace; }
+.whale-watch-dormant-row > b { color: var(--whale-cyan); font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; white-space: nowrap; }
 
 .whale-watch-notification {
     display: flex;
@@ -674,14 +674,14 @@
     background: linear-gradient(90deg, rgba(255, 143, 159, .075), rgba(5, 20, 31, .72));
 }
 .whale-watch-awakening-pulse { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--whale-coral); box-shadow: 0 0 9px rgba(255, 143, 159, .6); }
-.whale-watch-awakening small { color: #9a7f8c; font: 600 8px/1.2 "JetBrains Mono", monospace; letter-spacing: .04em; text-transform: uppercase; }
+.whale-watch-awakening small { color: #9a7f8c; font: 600 8px/1.2 var(--font-data, "JetBrains Mono"), monospace; letter-spacing: .04em; text-transform: uppercase; }
 .whale-watch-awakening h4 { margin: 7px 0 3px; color: #ffe8ec; font-size: 16px; }
 .whale-watch-awakening p { margin: 0; color: #9eb2bc; font-size: 10px; }
 .whale-watch-awakening dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 0; }
 .whale-watch-awakening dl div { min-width: 0; padding: 8px; border-radius: 7px; background: rgba(255, 255, 255, .025); }
-.whale-watch-awakening dt { color: #718b9a; font: 600 8px/1.2 "JetBrains Mono", monospace; text-transform: uppercase; }
-.whale-watch-awakening dd { overflow: hidden; margin: 5px 0 0; color: #c7dce5; font: 700 10px/1.2 "JetBrains Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
-.whale-watch-awakening > a { color: var(--whale-coral); font: 700 9px/1.2 "JetBrains Mono", monospace; text-decoration: none; white-space: nowrap; }
+.whale-watch-awakening dt { color: #718b9a; font: 600 8px/1.2 var(--font-data, "JetBrains Mono"), monospace; text-transform: uppercase; }
+.whale-watch-awakening dd { overflow: hidden; margin: 5px 0 0; color: #c7dce5; font: 700 10px/1.2 var(--font-data, "JetBrains Mono"), monospace; text-overflow: ellipsis; white-space: nowrap; }
+.whale-watch-awakening > a { color: var(--whale-coral); font: 700 9px/1.2 var(--font-data, "JetBrains Mono"), monospace; text-decoration: none; white-space: nowrap; }
 
 .whale-watch-empty,
 .whale-watch-unavailable > div {
@@ -690,7 +690,7 @@
     gap: 7px;
     min-height: 170px;
     padding: 24px;
-    border: 1px dashed rgba(99, 211, 238, .2);
+    border: 1px dashed color-mix(in srgb, var(--whale-cyan) 20%, transparent);
     border-radius: 12px;
     color: #7794a5;
     background: rgba(4, 17, 27, .5);
@@ -709,10 +709,10 @@
     justify-content: space-between;
     gap: 20px;
     padding: 13px max(20px, calc((100% - 1320px) / 2));
-    border-top: 1px solid rgba(99, 211, 238, .1);
+    border-top: 1px solid color-mix(in srgb, var(--whale-cyan) 10%, transparent);
     color: #617f91;
     background: rgba(2, 12, 20, .55);
-    font: 600 8px/1.35 "JetBrains Mono", monospace;
+    font: 600 8px/1.35 var(--font-data, "JetBrains Mono"), monospace;
     letter-spacing: .035em;
     text-transform: uppercase;
 }
@@ -728,7 +728,7 @@
 [data-theme="clean"] #whale-watch-modal .whale-watch-body {
     background:
         radial-gradient(circle at 9% -2%, rgba(93, 140, 255, .11), transparent 28%),
-        radial-gradient(circle at 98% 3%, rgba(99, 211, 238, .085), transparent 26%),
+        radial-gradient(circle at 98% 3%, color-mix(in srgb, var(--whale-cyan) 8.5%, transparent), transparent 26%),
         linear-gradient(#06131e, #071725 62%, #06131e);
 }
 

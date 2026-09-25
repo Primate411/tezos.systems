@@ -988,7 +988,7 @@ export function createMetalsSmokeSuites({
       assert(mobileResponse?.ok(), `metals chamber ${viewport.width}px: route failed with HTTP ${mobileResponse?.status()}`);
       await mobilePage.locator('#metals-modal.active .metals-content').waitFor({ state: 'visible', timeout: 10000 });
       await mobilePage.waitForFunction(() => document.querySelector('#metals-chamber-body')?.dataset.metalsRendered === '1', null, { timeout: 10000 });
-      await assertNormalizedChamberShell(mobilePage, '#metals-modal.active', '.metals-content', 'wide', `metals chamber ${viewport.width}px`);
+      await assertNormalizedChamberShell(mobilePage, '#metals-modal.active', '.metals-content', 'standard', `metals chamber ${viewport.width}px`);
       const mobileState = await mobilePage.evaluate(() => {
         const content = document.querySelector('#metals-modal .metals-content');
         const body = document.querySelector('#metals-chamber-body');
