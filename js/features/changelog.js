@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-26',
+        entries: [
+            { type: '🔧', text: 'Staking Chamber previews load the network staking ratio even when opened after the dashboard’s headline update' }
+        ]
+    },
+    {
         date: '2026-09-25',
         entries: [
             { type: '🔧', text: 'Release checks compare Chamber previews at the same instant so a changing freshness label cannot trigger a false mismatch' },

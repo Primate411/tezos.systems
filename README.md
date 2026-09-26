@@ -973,6 +973,8 @@ inline modal styles in `js/core/app.js`.
   participation context. `/staking/` is retained only as a noindex compatibility
   redirect into `/stake/?view=guide`. The narrow launcher keeps one latest
   applied stake and one latest applied unstake strictly over 10,000 tez visible.
+  Its staking ratio reads the shared source when the launcher initializes, so
+  opening it after the headline update cannot leave that value blank.
   The opened room shows the canonical current staking ratio,
   seven-day direction, threshold-scoped 24-hour gross/net flow, a cursor-scanned
   persistent incremental history of qualifying TzKT receipts, local address
@@ -2397,7 +2399,8 @@ Current smoke suites:
 - `my-tezos-deep-link-path`
 - `tezlink`
 - `network-health`
-- `staking-chamber` (covers the narrow latest stake/unstake tape, strict >10K
+- `staking-chamber` (covers launcher hydration after the headline event without
+  a saved full-stats cache, the narrow latest stake/unstake tape, strict >10K
   boundary, complete applied-operation scan, current ratio, flow summaries,
   mover trails, receipts, the progressive guide and live economics, canonical
   `/stake/`, and the `/staking/` compatibility redirect)

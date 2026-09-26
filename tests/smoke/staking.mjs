@@ -31,6 +31,9 @@ export function createStakingSmokeSuites({
       localStorage.setItem('tezos-toured', '1');
       localStorage.setItem('tezos-welcomed', '1');
       localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+      window.addEventListener('stats-updated', (event) => {
+        window.__stakingHeadlineStats = event.detail?.stats || event.detail;
+      });
     });
     const page = await context.newPage();
     await installStakingChamberMocks(page, requests);
@@ -38,6 +41,11 @@ export function createStakingSmokeSuites({
 
     const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `${label}: dashboard failed with HTTP ${response?.status()}`);
+    // Reproduce a reader opening Capital after headline data has already arrived.
+    // The lazy launcher must not depend on receiving that one-time event.
+    await page.waitForFunction(() => Number(window.__stakingHeadlineStats?.stakingRatio).toFixed(2) === '27.62', null, { timeout: 20000 });
+    assert(await page.evaluate(() => typeof window.openStakingChamber === 'undefined'
+      && !localStorage.getItem('tezos-systems-stats')), `${label}: late-launch regression requires headline stats before launcher initialization, without a full-stats cache`);
     await page.locator('#chambers-grid > .chamber-category[data-chamber-category="capital"] .chamber-category-toggle').click();
     await page.locator('#staking-entry-card').waitFor({ state: 'visible', timeout: 15000 });
     // Entering the viewport hydrates and replaces the initial launcher skeleton.

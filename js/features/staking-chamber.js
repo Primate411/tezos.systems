@@ -1343,6 +1343,10 @@ export function initStakingChamber() {
     bindEntryStats();
     startEntryRefresh();
     updateEntryRatio(loadStats());
+    // Headline stats may have arrived before this lazy launcher subscribed.
+    // Reuse the shared cached/coalesced source without delaying the move tape.
+    fetchStakingRatio().then(updateEntryRatio)
+        .catch((error) => console.warn('Staking Chamber entry ratio unavailable', error));
     window.openStakingChamber = openStakingChamber;
     window.closeStakingChamber = closeStakingChamber;
     const queue = () => refreshEntryCard();
