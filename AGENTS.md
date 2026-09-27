@@ -706,7 +706,11 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   readiness gates, explicit confidence/horizon semantics, exact blockers, and
   primary evidence. Live Pulse keeps the default card compact and opens the
   complete receipt in a dedicated accessible overlay. Expired receipts disappear
-  from Live Pulse.
+  from Live Pulse. During daily Actions audits, perform a substantive primary-source
+  review whenever this receipt would exceed its 36-hour review limit before the
+  next daily audit (current review age plus 24 hours). Renew the review and 14-day
+  expiry only after checking the sources; preserve upstream publication clocks
+  and keep the 36-hour freshness alarm unchanged.
 - `data/nakamoto-sources.json`: dated external Nakamoto reports with their
   original thresholds, windows, entity bases, and source provenance.
 

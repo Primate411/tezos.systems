@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-27',
+        entries: [
+            { type: '🔧', text: 'Release Radar has a fresh review of primary release, governance and deployment sources, with daily review guidance to keep its evidence current between audits' }
+        ]
+    },
+    {
         date: '2026-09-26',
         entries: [
             { type: '🔧', text: 'Staking Chamber previews load the network staking ratio even when opened after the dashboard’s headline update' }

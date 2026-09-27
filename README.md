@@ -816,13 +816,16 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's September 25 review reconfirms Octez 25.2 and EVM node 0.66 using
+  Release Radar's September 27 review reconfirms Octez 25.2 and EVM node 0.66 using
   their publication receipts, unchanged FAST periods 693/694 and the current
   launch-documentation notice. September 24 Ganesha-r2 maintenance is explicitly
   scoped to Shadownet. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
   governance, and the wider Tezos X rollout remain distinct. The previous
   inference from one empty FAST window is explicitly corrected. The 36-hour
   review clock and 14-day expiry still require a new evidence review to extend.
+  Daily Actions audits should review the primary sources again whenever the
+  receipt would exceed that 36-hour limit before the next daily audit, so a
+  receipt still fresh today does not become overdue between checks.
 - Capital Chamber with direct `#capital` and `/capital/` access. Four sourced
   views organize the cross-layer capital picture without pretending their
   unlike metrics share one definition: **One System** (`?view=system`) connects
