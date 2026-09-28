@@ -816,7 +816,7 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's September 27 review reconfirms Octez 25.2 and EVM node 0.66 using
+  Release Radar's September 28 review reconfirms Octez 25.2 and EVM node 0.66 using
   their publication receipts, unchanged FAST periods 693/694 and the current
   launch-documentation notice. September 24 Ganesha-r2 maintenance is explicitly
   scoped to Shadownet. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
@@ -2484,6 +2484,10 @@ caches it by the resolved Playwright version rather than invalidating the large
 browser cache for unrelated lockfile edits. A scheduled high-risk five-repeat
 canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
+CI and nightly artifact transfers use `actions/upload-artifact@v6` and
+`actions/download-artifact@v7`, which declare the Node.js 24 runtime. Test
+diagnostics, shard ledgers and shared timing snapshots retain their existing
+names, paths and retention periods.
 The nightly shards share one frozen copy of the latest successful CI timing
 ledger, with the committed fixture as the cold-cache fallback. Missing suites
 use their current fixture costs and join future timing updates; retired suites

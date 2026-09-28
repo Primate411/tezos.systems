@@ -39,7 +39,7 @@ jobs:
       # All shards must use identical costs even if CI publishes a new cache
       # while this nightly run is starting.
       - name: Share one timing snapshot with every nightly shard
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: nightly-smoke-costs
           path: .cache/smoke-suite-costs.json
@@ -88,7 +88,7 @@ jobs:
         run: npx playwright install --only-shell chromium
 
       - name: Download shared nightly timings
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v7
         with:
           name: nightly-smoke-costs
           path: .cache
@@ -108,7 +108,7 @@ jobs:
 
       - name: Upload canary results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: high-risk-canary-${{ matrix.shard }}-of-6
           path: test-artifacts/high-risk-${{ matrix.shard }}
@@ -151,7 +151,7 @@ jobs:
 
       - name: Upload live-canary results
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: live-upstream-canary
           path: test-artifacts/live-upstream

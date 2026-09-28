@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-28',
+        entries: [
+            { type: '🔧', text: 'Release checks use supported artifact actions to preserve test diagnostics and shared nightly timings without deprecated-runtime warnings' },
+            { type: '🔧', text: 'Release Radar has a renewed primary-source review before its evidence becomes overdue; operator releases and the unconfirmed full Tezos X launch remain distinct' }
+        ]
+    },
+    {
         date: '2026-09-27',
         entries: [
             { type: '🔧', text: 'Release Radar has a fresh review of primary release, governance and deployment sources, with daily review guidance to keep its evidence current between audits' }
