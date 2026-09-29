@@ -5,6 +5,7 @@ import { fundingFixtures } from '../fixtures/community-funding.mjs';
 import { buildFundingPreview } from '../../js/core/community-funding.mjs';
 
 export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
+    await smokeFundingSummary(browser, baseUrl, installFeatureMocks);
     for (const width of [1440, 390, 320]) {
         const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: width === 1440 ? 'no-preference' : 'reduce', serviceWorkers: 'block' });
         try {
@@ -73,6 +74,8 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
             await page.evaluate(() => window.__fundingTick());
             assert.equal(await page.locator('.funding-campaign').count(), 3, 'TTCrowd failure retains all last-good campaign cards');
             assert.match(await page.locator('[data-quiet-key="status-ttcrowd"]').innerText(), /Refresh failed/);
+            assert.equal(await page.locator('[data-chamber-verdict="funding"]').getAttribute('data-state'), 'watch');
+            assert.match(await page.locator('[data-chamber-verdict="funding"] .chamber-reading-copy > p:first-child').innerText(), /at last check/i);
             assert.equal(await page.evaluate(() => window.__crowdCard === document.querySelector('.funding-crowd')), true);
             assert.equal((await page.locator('.funding-crowd .funding-action').first().innerText()).replace(/\s+/g, ' '), 'View on TTCrowd ↗');
             crowdFailed = false;
@@ -206,6 +209,52 @@ export async function smokeCommunityFunding(browser, baseUrl, { installFeatureMo
         } finally { await context.close(); }
     }
     await smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, artifactsDir });
+}
+
+async function smokeFundingSummary(browser, baseUrl, installFeatureMocks) {
+    const failures = [];
+    for (const scenario of ['hacktez-failed', 'campaigns-failed', 'ttcrowd-failed', 'all-failed', 'stale', 'empty']) {
+        const context = await browser.newContext({ viewport: { width: 390, height: 900 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+        try {
+            await installFeatureMocks(context);
+            const fixture = fundingFixtures();
+            const rejected = scenario === 'hacktez-failed' ? ['hacktez'] : scenario === 'campaigns-failed' ? ['teztree', 'ttcrowd']
+                : scenario === 'ttcrowd-failed' ? ['ttcrowd'] : scenario === 'all-failed' ? ['hacktez', 'teztree', 'ttcrowd'] : [];
+            await context.route(/\/data\/community-funding-(teztree|ttcrowd|hacktez)\.json/, route => {
+                const source = route.request().url().match(/community-funding-(teztree|ttcrowd|hacktez)/)[1];
+                if (rejected.includes(source)) return route.fulfill({ status: 503, body: 'unavailable' });
+                const data = fixture[source];
+                if (scenario === 'stale') data.generatedAt = new Date(Date.now() - 24 * 3600000).toISOString();
+                if (scenario === 'empty') { data.items = []; data.sourceCount = 0; }
+                return route.fulfill({ contentType: 'application/json', body: JSON.stringify(data) });
+            });
+            const page = await context.newPage();
+            await page.goto(`${baseUrl}/funding/`, { waitUntil: 'domcontentloaded' });
+            await page.waitForFunction(() => document.querySelectorAll('.funding-source-status').length === 3
+                && !document.querySelector('#funding-source-status [data-text-pending]'));
+            const summary = await page.locator('[data-chamber-verdict="funding"]').innerText();
+            const state = await page.locator('[data-chamber-verdict="funding"]').getAttribute('data-state');
+            try {
+                if (scenario === 'hacktez-failed') {
+                    assert.match(summary, /builder.*unavailable/i); assert.doesNotMatch(summary, /0 builder/);
+                    assert.match(summary, /3 campaigns/); assert.equal(state, 'partial');
+                } else if (scenario === 'campaigns-failed') {
+                    assert.match(summary, /campaign.*unavailable/i); assert.doesNotMatch(summary, /0 campaigns/);
+                    assert.match(summary, /8 builder/); assert.equal(state, 'partial');
+                } else if (scenario === 'ttcrowd-failed') {
+                    assert.match(summary, /1 campaign/); assert.match(summary, /1 of 2 campaign sources/); assert.equal(state, 'partial');
+                } else if (scenario === 'all-failed') {
+                    assert.equal(state, 'unavailable'); assert.doesNotMatch(summary, /0 (builder|campaign)/);
+                } else if (scenario === 'stale') {
+                    assert.equal(state, 'watch'); assert.match(summary, /at last check/i);
+                    assert.doesNotMatch(summary, /projects accept tips|campaigns are open/);
+                } else {
+                    assert.equal(state, 'snapshot'); assert.match(summary, /0 builder/); assert.match(summary, /0 campaigns/);
+                }
+            } catch (error) { failures.push(`${scenario}: ${error.message}; summary=${summary}`); }
+        } finally { await context.close(); }
+    }
+    assert.deepEqual(failures, [], 'Funding summary must distinguish unavailable, stale and empty sources');
 }
 
 async function smokeFundingLauncher(browser, baseUrl, { installFeatureMocks, artifactsDir }) {

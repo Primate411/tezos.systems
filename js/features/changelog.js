@@ -51,6 +51,9 @@ export const CHANGELOG = [
     {
         date: '2026-09-27',
         entries: [
+            { type: '🔧', text: 'Community Funding distinguishes unavailable sources from zero results and labels retained or stale counts as the last successful check' },
+            { type: '🔧', text: 'Maxis descriptions remain readable in Clean, long Chamber freshness labels fit on phones, and close buttons keep their position when the screen changes size' },
+            { type: '🔧', text: 'Local previews handle parallel module requests reliably, while regression checks cover source failures, contrast, resizing, and the centred My Tezos page' },
             { type: '🔧', text: 'Release Radar has a fresh review of primary release, governance and deployment sources, with daily review guidance to keep its evidence current between audits' }
         ]
     },

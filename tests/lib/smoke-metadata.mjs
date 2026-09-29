@@ -2,6 +2,7 @@ import { SMOKE_MODULE_RULES } from './smoke-module-owners.mjs';
 
 const RULES = [
   ...SMOKE_MODULE_RULES,
+  { suites: /^ux-regressions$/, files: ['tests/lib/chamber-overhaul-smoke.mjs'], tags: ['visual', 'responsive'], risk: 'normal' },
   { suites: /^capital-chamber$/, files: ['tests/lib/serialization-upgrade-smoke.mjs'], tags: ['cache', 'deployment'], risk: 'normal' },
   { suites: /^baker-directory$/, files: ['tests/lib/baker-directory-contrast-smoke.mjs'], tags: ['visual'], risk: 'normal' },
   { suites: /^metals-chamber$/, files: ['tests/lib/metals-heading-smoke.mjs'], tags: ['visual'], risk: 'normal' },
@@ -313,6 +314,7 @@ export const GLOBAL_SMOKE_PATTERNS = [
   'tests/smoke.mjs',
   'tests/lib/smoke-*',
   'tests/lib/test-source.mjs',
+  'scripts/serve.py',
   'tests/fixtures/smoke-*',
   'js/core/app.js',
   'js/core/chamber-features.mjs',

@@ -12007,8 +12007,7 @@ body[data-theme="valley"]::after {
  * Clean uses light dashboard tokens, while most Chamber rooms deliberately
  * keep their dark command-room surface. Scope a complete semantic token set
  * to those dark rooms so headings, data, links, and controls cannot inherit
- * low-contrast light-surface colors. Maxis and Staking own purpose-built light
- * Clean surfaces and therefore remain outside this contract.
+ * low-contrast light-surface colors.
  */
 [data-theme="clean"] .chamber-content {
     --chamber-surface-bg: #07101D;
@@ -15216,10 +15215,13 @@ body {
 }
 
 .chamber-content {
+    --chamber-pad-top: 2rem;
+    --chamber-pad-right: 2.5rem;
+    --chamber-pad-left: var(--chamber-pad-right);
     background: linear-gradient(180deg, rgba(10, 10, 20, 0.98) 0%, rgba(6, 6, 14, 0.99) 100%) !important;
     border: 1px solid rgba(0, 212, 255, 0.15) !important;
     box-shadow: 0 0 48px rgba(0, 212, 255, 0.06), 0 0 100px rgba(0, 0, 0, 0.82), inset 0 1px 0 rgba(255,255,255,0.04) !important;
-    padding: 2rem 2.5rem !important;
+    padding: var(--chamber-pad-top) var(--chamber-pad-right) 2rem var(--chamber-pad-left) !important;
     max-height: calc(100vh - 4rem) !important;
     max-height: calc(100dvh - 4rem) !important;
     overflow-y: auto !important;
@@ -16238,7 +16240,9 @@ body {
 /* Responsive */
 @media (max-width: 768px) {
     .chamber-content {
-        padding: 1.5rem !important;
+        --chamber-pad-top: 1.5rem;
+        --chamber-pad-right: 1.5rem;
+        padding: var(--chamber-pad-top) var(--chamber-pad-right) 1.5rem var(--chamber-pad-left) !important;
         max-height: calc(100vh - 2rem) !important;
         max-height: calc(100dvh - 2rem) !important;
     }
@@ -20740,6 +20744,16 @@ body {
     background: rgba(77, 212, 255, 0.1);
     color: #4dd4ff;
     border: 1px solid rgba(77, 212, 255, 0.16);
+}
+
+.chamber-house-header .lb-refresh-pill {
+    height: auto;
+    min-height: 18px;
+    max-width: 100%;
+    padding-block: 2px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .lb-overlay.lb-refreshing .lb-refresh-pill {

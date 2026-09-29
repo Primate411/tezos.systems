@@ -173,20 +173,39 @@ function sourceStatus(source) {
     </div>`;
 }
 
-/** Lead with what is open right now; where support happens stays visible. */
+/** Counts describe only available receipts, with missing and stale coverage explicit. */
 function fundingReading() {
-    const tips = receipts.hacktez?.items?.length;
-    const campaigns = Object.keys(FUNDING_SOURCES).filter(isFundingCampaign)
-        .flatMap(source => receipts[source]?.items || [])
-        .filter(item => campaignState(item) === 'open').length;
-    const ready = Boolean(receipts.hacktez) || Object.keys(FUNDING_SOURCES).filter(isFundingCampaign).some(source => receipts[source]);
+    const sources = Object.keys(FUNDING_SOURCES);
+    const available = sources.filter(source => receipts[source]);
+    const campaignSources = sources.filter(isFundingCampaign);
+    const availableCampaigns = campaignSources.filter(source => receipts[source]);
+    const old = source => errors[source] || fundingStale(receipts[source]);
+    const tips = receipts.hacktez?.items.length;
+    const campaigns = availableCampaigns.reduce((total, source) => {
+        const checkedAt = old(source) ? Date.parse(receipts[source].generatedAt) : Date.now();
+        return total + receipts[source].items.filter(item => campaignState(item, checkedAt) === 'open').length;
+    }, 0);
+    const builderReading = tips === undefined ? 'Builder support availability is unavailable'
+        : old('hacktez') ? `${tips} builder ${tips === 1 ? 'project accepted' : 'projects accepted'} tips at last check`
+            : `${tips} builder ${tips === 1 ? 'project accepts' : 'projects accept'} tips`;
+    const coverage = availableCampaigns.length < campaignSources.length
+        ? ` across ${availableCampaigns.length} of ${campaignSources.length} campaign sources` : '';
+    const campaignReading = !availableCampaigns.length ? 'campaign availability is unavailable'
+        : availableCampaigns.some(old)
+            ? `${campaigns} ${campaigns === 1 ? 'campaign was' : 'campaigns were'} open at last check${coverage}`
+            : `${campaigns} ${campaigns === 1 ? 'campaign is' : 'campaigns are'} open for funding${coverage}`;
+    const ready = available.length > 0;
+    const failed = sources.some(source => errors[source]);
+    const missing = sources.filter(source => !receipts[source]).map(source => FUNDING_SOURCES[source].name);
     return {
         key: 'funding',
-        state: ready ? 'snapshot' : 'guide',
+        state: !ready ? (failed ? 'unavailable' : 'guide')
+            : missing.length ? 'partial' : available.some(old) ? 'watch' : 'snapshot',
         sentence: ready
-            ? `${tips ?? 0} builder ${tips === 1 ? 'project accepts' : 'projects accept'} tips and ${campaigns} ${campaigns === 1 ? 'campaign is' : 'campaigns are'} open for funding.`
-            : 'Builder projects and open campaigns from three community platforms.',
-        note: 'TezTree and TTCrowd campaigns track funding goals; HackTez projects accept ongoing tips. Support always opens on the original platform.'
+            ? `${builderReading}; ${campaignReading}.`
+            : failed ? 'Builder support and campaign availability are unavailable.'
+                : 'Builder projects and open campaigns from three community platforms.',
+        note: `${ready && missing.length ? `No successful receipt from ${missing.join(' and ')}. ` : ''}${available.some(old) ? 'Stale or failed refreshes retain the last successful check; availability may have changed. ' : ''}TezTree and TTCrowd campaigns track funding goals; HackTez lists builder tips. Support always opens on the original platform.`
     };
 }
 

@@ -1,5 +1,6 @@
 // Browser workflows owned by home. Shared dependencies remain explicit.
 import { observeHomeData, assertPopulatedHome } from '../lib/home-data-ready.mjs';
+import { smokeChamberOverhaul } from '../lib/chamber-overhaul-smoke.mjs';
 export function createHomeSmokeSuites({
   SAMPLE_ADDRESS,
   assert,
@@ -1417,6 +1418,7 @@ export function createHomeSmokeSuites({
     await context.close();
     assert(issues.length === 0, `ux changes browser issues:\n${issues.join('\n')}`);
     log('ok - UX changes smoke');
+    await smokeChamberOverhaul(browser, baseUrl, installFeatureMocks);
     await smokeChamberHouseStyle(browser, baseUrl);
   }
 
