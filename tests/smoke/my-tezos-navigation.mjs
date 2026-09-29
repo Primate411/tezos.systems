@@ -665,7 +665,10 @@ export function createMyTezosNavigationSmokeSuites({
       await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
       await page.waitForFunction(() => {
         const drawer = document.querySelector('#my-tezos-drawer');
-        return Math.abs(drawer.getBoundingClientRect().right - innerWidth) <= 1;
+        const box = drawer.getBoundingClientRect();
+        const inset = innerWidth >= 1100 ? Math.max(0, (innerWidth - 1180) / 2) : 0;
+        return Math.abs(box.right - (innerWidth - inset)) <= 1
+          && (innerWidth < 1100 || Math.abs(box.left - inset) <= 1);
       });
       await page.evaluate(() => document.fonts.ready);
 

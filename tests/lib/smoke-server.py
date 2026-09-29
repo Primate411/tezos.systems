@@ -1,17 +1,10 @@
-"""Serve unchanged repository bytes with enough queue capacity for ES-module bursts."""
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+"""Use the same byte-preserving server for local previews and browser checks."""
+from pathlib import Path
 import sys
 
 
-class SmokeServer(ThreadingHTTPServer):
-    # Python 3.9 defaults to five queued connections. Chromium's module bursts
-    # can reset connections on local macOS, preventing the app from loading.
-    request_queue_size = 256
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+sys.dont_write_bytecode = True
+from serve import main
 
-
-server = SmokeServer(('127.0.0.1', int(sys.argv[1])), SimpleHTTPRequestHandler)
-print(f'http://127.0.0.1:{server.server_port}', flush=True)
-try:
-    server.serve_forever()
-finally:
-    server.server_close()
+main()

@@ -245,10 +245,12 @@
 
 /* Open room */
 .staking-chamber-content {
+    --chamber-pad-top: 1.35rem;
+    --chamber-pad-right: 1.5rem;
     width: min(94vw, 900px) !important;
     max-width: 900px !important;
     max-height: 92vh !important;
-    padding: 1.35rem 1.5rem 1.6rem !important;
+    padding: var(--chamber-pad-top) var(--chamber-pad-right) 1.6rem var(--chamber-pad-left) !important;
     border-color: rgba(var(--staking-accent-rgb), 0.24) !important;
     background:
         radial-gradient(circle at 8% 4%, rgba(var(--staking-accent-rgb), 0.08), transparent 26%),
@@ -1406,9 +1408,11 @@
     }
 
     .staking-chamber-content {
+        --chamber-pad-top: 1rem;
+        --chamber-pad-right: 0.85rem;
         width: calc(100vw - 0.875rem) !important;
         max-height: 94vh !important;
-        padding: 1rem 0.85rem 1.2rem !important;
+        padding: var(--chamber-pad-top) var(--chamber-pad-right) 1.2rem var(--chamber-pad-left) !important;
     }
 
     .staking-guide-panel > summary {

@@ -306,6 +306,10 @@ export function createShellSmokeSuites({
     let offlineHeading = '';
     let offlineCachePolicy = null;
     try {
+      // Finish the live dashboard before cutting the connection. Otherwise its
+      // pending telemetry can fail during navigation and pollute the offline
+      // policy check with timing-dependent 503s. Keep the same controlled client.
+      await offlinePage.goto(`${baseUrl}/offline.html`, { waitUntil: 'load' });
       await context.setOffline(true);
       offlineResponse = await offlinePage.goto(`${baseUrl}/offline-navigation-smoke`, { waitUntil: 'domcontentloaded' });
       offlineHeading = await offlinePage.locator('h1').innerText();

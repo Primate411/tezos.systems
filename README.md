@@ -1915,6 +1915,11 @@ npm run serve
 # Open http://localhost:9000
 ```
 
+For a LAN preview, run `npm run serve -- 9998 --bind 0.0.0.0` and open
+`http://<your-LAN-address>:9998` from another device. The preview and smoke
+servers share a larger connection queue so parallel browser module requests
+do not reset on Python versions with a small default queue.
+
 The lockfile is tracked so fresh clones can use `npm ci`. Repo Playwright
 callers use `scripts/lib/playwright-browser.cjs`, which tries Playwright's
 bundled Chromium first and falls back to a local Chrome/Chromium-family browser.

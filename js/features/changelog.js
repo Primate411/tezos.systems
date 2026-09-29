@@ -5,6 +5,14 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-27',
+        entries: [
+            { type: '🔧', text: 'Community Funding distinguishes unavailable sources from zero results and labels retained or stale counts as the last successful check' },
+            { type: '🔧', text: 'Maxis descriptions remain readable in Clean, long Chamber freshness labels fit on phones, and close buttons keep their position when the screen changes size' },
+            { type: '🔧', text: 'Local previews handle parallel module requests reliably, while regression checks cover source failures, contrast, resizing, and the centred My Tezos page' }
+        ]
+    },
+    {
         date: '2026-09-25',
         entries: [
             { type: '🎨', text: 'Every Chamber now shares the Network Health frame: one room width, one close button position, and a header band that appears once you scroll' },

@@ -15,6 +15,8 @@
 
 .maxis-content {
     --maxis-corner-inset: 0.75rem;
+    /* Resolve against the room's own text palette, including dark Clean rooms. */
+    --maxis-readable-muted: color-mix(in srgb, var(--text-tertiary) 65%, var(--text-primary));
     width: min(1180px, calc(100vw - 28px));
     max-height: min(92vh, 980px) !important;
     border-color: color-mix(in srgb, var(--maxis-gold) 30%, transparent) !important;
@@ -975,9 +977,11 @@
     .maxis-overlay { padding: 0.4375rem; }
     .maxis-content {
         --maxis-corner-inset: 0.5rem;
+        --chamber-pad-top: 1rem;
+        --chamber-pad-right: 1rem;
         width: calc(100vw - 0.875rem);
         max-height: 94vh !important;
-        padding: 1rem !important;
+        padding: var(--chamber-pad-top) var(--chamber-pad-right) 1rem var(--chamber-pad-left) !important;
     }
     .maxis-hero { padding-inline: 0; }
     .maxis-system-strip { flex-wrap: wrap; gap: 0.24rem 0.5rem; }

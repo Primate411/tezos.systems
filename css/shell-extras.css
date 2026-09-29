@@ -6186,6 +6186,10 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
 
 /* One reading path: specialized bodies flow through their dialog. The fixed
    room bounds and sticky exit belong to the shell, never a second scrollbar. */
+.chamber-content:is(.market-room-shell, .whale-watch-content, .ecosystem-content, .funding-content, .baker-directory-content, .tezoscrp-content) {
+    --chamber-pad-top: 0px;
+    --chamber-pad-right: 0px;
+}
 .chamber-content:is(.market-room-shell, .whale-watch-content, .ecosystem-content) {
     display: block !important;
     padding: 0 !important;

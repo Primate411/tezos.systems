@@ -20,7 +20,7 @@ the highest-risk gotchas.
 
 ## Local Development and Deploy
 
-- Local dev server: `python3 -m http.server 9000`
+- Local dev server: `npm run serve`; LAN preview: `npm run serve -- 9998 --bind 0.0.0.0`
 - Deploy: push to `main`
 - Before deploy after JS/CSS changes, review cache busting:
   - bump the service worker cache name in `sw.js`

@@ -99,17 +99,12 @@ export function getChamberScrollContainer(element) {
 }
 
 /**
- * Pin the exit to the same corner inset in every room, whatever padding the
- * room gives its dialog, and mark a scrolled room so its exit band turns
- * opaque. Values are written only when they change; user scrolling and
- * resizes are the only triggers, never a data refresh.
+ * Mark a scrolled room so its exit band turns opaque. The exit offset uses
+ * the same responsive CSS tokens as the room padding; it never waits for a
+ * JavaScript measurement to catch up after layout.
  */
 function syncChamberExit(dialog) {
     if (!dialog.classList.contains('chamber-room-shell')) return;
-    const style = getComputedStyle(dialog);
-    for (const [property, value] of [['--chamber-pad-top', style.paddingTop], ['--chamber-pad-right', style.paddingRight], ['--chamber-pad-left', style.paddingLeft]]) {
-        if (dialog.style.getPropertyValue(property) !== value) dialog.style.setProperty(property, value);
-    }
     const scrolled = String(getChamberScrollContainer(dialog).scrollTop > 4);
     if (dialog.dataset.chamberScrolled !== scrolled) dialog.dataset.chamberScrolled = scrolled;
 }
