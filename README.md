@@ -816,9 +816,10 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's September 28 review reconfirms Octez 25.2 and EVM node 0.66 using
-  their publication receipts, unchanged FAST periods 693/694 and the current
-  launch-documentation notice. September 24 Ganesha-r2 maintenance is explicitly
+  Release Radar's September 29 review confirms the newly published EVM node 0.67
+  and reconfirms Octez 25.2 using canonical publication receipts, unchanged
+  FAST periods 693/694 and the current launch-documentation notice.
+  September 24 Ganesha-r2 maintenance is explicitly
   scoped to Shadownet. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
   governance, and the wider Tezos X rollout remain distinct. The previous
   inference from one empty FAST window is explicitly corrected. The 36-hour
@@ -854,9 +855,11 @@ inline modal styles in `js/core/app.js`.
   not added into a fictional combined network total. Stablecoin USD totals keep
   canonical and bridged components
   separate because bridge double counting remains possible. CoinGecko exchange
-  rows are capped at 100; comprehensive CEX net flows are not calculated without
-  audited exchange-wallet clusters. Public RWA registry rows do not imply issuer
-  verification; only xU3O8 carries its issuer proof receipt, its Blockscout
+  rows are capped at 100. A shorter valid first page is accepted only after a
+  separate page-two read confirms exhaustion; invalid or incomplete responses
+  preserve the last-good market snapshot. Comprehensive CEX net flows are not
+  calculated without audited exchange-wallet clusters. Public RWA registry rows
+  do not imply issuer verification; only xU3O8 carries its issuer proof receipt, its Blockscout
   transfer detail is a recent/current truncated view, and the exact xU3O8 versus
   SRUUF return spread remains unavailable without licensed SRUUF closes. OBJKT
   coverage can be a capped most-recent prefix and does not prove every historical
@@ -1874,8 +1877,10 @@ collector should use a service-role or equivalent server-side secret for
 `SUPABASE_KEY`; the browser anon key should remain read-only under RLS.
 `.github/workflows/collect-data.yml` writes the 2-hour global `tezos_history`
 row, while `.github/workflows/collect-chamber-history.yml` writes 30-minute
-market, Network Health, Tezos X, and governance-period snapshots. The chamber workflow
-also independently invokes the global collector as a catch-up opportunity;
+market, Network Health, Tezos X, and governance-period snapshots. Market history
+uses CoinGecko's coin-detail market data and stores its provider observation time;
+invalid prices or clocks fail without creating a fresh-looking empty row.
+The chamber workflow also independently invokes the global collector as a catch-up opportunity;
 both global paths share one concurrency lock and read the latest stored timestamp
 before fetching source data. A row less than two hours old skips collection,
 preserving the intended capture interval even when both schedules arrive together.

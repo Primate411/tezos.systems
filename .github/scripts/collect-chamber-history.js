@@ -5,7 +5,7 @@ const { postSupabaseJson, TEMPORARY_FAILURE_EXIT_CODE } = require('./supabase-wr
 
 const TZKT_API = 'https://api.tzkt.io/v1';
 const OCTEZ_RPC = 'https://eu.rpc.tez.capital';
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true';
+const COINGECKO_URL = 'https://api.coingecko.com/api/v3/coins/tezos?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false';
 const DEFILLAMA_API = 'https://api.llama.fi';
 const ETHERLINK_EXPLORER = 'https://explorer.etherlink.com/api/v2';
 const ETHERLINK_RPC = 'https://node.mainnet.etherlink.com';
@@ -91,18 +91,27 @@ function addBlockIntervals(blocks) {
 
 async function collectMarketHistory() {
   const data = await fetchWithRetry(COINGECKO_URL);
-  const tezos = data.tezos || {};
-  const btc = numberOrNull(tezos.btc);
+  const market = data?.market_data;
+  const price = market?.current_price;
+  const observedAt = Date.parse(data?.last_updated);
+  if (data?.id !== 'tezos' || !['usd', 'eur', 'btc'].every(currency =>
+    typeof price?.[currency] === 'number' && Number.isFinite(price[currency]) && price[currency] > 0)
+    || !Number.isFinite(observedAt) || observedAt > Date.now() + 60000) {
+    throw new Error('CoinGecko returned an invalid market observation');
+  }
+  const optionalNumber = (value, decimals) => typeof value === 'number' && Number.isFinite(value)
+    ? roundOrNull(value, decimals) : null;
+  const btc = price.btc;
   return {
-    timestamp: new Date().toISOString(),
+    timestamp: new Date(observedAt).toISOString(),
     source: 'coingecko',
-    price_usd: roundOrNull(tezos.usd, 6),
-    price_eur: roundOrNull(tezos.eur, 6),
+    price_usd: roundOrNull(price.usd, 6),
+    price_eur: roundOrNull(price.eur, 6),
     price_btc: btc,
-    price_sats: btc === null ? null : Math.round(btc * 100000000),
-    market_cap_usd: roundOrNull(tezos.usd_market_cap),
-    volume_24h_usd: roundOrNull(tezos.usd_24h_vol),
-    change_24h_pct: roundOrNull(tezos.usd_24h_change, 4)
+    price_sats: Math.round(btc * 100000000),
+    market_cap_usd: optionalNumber(market.market_cap?.usd, 2),
+    volume_24h_usd: optionalNumber(market.total_volume?.usd, 2),
+    change_24h_pct: optionalNumber(market.price_change_percentage_24h, 4)
   };
 }
 

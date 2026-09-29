@@ -1,4 +1,5 @@
 // Static contracts owned by chambers. Shared dependencies remain explicit.
+import { validateCoinGeckoTickerCoverage } from '../../scripts/lib/coingecko-ticker-page.mjs';
 export function createChambersStaticChecks({
   CHAMBER_ROUTES,
   assert,
@@ -276,12 +277,14 @@ export function createChambersStaticChecks({
         fail(`Capital snapshot must retain a 365-day XTZ/${currency.toUpperCase()} return input series`);
       }
     }
-    if (snapshot.markets?.xtz?.tickers?.length !== 100 || snapshot.markets?.xtz?.coverage?.tickerHardCap !== 100) {
-      fail('Capital snapshot must retain the complete disclosed first page of 100 CoinGecko ticker rows');
+    try {
+      validateCoinGeckoTickerCoverage(snapshot.markets?.xtz?.tickers, snapshot.markets?.xtz?.coverage);
+    } catch (error) {
+      fail(`Capital snapshot must retain a validated bounded CoinGecko ticker page: ${error.message}`);
     }
-    if (!capitalGenerator.includes('tickers.length !== COINGECKO_TICKER_PAGE_SIZE')
-      || !capitalGenerator.includes('expected the complete first page of ${COINGECKO_TICKER_PAGE_SIZE}')) {
-      fail('Capital generator must reject incomplete CoinGecko ticker pages so the last-known-good section survives');
+    if (!capitalGenerator.includes('await readCoinGeckoTickerPage(tickerPayload,')
+      || !capitalGenerator.includes('/coins/tezos/tickers?page=2&depth=true')) {
+      fail('Capital generator must verify short CoinGecko pages before replacing last-good data');
     }
     const xu3o8 = (snapshot.rwa?.assets || []).find((asset) => asset.id === 'xu3o8');
     if (xu3o8?.contract?.toLowerCase() !== '0x79052ab3c166d4899a1e0dd033ac3b379af0b1fd'

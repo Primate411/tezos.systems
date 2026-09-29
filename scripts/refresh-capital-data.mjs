@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCoinGeckoTickerPage, validateCoinGeckoTickerCoverage } from './lib/coingecko-ticker-page.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT_FILE = path.join(ROOT, 'data/capital-snapshot.json');
@@ -18,7 +19,6 @@ const OBJKT_MINTS_MAX_PAGES = 40;
 const OBJKT_MIN_DISPATCH_INTERVAL_MS = 550;
 const GITLAB_PAGE_SIZE = 100;
 const GITLAB_MAX_PAGES = 10;
-const COINGECKO_TICKER_PAGE_SIZE = 100;
 
 const TZKT = 'https://api.tzkt.io/v1';
 const ETHERLINK_EXPLORER = 'https://explorer.etherlink.com';
@@ -732,7 +732,9 @@ async function buildMarkets() {
     throw new Error('CoinGecko returned an invalid market payload');
   }
   const marketData = detail?.market_data || {};
-  const tickers = tickerPayload.tickers
+  const tickerPage = await readCoinGeckoTickerPage(tickerPayload,
+    () => requestJson(`${COINGECKO}/coins/tezos/tickers?page=2&depth=true`));
+  const tickers = tickerPage.rows
     .map((ticker) => ({
       market: ticker?.market?.name || 'Unknown venue',
       base: ticker?.base || null,
@@ -748,15 +750,9 @@ async function buildMarkets() {
       trustScore: ticker?.trust_score || null,
       tradeUrl: /^https:\/\//.test(ticker?.trade_url || '') ? ticker.trade_url : null
     }))
-    .filter((ticker) => ticker.base && ticker.target)
     .sort((left, right) => (right.convertedVolumeUsd || 0) - (left.convertedVolumeUsd || 0)
       || compareText(left.market, right.market)
       || compareText(`${left.base}/${left.target}`, `${right.base}/${right.target}`));
-  if (tickers.length !== COINGECKO_TICKER_PAGE_SIZE) {
-    throw new Error(
-      `CoinGecko returned ${tickers.length} usable ticker rows; expected the complete first page of ${COINGECKO_TICKER_PAGE_SIZE}`
-    );
-  }
   return {
     data: {
       coin: {
@@ -781,10 +777,7 @@ async function buildMarkets() {
       tickers,
       coverage: {
         historyDays: 365,
-        tickerPage: 1,
-        tickerHardCap: COINGECKO_TICKER_PAGE_SIZE,
-        tickerRows: tickers.length,
-        tickerTruncated: tickers.length >= COINGECKO_TICKER_PAGE_SIZE,
+        ...tickerPage.coverage,
         depthDefinition: 'CoinGecko-reported USD cost to move the order book by plus or minus 2%.',
         filtersApplied: 'None; stale, anomaly, and trust fields are retained for client-side quality controls.'
       }
@@ -795,8 +788,7 @@ async function buildMarkets() {
         btc: normalizePriceHistory(btc.prices, 12).length,
         eth: normalizePriceHistory(eth.prices, 12).length
       },
-      tickerRows: tickers.length,
-      tickerTruncated: tickers.length >= COINGECKO_TICKER_PAGE_SIZE
+      ...tickerPage.coverage
     }
   };
 }
@@ -1423,6 +1415,13 @@ function validateSnapshot(snapshot, byteLength = null) {
   for (const currency of ['usd', 'btc', 'eth']) {
     if (!Array.isArray(snapshot?.markets?.xtz?.priceHistory?.[currency])) errors.push(`markets.xtz.priceHistory.${currency} must be an array`);
     else if (!isAscendingByDate(snapshot.markets.xtz.priceHistory[currency])) errors.push(`markets.xtz.priceHistory.${currency} is not date sorted`);
+  }
+  if (snapshot?.sources?.coingecko?.status !== 'unavailable') {
+    try {
+      validateCoinGeckoTickerCoverage(snapshot?.markets?.xtz?.tickers, snapshot?.markets?.xtz?.coverage);
+    } catch (error) {
+      errors.push(error.message);
+    }
   }
   const xu3o8 = (snapshot?.rwa?.assets || []).find((asset) => asset.id === 'xu3o8');
   if (!xu3o8 || xu3o8.contract.toLowerCase() !== XU3O8_CONTRACT.toLowerCase() || xu3o8.decimals !== 18) {
