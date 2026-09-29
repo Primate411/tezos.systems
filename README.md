@@ -857,8 +857,10 @@ inline modal styles in `js/core/app.js`.
   separate because bridge double counting remains possible. CoinGecko exchange
   rows are capped at 100. A shorter valid first page is accepted only after a
   separate page-two read confirms exhaustion; invalid or incomplete responses
-  preserve the last-good market snapshot. Comprehensive CEX net flows are not
-  calculated without audited exchange-wallet clusters. Public RWA registry rows
+  preserve the last-good market snapshot. Temporary failures of optional order-book
+  depth can use a separately validated basic catalog with unavailable depth;
+  historical depth is never attached to fresh ticker rows. Comprehensive CEX net
+  flows are not calculated without audited exchange-wallet clusters. Public RWA registry rows
   do not imply issuer verification; only xU3O8 carries its issuer proof receipt, its Blockscout
   transfer detail is a recent/current truncated view, and the exact xU3O8 versus
   SRUUF return spread remains unavailable without licensed SRUUF closes. OBJKT

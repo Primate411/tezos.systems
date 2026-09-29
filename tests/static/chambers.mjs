@@ -282,8 +282,8 @@ export function createChambersStaticChecks({
     } catch (error) {
       fail(`Capital snapshot must retain a validated bounded CoinGecko ticker page: ${error.message}`);
     }
-    if (!capitalGenerator.includes('await readCoinGeckoTickerPage(tickerPayload,')
-      || !capitalGenerator.includes('/coins/tezos/tickers?page=2&depth=true')) {
+    if (!capitalGenerator.includes('fetchCoinGeckoTickerCatalog(({ page, depth })')
+      || !capitalGenerator.includes('/coins/tezos/tickers?page=${page}')) {
       fail('Capital generator must verify short CoinGecko pages before replacing last-good data');
     }
     const xu3o8 = (snapshot.rwa?.assets || []).find((asset) => asset.id === 'xu3o8');

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCoinGeckoTickerPage, validateCoinGeckoTickerCoverage } from './lib/coingecko-ticker-page.mjs';
+import { fetchCoinGeckoTickerCatalog, validateCoinGeckoTickerCoverage } from './lib/coingecko-ticker-page.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT_FILE = path.join(ROOT, 'data/capital-snapshot.json');
@@ -721,19 +721,18 @@ function normalizePriceHistory(rows, digits) {
 async function buildMarkets() {
   const detailUrl = `${COINGECKO}/coins/tezos?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
   const historyUrl = (currency) => `${COINGECKO}/coins/tezos/market_chart?vs_currency=${currency}&days=365&interval=daily`;
-  const [detail, usd, btc, eth, tickerPayload] = await Promise.all([
+  const [detail, usd, btc, eth, tickerPage] = await Promise.all([
     requestJson(detailUrl),
     requestJson(historyUrl('usd')),
     requestJson(historyUrl('btc')),
     requestJson(historyUrl('eth')),
-    requestJson(`${COINGECKO}/coins/tezos/tickers?page=1&depth=true`)
+    fetchCoinGeckoTickerCatalog(({ page, depth }) => requestJson(
+      `${COINGECKO}/coins/tezos/tickers?page=${page}${depth ? '&depth=true' : ''}`))
   ]);
-  if (![usd?.prices, btc?.prices, eth?.prices, tickerPayload?.tickers].every(Array.isArray)) {
+  if (![usd?.prices, btc?.prices, eth?.prices, tickerPage?.rows].every(Array.isArray)) {
     throw new Error('CoinGecko returned an invalid market payload');
   }
   const marketData = detail?.market_data || {};
-  const tickerPage = await readCoinGeckoTickerPage(tickerPayload,
-    () => requestJson(`${COINGECKO}/coins/tezos/tickers?page=2&depth=true`));
   const tickers = tickerPage.rows
     .map((ticker) => ({
       market: ticker?.market?.name || 'Unknown venue',
@@ -778,11 +777,14 @@ async function buildMarkets() {
       coverage: {
         historyDays: 365,
         ...tickerPage.coverage,
-        depthDefinition: 'CoinGecko-reported USD cost to move the order book by plus or minus 2%.',
+        depthDefinition: tickerPage.coverage.tickerDepthError
+          ? 'Order-book depth was unavailable in this refresh. No prior depth values are carried forward.'
+          : 'CoinGecko-reported USD cost to move the order book by plus or minus 2%.',
         filtersApplied: 'None; stale, anomaly, and trust fields are retained for client-side quality controls.'
       }
     },
     coverage: {
+      tickerDepth: tickerPage.coverage.tickerDepth,
       priceDays: {
         usd: normalizePriceHistory(usd.prices, 8).length,
         btc: normalizePriceHistory(btc.prices, 12).length,

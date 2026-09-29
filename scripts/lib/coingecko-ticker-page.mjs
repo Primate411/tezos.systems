@@ -43,3 +43,27 @@ export async function readCoinGeckoTickerPage(firstPage, fetchNextPage) {
   };
   return { rows, coverage };
 }
+
+export async function fetchCoinGeckoTickerCatalog(fetchPage) {
+  const read = async depth => readCoinGeckoTickerPage(
+    await fetchPage({ page: 1, depth }),
+    () => fetchPage({ page: 2, depth })
+  );
+  try {
+    const result = await read(true);
+    return { ...result, coverage: { tickerDepth: 'requested; missing values remain unavailable', ...result.coverage } };
+  } catch (error) {
+    // Depth is optional provider enrichment. A temporary failure can fall back
+    // to a separately validated basic catalog; malformed pages still fail shut.
+    if (!/HTTP (?:429|5\d\d)\b/.test(error?.message || '')) throw error;
+    const result = await read(false);
+    return {
+      rows: result.rows.map(row => ({ ...row, cost_to_move_up_usd: null, cost_to_move_down_usd: null })),
+      coverage: {
+        tickerDepth: 'unavailable; basic ticker catalog only',
+        ...result.coverage,
+        tickerDepthError: error.message
+      }
+    };
+  }
+}

@@ -8,7 +8,8 @@ export const CHANGELOG = [
         date: '2026-09-29',
         entries: [
             { type: '🔧', text: 'Market history uses a working CoinGecko source and preserves its observation time; Capital accepts complete exchange catalogs smaller than 100 rows after verifying the next page is empty' },
-            { type: '🔧', text: 'Release Radar confirms EVM Node 0.67 from its September 29 publication receipt while keeping the full Tezos X launch unconfirmed' }
+            { type: '🔧', text: 'Release Radar confirms EVM Node 0.67 from its September 29 publication receipt while keeping the full Tezos X launch unconfirmed' },
+            { type: '🔧', text: 'Capital can refresh prices and exchange markets when optional order-book depth is unavailable, with missing depth kept explicit' }
         ]
     },
     {
