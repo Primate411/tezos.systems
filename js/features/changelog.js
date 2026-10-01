@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-01',
+        entries: [
+            { type: '🔧', text: 'Release Radar has a fresh primary-source review and marks the Q3 Tezos X target as elapsed, while keeping the full launch unconfirmed and published operator release dates unchanged' }
+        ]
+    },
+    {
         date: '2026-09-29',
         entries: [
             { type: '🔧', text: 'Market history uses a working CoinGecko source and preserves its observation time; Capital accepts complete exchange catalogs smaller than 100 rows after verifying the next page is empty' },

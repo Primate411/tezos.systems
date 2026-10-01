@@ -621,7 +621,7 @@ export function createPulseSmokeSuites({
           && presentation.releaseIndex <= 1
           && /Release Radar/i.test(presentation.text)
           && /Tezos X Mainnet/i.test(presentation.text)
-          && /Q3 2026 official target/i.test(presentation.text),
+          && /Q3 2026 target elapsed/i.test(presentation.text),
         `release radar pulse ${label}: the priority forecast or its 14-day release transition drifted ${JSON.stringify(presentation)}`
       );
       assert(

@@ -26,6 +26,8 @@ assert.deepEqual(tezosX.gates.map((gate) => gate.id), RELEASE_RADAR_TEZOS_X_GATE
 assert.equal(tezosX.gates.find((gate) => gate.id === 'proposal')?.status, 'complete', 'a recorded public proposal cannot be erased by an empty current FAST window');
 assert.equal(tezosX.confidence, 'low', 'conflicting platform roadmap and deployment scope prevent a high-confidence full-launch claim');
 assert.equal(tezosX.lifecycle, 'forecast', 'kernel deployment does not silently become a full-platform release');
+assert.equal(tezosX.horizon, 'Q3 2026 target elapsed', 'the reviewed past quarter must not read as an upcoming ETA');
+assert.match(tezosX.summary, /Q3 target has elapsed.*broader launch remains unconfirmed/, 'an elapsed target does not prove either launch completion or a replacement date');
 assert.match(tezosX.summary, /kernel 7\.1.*completed mainnet deployment/, 'the reviewed lane distinguishes deployed kernel infrastructure');
 assert.match(tezosX.highlight, /broader Tezos X rollout remain separate claims/, 'the scope boundary remains explicit');
 for (const url of [
