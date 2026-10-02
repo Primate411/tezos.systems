@@ -298,10 +298,16 @@ export function createShellSmokeSuites({
       cachePolicySeed.immutable === 200 && cachePolicySeed.mutable === 200,
       `app shell: cache-policy seed requests failed ${JSON.stringify(cachePolicySeed)}`
     );
-    // Keep the already-controlled client for the offline transition. A fresh
-    // about:blank page created after the browser is taken offline is not a
-    // reliable service-worker client in every Chromium build.
-    const offlinePage = page;
+    // Establish a quiet, controlled client while still online, then close the
+    // dashboard before cutting its network. Otherwise unfinished dashboard API
+    // reads can emit expected offline 503s into the online shell issue ledger.
+    // A fresh about:blank page created offline is not reliably SW-controlled.
+    const offlinePage = await context.newPage();
+    attachIssueCollectors(offlinePage, 'app shell offline', issues);
+    const offlineSeed = await offlinePage.goto(`${baseUrl}/offline.html`, { waitUntil: 'domcontentloaded' });
+    assert(offlineSeed?.ok(), `app shell: offline client seed failed with HTTP ${offlineSeed?.status()}`);
+    await offlinePage.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 10000 });
+    await page.close();
     let offlineResponse = null;
     let offlineHeading = '';
     let offlineCachePolicy = null;
@@ -367,7 +373,7 @@ export function createShellSmokeSuites({
     await fallbackContext.close();
 
     const unexpectedIssues = issues.filter((issue) => !(
-      /app shell console error: Failed to load resource: the server responded with a status of 503[\s\S]*\/data\/metals-entry-summary\.json/i.test(issue)
+      /app shell offline console error: Failed to load resource: the server responded with a status of 503[\s\S]*\/data\/metals-entry-summary\.json/i.test(issue)
     ));
     assert(unexpectedIssues.length === 0, `app shell browser issues:\n${unexpectedIssues.join('\n')}`);
     log(`ok - app shell smoke (${shell.assetResults.length} shell assets)`);

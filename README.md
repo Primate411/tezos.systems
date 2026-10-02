@@ -2139,6 +2139,11 @@ node tests/smoke.mjs --shard 1/6 --continue-on-failure --retry-failures 1 --retr
 
 `QA.md` has the pre-deploy checklist and manual visual pass.
 
+The app-shell smoke establishes a service-worker-controlled offline page while
+online and closes the live dashboard before cutting network access. This keeps
+intentional offline failures separate from online shell errors while still
+checking the offline navigation, immutable cache, and unavailable mutable data.
+
 ## Testing
 
 Startup keeps the changelog archive and its DOM deferred until an explicit open.
