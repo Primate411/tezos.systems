@@ -35,7 +35,7 @@ import {
 } from './lib/maxis-artifact-budget.mjs';
 import {
   artifactBudgetErrors, measureSeasonArtifactBudget, MAXIS_PASSPORT_STORAGE,
-  storedPassportText, readStoredPassport
+  storedPassportText, readStoredPassport, storedCoreText, MAXIS_STORAGE_MEASUREMENT
 } from './lib/maxis-storage.mjs';
 import { fetchKeysetPages, fetchOffsetPages } from './lib/maxis-pagination.mjs';
 import {
@@ -588,7 +588,7 @@ function seasonPaths(seasonId) {
 }
 
 async function writeJsonAtomic(file, value) {
-  return writeTextAtomic(file, jsonText(value));
+  return writeTextAtomic(file, storedCoreText(file, value));
 }
 
 async function writeTextAtomic(file, value) {
@@ -2069,7 +2069,8 @@ async function migrateSeasonStorage() {
   for (const entry of manifest.seasons.filter(item => ['active', 'settling'].includes(item.status))) {
     const paths = seasonPaths(entry.id);
     const summary = await readJson(paths.summaryFile);
-    if (summary.passports?.storage === MAXIS_PASSPORT_STORAGE) continue;
+    if (summary.passports?.storage === MAXIS_PASSPORT_STORAGE
+      && summary.artifactBudget?.measurement === MAXIS_STORAGE_MEASUREMENT) continue;
     const rules = await readJson(paths.rulesFile);
     const transactionState = await readJson(paths.transactionStateFile);
     const byAddress = await readPassportShards(paths, entry.availableShards, {
@@ -2082,6 +2083,7 @@ async function migrateSeasonStorage() {
     assertSeasonArtifactBudget({ rules, summary: next, transactionState, shardPayloads });
     // No evaluation, new source clock, rule rewrite, or finalized archive edit.
     await writePassportShards(paths, shardPayloads);
+    await writeJsonAtomic(paths.transactionStateFile, transactionState);
     await writeJsonAtomic(paths.summaryFile, next);
     console.log(`Migrated ${entry.id}: ${summary.artifactBudget.totalBytes} -> ${next.artifactBudget.totalBytes} bytes; ${Object.keys(byAddress).length} Passports preserved`);
   }

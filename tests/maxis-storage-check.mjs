@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {
   storedPassportText, readStoredPassport, passportDigest,
-  measureSeasonArtifactBudget, artifactBudgetErrors, MAXIS_PASSPORT_STORAGE
+  measureSeasonArtifactBudget, artifactBudgetErrors, MAXIS_PASSPORT_STORAGE,
+  storedCoreText, MAXIS_STORAGE_MEASUREMENT, MAXIS_LEGACY_STORAGE_MEASUREMENT
 } from '../scripts/lib/maxis-storage.mjs';
+import { prettyJsonBytes } from '../scripts/lib/maxis-artifact-budget.mjs';
+import { createTransactionScanState, serializeTransactionAccumulator, transactionAccumulatorRows } from '../scripts/lib/maxis-transactions-v2.mjs';
 import { maxisImplementationHash } from '../scripts/refresh-maxis-data.mjs';
 
 const manifest = JSON.parse(await fs.readFile('data/maxis/manifest.json', 'utf8'));
@@ -11,7 +14,16 @@ for (const entry of manifest.seasons) {
   const directory = `data/maxis/seasons/${entry.id}`;
   const summary = JSON.parse(await fs.readFile(`${directory}/summary.json`, 'utf8'));
   const rules = JSON.parse(await fs.readFile(`${directory}/rules.json`, 'utf8'));
-  const transactionState = JSON.parse(await fs.readFile(`${directory}/transaction-state.json`, 'utf8'));
+  const statePath = `${directory}/transaction-state.json`;
+  const stateText = await fs.readFile(statePath, 'utf8');
+  const transactionState = JSON.parse(stateText);
+  const compactState = JSON.parse(storedCoreText(statePath, transactionState));
+  assert.deepEqual(compactState, transactionState, 'state compaction preserves every source value and signed receipt');
+  const resume = document => serializeTransactionAccumulator(createTransactionScanState({
+    season: document.season, rules: document.rules, document
+  }));
+  assert.deepEqual(resume(compactState), resume(transactionState), 'resumable scan state survives compaction');
+  assert.deepEqual(transactionAccumulatorRows(compactState), transactionAccumulatorRows(transactionState), 'all eligible transaction rows survive compaction');
   const stored = new Map();
   let addresses = 0, actualBytes = 0;
   for (const shard of entry.availableShards) {
@@ -28,6 +40,8 @@ for (const entry of manifest.seasons) {
   assert.equal(addresses, summary.passports.indexedAddresses);
   const receipt = measureSeasonArtifactBudget({ rules, summary, transactionState, shardPayloads: stored });
   assert.equal(receipt.passportShardsBytes, actualBytes, 'budget measures bytes on disk');
+  assert.equal(receipt.transactionStateBytes, Buffer.byteLength(stateText), 'state budget measures bytes on disk');
+  if (receipt.measurement === MAXIS_STORAGE_MEASUREMENT) assert.equal(stateText, storedCoreText(statePath, transactionState), 'canonical compact state bytes');
   assert.deepEqual(receipt, summary.artifactBudget);
   assert.deepEqual(artifactBudgetErrors(receipt), []);
   assert.equal(await maxisImplementationHash(rules.evaluatorVersion), rules.evaluatorImplementationHash, 'frozen evaluator receipt is unchanged');
@@ -52,6 +66,26 @@ for (const [limit, value] of [['passportShardBytes', valid.maxShard.bytes - 1], 
 }
 assert(artifactBudgetErrors(measureSeasonArtifactBudget({ ...options, transactionState: { status: 'building' } })).length, 'incomplete source remains a failure');
 
+// A burst of replay-tail rows can exceed the old whitespace-heavy envelope while
+// the same complete state fits the physical limit. No record may be dropped.
+const burstState = { status: 'complete', tail: { rows: Array(70_000).fill({
+  id: '9223372036854775807', level: 12345678, timestamp: '2026-10-03T11:44:33.000Z',
+  nonce: null, status: 'applied', sender: 'tz1aJHKKUWrwfsuoftdmwNBbBctjSWchMWZY', senderAlias: 'ꜩ example'
+}) } };
+const burstOptions = { ...options, transactionState: burstState };
+const compactBudget = measureSeasonArtifactBudget(burstOptions);
+assert(prettyJsonBytes(burstState) > compactBudget.limits.transactionStateBytes, 'regression fixture crosses the old 16 MiB envelope');
+assert.equal(compactBudget.withinBudget, true, 'all replay rows fit the unchanged physical limit');
+assert.deepEqual(JSON.parse(storedCoreText('transaction-state.json', burstState)), burstState);
+assert.equal(Buffer.byteLength(storedCoreText('transaction-state.building.json', burstState)), compactBudget.transactionStateBytes);
+assert.equal(Buffer.byteLength(storedCoreText('summary.json', burstState)), prettyJsonBytes(burstState), 'other core documents remain pretty JSON');
+const legacyBudget = measureSeasonArtifactBudget({ ...burstOptions,
+  summary: { ...options.summary, artifactBudget: { measurement: MAXIS_LEGACY_STORAGE_MEASUREMENT } }
+});
+assert.equal(legacyBudget.transactionStateBytes, prettyJsonBytes(burstState), 'legacy storage receipts retain their exact measurement');
+assert.equal(legacyBudget.withinBudget, false, 'legacy state limit remains enforced');
+assert.equal(compactBudget.totalBytes, compactBudget.rulesBytes + compactBudget.summaryBytes + compactBudget.transactionStateBytes + compactBudget.passportShardsBytes);
+
 // The storage exception must not silently exempt any scoring/source adapter.
 const archived = JSON.parse(await fs.readFile('scripts/lib/maxis-storage-legacy-v2.json', 'utf8'));
 assert.deepEqual(Object.keys(archived), ['writePassportShards', 'readPassportShards', 'buildSeasonSummary']);
@@ -65,4 +99,4 @@ try {
   const changed = await import(probe.href);
   assert.notEqual(await changed.maxisImplementationHash(), await maxisImplementationHash(), 'scoring adapter drift still invalidates the evaluator');
 } finally { await fs.unlink(probe).catch(() => {}); }
-console.log('ok - Maxis storage preserves every Passport, enforces physical limits, rejects corruption, and retains frozen scoring checks');
+console.log('ok - Maxis storage preserves resumable state and every Passport, enforces physical limits, rejects corruption, and retains frozen scoring checks');

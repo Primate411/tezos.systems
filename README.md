@@ -816,9 +816,10 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's September 29 review confirms the newly published EVM node 0.67
-  and reconfirms Octez 25.2 using canonical publication receipts, unchanged
-  FAST periods 693/694 and the current launch-documentation notice.
+  Release Radar's October 3 review reconfirms EVM node 0.67
+  and Octez 25.2 using canonical publication receipts, unchanged
+  FAST periods 693/694 and the current launch-documentation notice. The Q3
+  mainnet target has elapsed; the unchanged Planned roadmap supplies no new date.
   September 24 Ganesha-r2 maintenance is explicitly
   scoped to Shadownet. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
   governance, and the wider Tezos X rollout remain distinct. The previous
@@ -1725,13 +1726,16 @@ Season, or other addresses; a bucket declared empty is an honest no-activity sta
 Snapshot time lives in the summary rather than every Passport file, so an
 unchanged shard preserves its exact bytes and SHA-256 receipt across refreshes.
 Each active season also carries a recomputable UTF-8 serialization budget
-receipt. Auditable rules, summary, and state stay pretty-printed while high-volume
-Passport shards use the lossless `chamber-json-shapes-v1` storage envelope.
+receipt. Rules and summaries stay pretty-printed; transaction state uses lossless
+compact JSON, and high-volume Passport shards use the lossless
+`chamber-json-shapes-v1` storage envelope.
 The existing SHA-256 receipts still identify the exact decoded schema-2 JSON;
 wallets, ordering, scores, personal bests, and earned badges are unchanged.
-The versioned `utf8-pretty-core-shaped-shards-v2` budget measures committed
-compressed shard bytes. Legacy seasons retain their original measurement and
-remain readable. The approved storage migration archives only the three original
+The versioned `utf8-compact-state-shaped-shards-v3` budget measures actual
+compact state and compressed shard bytes under the same limits. The frozen v2
+source receipt and Transaction availability still use their original pretty-JSON
+state measurement; compaction cannot turn a withheld lane into a ready one.
+Legacy seasons retain their original measurement and remain readable. The approved storage migration archives only the three original
 v2 storage adapters for historical evaluator-hash verification; all scoring,
 source IO, frozen rules, and finalized archives remain unchanged. Run
 `node scripts/refresh-maxis-data.mjs --migrate-storage` for an idempotent,

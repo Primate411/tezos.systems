@@ -845,7 +845,11 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   transaction state, and `scripts/lib/maxis-artifact-budget.mjs` measures the
   legacy committed UTF-8 envelope. `scripts/lib/maxis-storage.mjs` adds the
   approved lossless `chamber-json-shapes-v1` Passport storage migration and a
-  separate physical-byte budget receipt. Its three archived pre-migration storage
+  separate physical-byte budget receipt. The v3 storage measurement uses compact
+  transaction-state JSON without changing its parsed values or integrity hash;
+  the frozen v2 source receipt and readiness limit still measure pretty JSON.
+  Active/settling migration leaves source clocks and finalized archives intact.
+  Its three archived pre-migration storage
   adapters in `maxis-storage-legacy-v2.json` preserve the historical evaluator
   hash; do not add scoring or source functions to this exception. Rules and
   finalized archives remain byte-for-byte unchanged. Both legacy schema-2 JSON
