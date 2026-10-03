@@ -13,7 +13,9 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readText = (file) => fs.readFile(path.join(ROOT, file), 'utf8');
 
-const raw = JSON.parse(await readText('data/release-radar.json'));
+const rawText = await readText('data/release-radar.json');
+assert(Buffer.byteLength(rawText) <= 20 * 1024, 'Release Radar must fit its 20 KiB startup JSON allowance; retain receipts in compact JSON');
+const raw = JSON.parse(rawText);
 const reviewedNow = Date.parse(raw.updatedAt) + 60 * 60 * 1000;
 const snapshot = normalizeReleaseRadarSnapshot(raw, { now: reviewedNow });
 const signal = buildReleaseRadarSignal(snapshot, { now: reviewedNow });

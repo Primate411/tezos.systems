@@ -96,7 +96,10 @@ the highest-risk gotchas.
   its own sources; never restore hidden DOM nodes as the ownership interface.
 - `js/core/release-radar.mjs`: validated, expiring Release Radar receipt schema
   and Live Pulse signal builder. The browser renders reviewed evidence; it does
-  not infer release readiness from repository activity.
+  not infer release readiness from repository activity. Keep
+  `data/release-radar.json` compact and within its tested 20 KiB startup allowance;
+  unchanged re-reviews update evidence clocks, while material release changes
+  append history. Preserve prior corrections and source receipts.
 - `js/core/site-map.js`: canonical destination, search, sitemap/crawl, nested
   view, alias, and semantic-relations graph used by the command bar, dashboard
   map, standalone pages, XML sitemap, share/copy routes, and journey

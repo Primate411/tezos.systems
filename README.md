@@ -827,7 +827,10 @@ inline modal styles in `js/core/app.js`.
   review clock and 14-day expiry still require a new evidence review to extend.
   Daily Actions audits should review the primary sources again whenever the
   receipt would exceed that 36-hour limit before the next daily audit, so a
-  receipt still fresh today does not become overdue between checks.
+  receipt still fresh today does not become overdue between checks. Store this
+  startup receipt as compact JSON within its 20 KiB static allowance. Routine
+  unchanged re-reviews update evidence clocks; append history when release facts,
+  scope, gates, or confidence change. Preserve previous corrections and receipts.
 - Capital Chamber with direct `#capital` and `/capital/` access. Four sourced
   views organize the cross-layer capital picture without pretending their
   unlike metrics share one definition: **One System** (`?view=system`) connects
