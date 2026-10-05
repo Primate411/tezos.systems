@@ -1868,6 +1868,12 @@ unrelated families finish, with a fresh rollback snapshot. Eight temporary
 failures within two minutes also trigger that deferred recovery, so a degraded
 provider cannot trap unrelated families behind a slowly progressing scan. Hard source or
 validation failures are never classified as temporary recovery. The workflow
+also reads governance careers in 1,000-row TzKT pages with a 30-second request
+deadline and three bounded attempts for network failures, rate limits and server
+errors. Exhausted temporary failures receive the same deferred lane recovery;
+count, ordering and schema failures remain hard failures. A provider cooldown
+longer than one minute stops that lane for the run instead of retrying early.
+The workflow
 uploads `generated-refresh-report` with every lane attempt and recovery outcome;
 unresolved failures still make the Action red. Each family regenerates and
 validates its launcher preview in that same rollback unit. The shared Maxis and baker-governance

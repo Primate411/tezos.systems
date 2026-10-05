@@ -786,6 +786,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   deferred retry after independent lanes, with a fresh rollback snapshot that
   preserves intervening shared-preview updates. Validation and scope failures
   never qualify. The workflow uploads all attempt receipts and recovery outcomes.
+  The Maxis season and governance-career lanes opt in. Career TzKT reads use
+  1,000-row pages, 30-second deadlines and three bounded request attempts;
+  count/order/schema failures and provider cooldowns over one minute stay red
+  without a deferred retry. Preserve the complete count and ordering receipts.
   Ecosystem previews use compact JSON with both 26-week histories and retain
   per-row week-end timestamps only in the full source to stay within 16 KiB.
 - `scripts/check-generated-freshness.mjs`: read-only operational audit for

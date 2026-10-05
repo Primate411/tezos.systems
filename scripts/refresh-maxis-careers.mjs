@@ -3,6 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { setTimeout as sleep } from 'node:timers/promises';
 import {
   buildGovernanceCareerArtifact,
   validateGovernanceCareerArtifact
@@ -12,7 +13,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT_FILE = path.join(ROOT, 'data/maxis-careers.json');
 const SEASON_MANIFEST_FILE = path.join(ROOT, 'data/maxis/manifest.json');
 const TZKT = 'https://api.tzkt.io/v1';
-const PAGE_SIZE = 10000;
+const PAGE_SIZE = 1000;
+const TRANSIENT = 'MAXIS_CAREER_TZKT_TRANSIENT';
 
 function cliValue(name) {
   const index = process.argv.indexOf(name);
@@ -44,12 +46,45 @@ async function writeJsonAtomic(file, value) {
   await fs.rename(temporary, file);
 }
 
-async function tzkt(pathname, params = {}) {
+async function tzkt(pathname, params = {}, {
+  fetchImpl = globalThis.fetch,
+  wait = sleep,
+  timeoutMs = 30000,
+  now = Date.now
+} = {}) {
   const query = new URLSearchParams(params);
   const url = `${TZKT}${pathname}${query.size ? `?${query}` : ''}`;
-  const response = await fetch(url, { headers: { accept: 'application/json' } });
-  if (!response.ok) throw new Error(`TzKT ${pathname} returned HTTP ${response.status}`);
-  return response.json();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let delay = 2000 * (2 ** attempt);
+    try {
+      const response = await fetchImpl(url, {
+        headers: { accept: 'application/json' }, signal: AbortSignal.timeout(timeoutMs)
+      });
+      if (!response.ok) {
+        const retryAfter = response.headers.get('retry-after');
+        if (retryAfter) {
+          const value = Number(retryAfter);
+          const milliseconds = Number.isFinite(value) ? value * 1000 : Date.parse(retryAfter) - now();
+          if (Number.isFinite(milliseconds)) delay = Math.max(delay, milliseconds);
+        }
+        await response.body?.cancel();
+        throw Object.assign(new Error(`TzKT ${pathname} returned HTTP ${response.status}`), {
+          code: response.status === 429 || response.status >= 500 ? TRANSIENT : null
+        });
+      }
+      return await response.json();
+    } catch (error) {
+      const transient = error.code === TRANSIENT || error instanceof TypeError
+        || error.name === 'TimeoutError' || error.name === 'AbortError';
+      if (!transient) throw error;
+      const failure = Object.assign(new Error(error.message, { cause: error }), { code: TRANSIENT });
+      // Do not turn an unusually long Retry-After into an early deferred retry.
+      if (delay > 60000) throw Object.assign(new Error(`${error.message}; provider requires a ${delay}ms cooldown`), { code: 'MAXIS_CAREER_TZKT_COOLDOWN' });
+      if (attempt === 2) throw failure;
+      console.warn(`TzKT career request retry ${attempt + 1}/2 in ${delay}ms: ${pathname}`);
+      await wait(delay);
+    }
+  }
 }
 
 function countParams(params) {
@@ -238,12 +273,13 @@ async function main() {
 
 export {
   buildArtifact as buildMaxisGovernanceCareerArtifact,
-  fetchCompleteCollection as fetchCompleteTzktCollection
+  fetchCompleteCollection as fetchCompleteTzktCollection,
+  tzkt as fetchGovernanceCareerJson
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   main().catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exit(error.code === TRANSIENT ? 75 : 1);
   });
 }

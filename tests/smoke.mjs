@@ -43,6 +43,7 @@ import { smokeLiveHeadStall } from './lib/live-head-stall-smoke.mjs';
 import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
 import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
+import { waitForStableClickTarget } from './lib/smoke-click-ready.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
@@ -4632,25 +4633,7 @@ async function assertChamberInfoTooltipsContained(page, label) {
     // and pointer release, turning an info click into a card-surface click.
     await page.evaluate(() => document.fonts.ready);
     await button.scrollIntoViewIfNeeded();
-    await page.waitForFunction(cardSelector => {
-      const info = document.querySelector(`${cardSelector} > .card-info-btn`);
-      if (!info) return false;
-      const box = info.getBoundingClientRect();
-      const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-      if (!hit || !info.contains(hit)) {
-        delete info.__smokeClickGeometry;
-        return false;
-      }
-      const signature = [box.x, box.y, box.width, box.height, window.scrollY].join(':');
-      const previous = info.__smokeClickGeometry;
-      if (previous?.signature !== signature) {
-        info.__smokeClickGeometry = { signature, since: performance.now() };
-        return false;
-      }
-      if (performance.now() - previous.since < 250) return false;
-      delete info.__smokeClickGeometry;
-      return true;
-    }, selector, { timeout: 10000 });
+    await waitForStableClickTarget(page, `${selector} > .card-info-btn`, label);
     await button.click();
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'

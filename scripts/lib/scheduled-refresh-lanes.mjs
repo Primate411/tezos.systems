@@ -35,6 +35,7 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   {
     id: 'maxis-careers',
     label: 'Maxis governance careers',
+    retryTransient: true,
     targets: ['data/maxis-careers.json', 'data/baker-governance-signals.json'],
     sharedTargets: ['data/baker-governance-signals.json'],
     refresh: [command('scripts/refresh-maxis-careers.mjs'), command('scripts/generate-baker-governance-signals.mjs')],
