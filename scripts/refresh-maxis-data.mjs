@@ -38,6 +38,7 @@ import {
   storedPassportText, readStoredPassport, storedCoreText, MAXIS_STORAGE_MEASUREMENT
 } from './lib/maxis-storage.mjs';
 import { fetchKeysetPages, fetchOffsetPages } from './lib/maxis-pagination.mjs';
+import { createMaxisObjktFetch, isTransientObjktError } from './lib/maxis-objkt-transport.mjs';
 import {
   TRANSACTION_REPLAY_LEVELS,
   TRANSACTION_STATE_SCHEMA,
@@ -52,6 +53,9 @@ import {
 } from './lib/maxis-transactions-v2.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Physical request recovery beneath the unchanged frozen source adapters.
+// Non-OBJKT traffic passes through; only complete logical pages reach scoring.
+const fetch = createMaxisObjktFetch({ checkpointDir: path.join(ROOT, '.cache/maxis-objkt') });
 const CONFIG_FILE = path.join(ROOT, 'data/maxis-contracts.json');
 const OUTPUT_FILE = path.join(ROOT, 'data/maxis-leaders.json');
 const PROTOCOL_FILE = path.join(ROOT, 'data/protocol-data.json');
@@ -2308,6 +2312,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       process.exit(0);
     }
     console.error(error);
-    process.exit(1);
+    process.exit(isTransientObjktError(error) ? 75 : 1);
   });
 }

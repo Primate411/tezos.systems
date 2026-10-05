@@ -782,6 +782,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   owner regenerates/checks the preview against the current workspace sources.
   A failed owner restores the preceding matching source/preview pair, including
   earlier successful updates. Undeclared writes are fatal and publish nothing.
+  Exit 75 marks a temporary source failure. Only opted-in lanes receive one
+  deferred retry after independent lanes, with a fresh rollback snapshot that
+  preserves intervening shared-preview updates. Validation and scope failures
+  never qualify. The workflow uploads all attempt receipts and recovery outcomes.
   Ecosystem previews use compact JSON with both 26-week histories and retain
   per-row week-end timestamps only in the full source to stay within 16 KiB.
 - `scripts/check-generated-freshness.mjs`: read-only operational audit for
@@ -844,6 +848,16 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   at activation while the prior one settles for 24 hours, and fail closed on a
   non-adjacent protocol jump rather than assigning an ending season the wrong
   boundary. `npm run check:maxis` validates without rescanning live sources.
+- `scripts/lib/maxis-objkt-transport.mjs`: operational recovery beneath the
+  unchanged frozen adapters. Serialize/pace OBJKT reads and adapt only the
+  physical `limit`/`after` of the exact reviewed keyset documents; reconstruct
+  each complete logical page without changing filters, windows, fields or row
+  values. Integrity-checked, 20-minute checkpoints resume an identical query
+  and all variables only; never cache completed history under a new clock.
+  Do not split mint time windows: the same bounds also define token eligibility.
+  Reject malformed, duplicate, out-of-order or partial responses. A typed
+  temporary outage exits 75; hard errors stay hard. Keep equivalence, interrupted
+  recovery and corruption tests in `tests/maxis-objkt-transport-check.mjs`.
 - `scripts/refresh-maxis-careers.mjs`: rebuilds the separate all-history
   Governance career artifact from TzKT count receipts and terminal period
   exhaustion. `npm run check:maxis-careers` validates the committed artifact,

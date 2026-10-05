@@ -42,12 +42,9 @@ try {
   for (const required of ['data/ecosystem-stats.json', 'data/ecosystem-entry-summary.json', 'data/whale-watch.json', 'data/maxis-leaders.json']) {
     assert(productionTargets.includes(required), `scheduled target inventory is missing ${required}`);
   }
-  const maxisSeasonRefresh = SCHEDULED_REFRESH_LANES.find((lane) => lane.id === 'maxis-season')?.refresh?.[0];
-  assert.deepEqual(
-    { attempts: maxisSeasonRefresh?.attempts, retryBaseMs: maxisSeasonRefresh?.retryBaseMs, retryCapMs: maxisSeasonRefresh?.retryCapMs },
-    { attempts: 3, retryBaseMs: 60_000, retryCapMs: 120_000 },
-    'scheduled Maxis refresh must retry a transient source failure outside the frozen evaluator implementation'
-  );
+  const maxisLane = SCHEDULED_REFRESH_LANES.find(lane => lane.id === 'maxis-season');
+  assert.equal(maxisLane.retryTransient, true, 'temporary OBJKT failures receive one deferred recovery attempt');
+  assert.equal(maxisLane.refresh[0].attempts, undefined, 'do not restart the whole collector repeatedly before unrelated lanes run');
   assert.equal(pathMatchesTarget('data/maxis/seasons/example/summary.json', 'data/maxis/seasons'), true);
   assert.equal(pathMatchesTarget('data/maxis-season.json', 'data/maxis/seasons'), false);
   assert.throws(() => assertSafeTarget('../outside'), /Unsafe/);
@@ -165,6 +162,61 @@ try {
       assert.equal(await read(dir, 'data/capital-preview.json'), 'new-capital-preview', 'unrelated matching families still publish');
     }
   }
+
+  // A failed deferred attempt must restore the newer shared-preview snapshot,
+  // not its initial snapshot from before the independent owner succeeded.
+  for (const mode of ['recover', 'outage', 'hard', 'validation', 'scope']) {
+    const deferredWorkspace = path.join(temporary, `deferred-${mode}`);
+    const deferredPublish = path.join(temporary, `deferred-publish-${mode}`);
+    for (const dir of [deferredWorkspace, deferredPublish]) {
+      await write(dir, 'data/first.json', 'old-first');
+      await write(dir, 'data/second.json', 'old-second');
+      await write(dir, 'data/preview.json', 'old-first+old-second');
+    }
+    const order = [];
+    let attempts = 0;
+    const deferredReport = await runRefreshLanes({
+      lanes: ['first', 'second'].map(id => ({
+        id, targets: [`data/${id}.json`, 'data/preview.json'], sharedTargets: ['data/preview.json'],
+        retryTransient: id === 'first', refresh: [{ script: 'scripts/fixture.mjs', args: [id] }],
+        validate: mode === 'validation' && id === 'first' ? [{ script: 'tests/fixture.mjs', args: ['validate'] }] : []
+      })),
+      workspaceRoot: deferredWorkspace, publishRoot: deferredPublish,
+      backupRoot: path.join(temporary, `deferred-backups-${mode}`),
+      executeStep: async (step, { cwd }) => {
+        const id = step.args[0];
+        if (id === 'validate') throw Object.assign(new Error('validation is never retryable'), { exitCode: 75 });
+        order.push(id);
+        if (id === 'first') attempts += 1;
+        await write(cwd, `data/${id}.json`, `new-${id}`);
+        await write(cwd, 'data/preview.json', `${await read(cwd, 'data/first.json')}+${await read(cwd, 'data/second.json')}`);
+        if (id === 'first' && mode !== 'validation' && !(mode === 'recover' && attempts === 2)) {
+          throw Object.assign(new Error('injected upstream outage'), { exitCode: mode === 'hard' ? 1 : 75 });
+        }
+      },
+      listChangedPaths: async () => mode === 'scope' ? ['data/undeclared.json'] : []
+    });
+    const retried = ['recover', 'outage'].includes(mode);
+    assert.deepEqual(order, mode === 'scope' ? ['first'] : retried ? ['first', 'second', 'first'] : ['first', 'second']);
+    assert.equal(deferredReport.lanes[0].attempts.length, retried ? 2 : 1);
+    assert.equal(deferredReport.lanes[0].recovered, mode === 'recover');
+    assert.equal(deferredReport.summary.failed, mode === 'recover' ? 0 : 1);
+    assert.match(deferredReport.lanes[0].attempts[0].error, mode === 'scope' ? /undeclared/ : mode === 'validation' ? /validation/ : /outage/);
+    if (mode === 'scope') {
+      assert(deferredReport.fatal);
+      assert.equal(await read(deferredPublish, 'data/preview.json'), 'old-first+old-second');
+    } else {
+      for (const dir of [deferredWorkspace, deferredPublish]) {
+        assert.equal(await read(dir, 'data/first.json'), mode === 'recover' ? 'new-first' : 'old-first');
+        assert.equal(await read(dir, 'data/preview.json'), mode === 'recover' ? 'new-first+new-second' : 'old-first+new-second');
+      }
+    }
+  }
+
+  const transientScript = path.join(temporary, 'transient-step.mjs');
+  await fs.writeFile(transientScript, 'process.exit(75);');
+  await assert.rejects(executeNodeStep({ script: transientScript, args: [] }, { cwd: root, forwardOutput: false }),
+    error => error.exitCode === 75, 'the child exit code must survive the process boundary');
 
   const retryScript = path.join(temporary, 'retry-step.mjs');
   const retryCounter = path.join(temporary, 'retry-count.txt');

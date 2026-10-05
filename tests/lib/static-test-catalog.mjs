@@ -8,6 +8,7 @@ export const STATIC_CHECKS = Object.freeze([
   { "script": "tests/unused-code-check.mjs", "args": [] },
   { "script": "tests/text-loading-check.mjs", "args": [] },
   { "script": "tests/maxis-storage-check.mjs", "args": [] },
+  { "script": "tests/maxis-objkt-transport-check.mjs", "args": [] },
   { "script": "tests/css-build-check.mjs", "args": [] },
   { "script": "tests/community-funding-check.mjs", "args": [] },
   { "script": "tests/coingecko-ticker-page-check.mjs", "args": [] },

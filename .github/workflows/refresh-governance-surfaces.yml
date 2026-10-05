@@ -82,3 +82,12 @@ jobs:
             failed=1
           fi
           exit "$failed"
+
+      - name: Upload lane attempts and recovery report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: generated-refresh-report
+          path: ${{ runner.temp }}/generated-refresh-report.json
+          if-no-files-found: error
+          retention-days: 14

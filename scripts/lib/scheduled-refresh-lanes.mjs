@@ -22,13 +22,10 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   {
     id: 'maxis-season',
     label: 'Maxis crowns and protocol season',
+    retryTransient: true,
     targets: ['data/maxis-leaders.json', 'data/maxis/manifest.json', 'data/maxis/seasons', 'data/transports/v1/data/maxis/seasons', 'data/maxis/entry-summary.json'],
     sharedTargets: ['data/maxis/entry-summary.json'],
-    refresh: [command('scripts/refresh-maxis-data.mjs', [], {
-      attempts: 3,
-      retryBaseMs: 60_000,
-      retryCapMs: 120_000
-    }), command('scripts/generate-chamber-transports.mjs', ['--only', 'maxis']), command('scripts/generate-maxis-entry-summary.mjs')],
+    refresh: [command('scripts/refresh-maxis-data.mjs'), command('scripts/generate-chamber-transports.mjs', ['--only', 'maxis']), command('scripts/generate-maxis-entry-summary.mjs')],
     validate: [
       command('scripts/refresh-maxis-data.mjs', ['--check']),
       command('scripts/generate-chamber-transports.mjs', ['--only', 'maxis', '--check']),

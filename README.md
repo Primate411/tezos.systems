@@ -1852,8 +1852,17 @@ every six hours through `scripts/refresh-scheduled-data.mjs`. Each source family
 runs and validates in an isolated temporary Git worktree. A failed family is
 restored to its exact last-good files while later, unrelated families continue;
 the workflow commits the successful lanes and then remains red with the failed
-lane named in its report. Each family regenerates and validates its launcher
-preview in that same rollback unit. The shared Maxis and baker-governance
+lane named in its report. Temporary OBJKT failures in Maxis use paced requests
+and smaller physical keyset pages that reconstruct the unchanged 500-row
+logical response. Short-lived, integrity-checked checkpoints resume only the
+identical interrupted request; a new observation window always starts fresh.
+The frozen query documents, filters, source clocks and scoring remain unchanged.
+If request recovery is exhausted, Maxis receives one deferred retry after the
+unrelated families finish, with a fresh rollback snapshot. Hard source or
+validation failures are never classified as temporary recovery. The workflow
+uploads `generated-refresh-report` with every lane attempt and recovery outcome;
+unresolved failures still make the Action red. Each family regenerates and
+validates its launcher preview in that same rollback unit. The shared Maxis and baker-governance
 previews are rebuilt after either input family changes, so a failed preview
 cannot publish a new source paired with old preview bytes. The Ecosystem
 preview uses compact JSON and start dates for both 26-week histories within

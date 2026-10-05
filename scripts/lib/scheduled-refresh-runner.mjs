@@ -31,6 +31,7 @@ export function validateLaneDefinitions(lanes) {
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(lane.id || '')) throw new Error(`Invalid scheduled-refresh lane id: ${lane.id}`);
     if (ids.has(lane.id)) throw new Error(`Duplicate scheduled-refresh lane id: ${lane.id}`);
     ids.add(lane.id);
+    if (lane.retryTransient != null && typeof lane.retryTransient !== 'boolean') throw new Error(`${lane.id} has invalid transient retry policy`);
     if (!Array.isArray(lane.targets) || !lane.targets.length) throw new Error(`${lane.id} has no declared targets`);
     const sharedTargets = new Set((lane.sharedTargets || []).map(assertSafeTarget));
     if ([...sharedTargets].some(target => !lane.targets.includes(target))) {
@@ -123,7 +124,7 @@ async function executeNodeStepAttempt(step, { cwd, env, forwardOutput }) {
       if (code === 0) resolve();
       else {
         const detail = (stderrTail || stdoutTail).trim().replace(/\s+/g, ' ').slice(-1_500);
-        reject(new Error(`${step.script} ${step.args.join(' ')} failed (${signal ? `signal ${signal}` : `exit ${code}`})${detail ? `: ${detail}` : ''}`));
+        reject(Object.assign(new Error(`${step.script} ${step.args.join(' ')} failed (${signal ? `signal ${signal}` : `exit ${code}`})${detail ? `: ${detail}` : ''}`), { exitCode: code }));
       }
     });
   });
@@ -164,15 +165,19 @@ export async function runRefreshLanes({
   const startedAt = now();
   const results = [];
   const successfulTargets = [];
+  const deferred = [];
   let fatal = null;
 
-  for (const lane of lanes) {
+  async function attemptLane(lane, previous = null) {
     const laneStartedAt = now();
-    const laneBackup = path.join(backupRoot, lane.id);
+    const laneBackup = path.join(backupRoot, lane.id, String((previous?.attempts.length || 0) + 1));
     await snapshotTargets(workspaceRoot, laneBackup, lane.targets);
     process.stdout.write(`\n=== ${lane.label || lane.id} (${lane.id}) ===\n`);
+    let attempt;
+    let refreshing = true;
     try {
       for (const step of lane.refresh || []) await executeStep(step, { cwd: workspaceRoot });
+      refreshing = false;
       for (const step of lane.validate || []) await executeStep(step, { cwd: workspaceRoot });
       const allowedTargets = [...successfulTargets, ...lane.targets];
       const unexpected = (await listChangedPaths(workspaceRoot)).filter((file) => !allowedTargets.some((target) => pathMatchesTarget(file, target)));
@@ -181,13 +186,12 @@ export async function runRefreshLanes({
         throw new Error(fatal);
       }
       successfulTargets.push(...lane.targets);
-      results.push({
-        id: lane.id,
-        label: lane.label || lane.id,
+      attempt = {
         status: 'succeeded',
         durationMs: Math.max(0, now() - laneStartedAt),
-        error: null
-      });
+        error: null,
+        transient: false
+      };
     } catch (error) {
       try {
         const allowedTargets = [...successfulTargets, ...lane.targets];
@@ -197,16 +201,33 @@ export async function runRefreshLanes({
         fatal = `${lane.id} write-scope audit failed: ${errorText(scopeError)}`;
       }
       await restoreTargets(workspaceRoot, laneBackup, lane.targets);
-      results.push({
-        id: lane.id,
-        label: lane.label || lane.id,
+      attempt = {
         status: fatal ? 'fatal' : 'failed',
         durationMs: Math.max(0, now() - laneStartedAt),
-        error: fatal || errorText(error)
-      });
+        error: fatal || errorText(error),
+        transient: !fatal && refreshing && error.exitCode === 75
+      };
       process.stderr.write(`Scheduled refresh lane ${lane.id} failed: ${fatal || errorText(error)}\n`);
-      if (fatal) break;
     }
+    const attempts = [...(previous?.attempts || []), attempt];
+    return { id: lane.id, label: lane.label || lane.id, ...attempt,
+      durationMs: attempts.reduce((total, item) => total + item.durationMs, 0),
+      recovered: Boolean(previous && attempt.status === 'succeeded'), attempts };
+  }
+
+  for (const lane of lanes) {
+    const result = await attemptLane(lane);
+    results.push(result);
+    if (fatal) break;
+    if (lane.retryTransient && result.transient) deferred.push(lane);
+  }
+  // Give the upstream the entire independent-lane interval to recover. Snapshot
+  // again here so rollback preserves any intervening shared-preview updates.
+  for (const lane of deferred) {
+    if (fatal) break;
+    const index = results.findIndex(result => result.id === lane.id);
+    process.stdout.write(`Deferred transient recovery for ${lane.id}\n`);
+    results[index] = await attemptLane(lane, results[index]);
   }
 
   if (!fatal) {
