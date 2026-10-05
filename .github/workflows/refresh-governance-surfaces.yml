@@ -84,7 +84,7 @@ jobs:
           exit "$failed"
 
       - name: Upload lane attempts and recovery report
-        if: always()
+        if: always() && !cancelled()
         uses: actions/upload-artifact@v6
         with:
           name: generated-refresh-report

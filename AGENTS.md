@@ -852,9 +852,16 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   unchanged frozen adapters. Serialize/pace OBJKT reads and adapt only the
   physical `limit`/`after` of the exact reviewed keyset documents; reconstruct
   each complete logical page without changing filters, windows, fields or row
-  values. After four complete healthy logical pages, cautiously increase the
+  values. Keep 650ms between completed requests and the next request: OBJKT's
+  documented limit is 120 requests/minute, including small-page retries.
+  Honor `Retry-After`; never shrink pages in response to rate limiting.
+  After four complete healthy logical pages, cautiously increase the
   physical page size; another transient failure reduces it again. A resumed
   checkpoint must respect any smaller size learned in the same process.
+  Eight transient failures within two minutes open a process-local circuit;
+  no more OBJKT requests are sent until the deferred lane starts a new process.
+  Keep cause, operation and cursor in retry logs to distinguish provider errors
+  from queue/deadline interruptions without dumping rows.
   Integrity-checked, 20-minute checkpoints resume an identical query
   and all variables only; never cache completed history under a new clock.
   Do not split mint time windows: the same bounds also define token eligibility.

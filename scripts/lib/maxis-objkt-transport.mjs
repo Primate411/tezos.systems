@@ -50,7 +50,9 @@ function retryAfter(value, now) {
 export function createMaxisObjktFetch({
   fetch: upstream = globalThis.fetch,
   checkpointDir,
-  spacingMs = 250,
+  // https://data.objkt.com/docs/: 120 requests/minute. One serialized request
+  // plus 650ms after completion keeps even tiny/instant pages at most 93/minute.
+  spacingMs = 650,
   requestTimeoutMs = 12_000,
   now = Date.now,
   wait = (ms, signal) => sleep(ms, undefined, { signal }),
@@ -61,6 +63,19 @@ export function createMaxisObjktFetch({
   let initialization;
   const pageSizes = new Map();
   const healthyPages = new Map();
+  const failureTimes = [];
+  let circuitError = null;
+
+  function recordFailure(error) {
+    const time = now();
+    failureTimes.push(time);
+    while (failureTimes.length && time - failureTimes[0] > 120_000) failureTimes.shift();
+    if (!circuitError && failureTimes.length >= 8) {
+      circuitError = transient('OBJKT remains unstable: eight transient failures within two minutes; defer lane recovery until independent families finish', error);
+      log(circuitError.message);
+    }
+    return circuitError || error;
+  }
 
   async function initialize() {
     if (!checkpointDir) return;
@@ -86,20 +101,23 @@ export function createMaxisObjktFetch({
   async function physical(url, options, request, descriptor) {
     const preceding = queue;
     let release;
+    let requestStarted = false;
     queue = new Promise(resolve => { release = resolve; });
     try {
       await preceding;
+      if (circuitError) throw circuitError;
       options.signal?.throwIfAborted();
       // Another queued caller may extend the shared cooldown while we wait.
       while (notBefore > now()) await wait(notBefore - now(), options.signal);
       const timeout = AbortSignal.timeout(requestTimeoutMs);
       const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
+      requestStarted = true;
       const response = await upstream(url, { ...options, body: JSON.stringify(request), signal });
       if (!response.ok) {
         notBefore = Math.max(notBefore, now() + retryAfter(response.headers.get('retry-after'), now()));
         await response.body?.cancel();
         const message = `${ENDPOINT} returned HTTP ${response.status}`;
-        if (response.status === 429 || response.status >= 500) throw transient(message);
+        if (response.status === 429 || response.status >= 500) throw Object.assign(transient(message), { status: response.status });
         throw new Error(message);
       }
       const payload = await response.json();
@@ -107,17 +125,18 @@ export function createMaxisObjktFetch({
       if (payload?.errors?.length) {
         const messages = payload.errors.map(error => String(error?.message));
         const message = messages.join('; ');
-        if (messages.every(item => /database query error|statement timeout|temporarily unavailable|too many requests/i.test(item))) throw transient(`OBJKT: ${message}`);
+        if (messages.every(item => /database query error|statement timeout|temporarily unavailable|too many requests/i.test(item))) {
+          throw Object.assign(transient(`OBJKT: ${message}`), { status: messages.every(item => /too many requests/i.test(item)) ? 429 : null });
+        }
         throw new Error(`OBJKT GraphQL rejected the query: ${message}`);
       }
       const rows = payload?.data?.[descriptor.field];
       validateRows(rows, request.variables.after, request.variables.limit, descriptor.keyset);
       return rows;
     } catch (error) {
-      if (options.signal?.aborted || error?.name === 'TimeoutError' || error?.name === 'AbortError' || error instanceof TypeError) {
-        throw transient('OBJKT transport interrupted before a complete response', error);
-      }
-      throw error;
+      const failure = options.signal?.aborted || error?.name === 'TimeoutError' || error?.name === 'AbortError' || error instanceof TypeError
+        ? transient('OBJKT transport interrupted before a complete response', error) : error;
+      throw requestStarted && isTransientObjktError(failure) ? recordFailure(failure) : failure;
     } finally {
       notBefore = Math.max(notBefore, now() + spacingMs);
       release();
@@ -126,6 +145,7 @@ export function createMaxisObjktFetch({
 
   return async function maxisObjktFetch(url, options = {}) {
     if (String(url) !== ENDPOINT) return upstream(url, options);
+    if (circuitError) throw circuitError;
     const request = JSON.parse(options.body);
     const documentHash = hash(request.query);
     const descriptor = DOCUMENTS.get(documentHash);
@@ -166,14 +186,14 @@ export function createMaxisObjktFetch({
       try {
         page = await physical(url, options, { ...request, variables }, descriptor);
       } catch (error) {
-        if (!isTransientObjktError(error) || options.signal?.aborted || ++failures >= 3) throw error;
-        if (descriptor.keyset) {
+        if (circuitError || !isTransientObjktError(error) || options.signal?.aborted || ++failures >= 3) throw circuitError || error;
+        healthyPages.set(documentHash, 0);
+        if (descriptor.keyset && error.status !== 429) {
           size = Math.min(size, Math.max(Math.min(25, limit), Math.floor(size / 5)));
           pageSizes.set(documentHash, size);
-          healthyPages.set(documentHash, 0);
         }
         notBefore = Math.max(notBefore, now() + 1000 * (2 ** (failures - 1)));
-        log(`OBJKT transport retry ${failures}/2; physical page ${descriptor.keyset ? size : limit}; ${rows.length} validated rows retained`);
+        log(`OBJKT transport retry ${failures}/2; physical page ${descriptor.keyset ? size : limit}; ${rows.length} validated rows retained; ${request.query.match(/^query (\w+)/)?.[1]} after ${variables.after ?? 'none'}: ${error.message}`);
         continue;
       }
       rows.push(...page);

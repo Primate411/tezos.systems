@@ -1854,13 +1854,19 @@ restored to its exact last-good files while later, unrelated families continue;
 the workflow commits the successful lanes and then remains red with the failed
 lane named in its report. Temporary OBJKT failures in Maxis use paced requests
 and smaller physical keyset pages that reconstruct the unchanged 500-row
-logical response. Short-lived, integrity-checked checkpoints resume only the
+logical response. A shared 650ms interval after each completed request stays
+below the provider's [120 requests/minute limit](https://data.objkt.com/docs/),
+including when small pages return instantly. Rate-limit responses honor
+`Retry-After` without shrinking pages and multiplying requests further.
+Short-lived, integrity-checked checkpoints resume only the
 identical interrupted request; a new observation window always starts fresh.
 Four complete successful pages permit a gradual request-size increase, so a
 brief outage does not force small requests for the rest of the season scan.
 The frozen query documents, filters, source clocks and scoring remain unchanged.
 If request recovery is exhausted, Maxis receives one deferred retry after the
-unrelated families finish, with a fresh rollback snapshot. Hard source or
+unrelated families finish, with a fresh rollback snapshot. Eight temporary
+failures within two minutes also trigger that deferred recovery, so a degraded
+provider cannot trap unrelated families behind a slowly progressing scan. Hard source or
 validation failures are never classified as temporary recovery. The workflow
 uploads `generated-refresh-report` with every lane attempt and recovery outcome;
 unresolved failures still make the Action red. Each family regenerates and

@@ -146,8 +146,49 @@ try {
   } });
   assert.deepEqual((await (await stats(endpoint, request(statsDocument))).json()).data.sales_stat, [{ rank: 1 }]);
   assert(delays.slice(beforeRetry).some(ms => ms >= 7000), 'honor provider Retry-After');
+  const limitedSizes = [];
+  const rateLimited = createMaxisObjktFetch({ ...options, fetch: async (url, init) => {
+    limitedSizes.push(JSON.parse(init.body).variables.limit);
+    return limitedSizes.length === 1 ? new Response('', { status: 429, headers: { 'retry-after': '7' } }) : response('event', []);
+  } });
+  await rateLimited(endpoint, request(document));
+  assert.deepEqual(limitedSizes, [500, 500], 'rate limiting must slow traffic without multiplying requests by shrinking pages');
+
+  let pacedTime = 0;
+  const starts = [];
+  const paced = createMaxisObjktFetch({ now: () => pacedTime, wait: async ms => { pacedTime += ms; }, log: () => {}, fetch: async () => {
+    starts.push(pacedTime); return response('event', []);
+  } });
+  await Promise.all(Array.from({ length: 125 }, () => paced(endpoint, request(document))));
+  for (const start of starts) assert(starts.filter(time => time >= start && time < start + 60_000).length < 120,
+    'default pacing must respect the documented 120/minute quota even for instant responses and concurrent callers');
+
   const outage = createMaxisObjktFetch({ ...options, fetch: async () => new Response('', { status: 503 }) });
   await assert.rejects(outage(endpoint, request(document)), isTransientObjktError);
+
+  // Continual degraded progress must yield to unrelated source families.
+  for (const spaced of [false, true]) {
+    let time = 0; let calls = 0;
+    const circuit = createMaxisObjktFetch({ ...options, now: () => time, wait: async ms => { time += ms; }, fetch: async () => {
+      calls += 1;
+      return calls % 2 ? retryable() : response('event', [{ id: '1' }]);
+    } });
+    const smallRequest = () => circuit(endpoint, request(document, { ...document.variables, limit: 1 }));
+    for (let i = 0; i < 7; i += 1) {
+      if (spaced) time += 31_000;
+      assert.deepEqual((await (await smallRequest()).json()).data.event, [{ id: '1' }]);
+    }
+    if (spaced) {
+      time += 31_000;
+      assert.deepEqual((await (await smallRequest()).json()).data.event, [{ id: '1' }]);
+    } else {
+      await assert.rejects(smallRequest(), error => isTransientObjktError(error) && /eight transient failures/.test(error.message));
+      const stoppedAt = calls;
+      await assert.rejects(smallRequest(), isTransientObjktError);
+      assert.equal(calls, stoppedAt, 'an open circuit must not issue more requests during outer adapter retries');
+      assert.equal(calls, 15, 'eight provider failures open the circuit despite successful partial progress');
+    }
+  }
 
   let active = 0; let maximum = 0;
   const serialized = createMaxisObjktFetch({ ...options, fetch: async () => {
