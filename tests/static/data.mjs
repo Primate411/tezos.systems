@@ -174,7 +174,7 @@ export function createDataStaticChecks({
     for (const snippet of ['git', 'worktree', 'runRefreshLanes', 'requires a clean checkout']) {
       if (!scheduledRefresh.includes(snippet)) fail(`scheduled refresh runner must isolate last-good data through ${snippet}`);
     }
-    for (const snippet of ['maxis-season', 'ecosystem', 'whales', 'launcher-projections', 'tests/uranium-check.mjs', 'tests/ecosystem-stats-check.mjs']) {
+    for (const snippet of ['maxis-season', 'ecosystem', 'whales', 'generate-capital-entry-summary.mjs', 'generate-ecosystem-entry-summary.mjs', 'generate-maxis-entry-summary.mjs', 'generate-baker-governance-signals.mjs', 'tests/uranium-check.mjs', 'tests/ecosystem-stats-check.mjs']) {
       if (!scheduledLanes.includes(snippet)) fail(`scheduled lane catalog must independently cover ${snippet}`);
     }
     for (const snippet of ['SCHEDULED_FRESHNESS_HOURS = 18', 'SCHEDULED_FRESHNESS_HOURS_BY_ARTIFACT', 'nakamoto: 30', 'ECOSYSTEM_MONDAY_GRACE_HOURS = 18', 'acceptableCompletedEcosystemWeeks', 'staleAfterHours', 'generatedAtCommitCount']) {

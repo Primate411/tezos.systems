@@ -32,11 +32,19 @@ export function validateLaneDefinitions(lanes) {
     if (ids.has(lane.id)) throw new Error(`Duplicate scheduled-refresh lane id: ${lane.id}`);
     ids.add(lane.id);
     if (!Array.isArray(lane.targets) || !lane.targets.length) throw new Error(`${lane.id} has no declared targets`);
+    const sharedTargets = new Set((lane.sharedTargets || []).map(assertSafeTarget));
+    if ([...sharedTargets].some(target => !lane.targets.includes(target))) {
+      throw new Error(`${lane.id} shared targets must also be declared targets`);
+    }
     for (const target of lane.targets) {
       const normalized = assertSafeTarget(target);
-      const overlap = targets.find((existing) => pathMatchesTarget(normalized, existing.target) || pathMatchesTarget(existing.target, normalized));
-      if (overlap) throw new Error(`${lane.id} target ${normalized} overlaps ${overlap.lane} target ${overlap.target}`);
-      targets.push({ lane: lane.id, target: normalized });
+      const overlap = targets.find((existing) =>
+        (pathMatchesTarget(normalized, existing.target) || pathMatchesTarget(existing.target, normalized))
+        && !(existing.lane !== lane.id && existing.target === normalized && existing.shared && sharedTargets.has(normalized)));
+      if (overlap) {
+        throw new Error(`${lane.id} target ${normalized} overlaps ${overlap.lane} target ${overlap.target}`);
+      }
+      targets.push({ lane: lane.id, target: normalized, shared: sharedTargets.has(normalized) });
     }
     for (const step of [...(lane.refresh || []), ...(lane.validate || [])]) {
       if (!/^(?:scripts|tests)\/[a-z0-9/_-]+\.m?js$/i.test(step?.script || '')) throw new Error(`${lane.id} has an unsafe script path`);
@@ -202,7 +210,7 @@ export async function runRefreshLanes({
   }
 
   if (!fatal) {
-    for (const target of successfulTargets) {
+    for (const target of new Set(successfulTargets)) {
       await copyExact(path.join(workspaceRoot, target), path.join(publishRoot, target));
     }
   }

@@ -21,9 +21,23 @@ try {
 
   assert.equal(validateLaneDefinitions(SCHEDULED_REFRESH_LANES), true);
   const ids = new Set(SCHEDULED_REFRESH_LANES.map((lane) => lane.id));
-  for (const required of ['governance', 'maxis-season', 'capital', 'minerals', 'uranium', 'metals', 'ecosystem', 'whales', 'launcher-projections']) {
+  for (const required of ['governance', 'maxis-season', 'capital', 'minerals', 'uranium', 'metals', 'ecosystem', 'whales']) {
     assert(ids.has(required), `scheduled refresh is missing the ${required} lane`);
   }
+  for (const [id, projection, generator] of [
+    ['governance', 'data/baker-governance-signals.json', 'scripts/generate-baker-governance-signals.mjs'],
+    ['maxis-careers', 'data/baker-governance-signals.json', 'scripts/generate-baker-governance-signals.mjs'],
+    ['maxis-l2-governance', 'data/maxis/entry-summary.json', 'scripts/generate-maxis-entry-summary.mjs'],
+    ['maxis-season', 'data/maxis/entry-summary.json', 'scripts/generate-maxis-entry-summary.mjs'],
+    ['capital', 'data/capital-entry-summary.json', 'scripts/generate-capital-entry-summary.mjs'],
+    ['ecosystem', 'data/ecosystem-entry-summary.json', 'scripts/generate-ecosystem-entry-summary.mjs']
+  ]) {
+    const lane = SCHEDULED_REFRESH_LANES.find(lane => lane.id === id);
+    assert(lane.targets.includes(projection), `${id} must roll back its source and preview together`);
+    assert(lane.refresh.some(step => step.script === generator), `${id} must rebuild its preview`);
+    assert(lane.validate.some(step => step.script === generator && step.args.includes('--check')), `${id} must validate the source/preview pair`);
+  }
+  assert(!ids.has('launcher-projections'), 'one failed preview must not roll back unrelated previews after their sources publish');
   const productionTargets = scheduledRefreshTargets();
   for (const required of ['data/ecosystem-stats.json', 'data/ecosystem-entry-summary.json', 'data/whale-watch.json', 'data/maxis-leaders.json']) {
     assert(productionTargets.includes(required), `scheduled target inventory is missing ${required}`);
@@ -80,6 +94,77 @@ try {
   assert.equal(await read(publish, 'data/four.json'), 'new-four');
   assert.equal(await read(workspace, 'data/two.json'), 'old:data/two.json', 'failed refresh must restore last-good workspace data');
   assert.equal(await read(workspace, 'data/three.json'), 'old:data/three.json', 'failed validation must restore last-good workspace data');
+
+  // Reproduce a preview-size/validation failure after its source and transport
+  // changed, and a shared-preview failure after another owner already succeeded.
+  for (const failedOwner of ['first', 'second']) {
+    const atomicWorkspace = path.join(temporary, `atomic-${failedOwner}`);
+    const atomicPublish = path.join(temporary, `published-${failedOwner}`);
+    const initial = {
+      'data/first.json': 'old-first', 'data/second.json': 'old-second',
+      'data/shared-preview.json': 'old-first+old-second',
+      'data/ecosystem.json': 'old-ecosystem', 'data/ecosystem-transport.json': 'old-transport',
+      'data/ecosystem-preview.json': 'old-preview', 'data/capital.json': 'old-capital',
+      'data/capital-preview.json': 'old-capital-preview'
+    };
+    for (const [file, value] of Object.entries(initial)) {
+      await write(atomicWorkspace, file, value); await write(atomicPublish, file, value);
+    }
+    const sharedLanes = ['first', 'second'].map(id => ({
+      id, targets: [`data/${id}.json`, 'data/shared-preview.json'], sharedTargets: ['data/shared-preview.json'],
+      refresh: [{ script: 'scripts/fixture.mjs', args: ['shared', id] }],
+      validate: id === failedOwner ? [{ script: 'scripts/fixture.mjs', args: ['fail-check'] }] : []
+    }));
+    assert.throws(() => validateLaneDefinitions([
+      sharedLanes[0], { ...sharedLanes[1], sharedTargets: [] }
+    ]), /overlaps/, 'every owner must explicitly declare an exact shared preview');
+    assert.throws(() => validateLaneDefinitions([
+      { ...sharedLanes[0], sharedTargets: ['data/not-owned.json'] }
+    ]), /must also be declared/);
+    assert.throws(() => validateLaneDefinitions([
+      sharedLanes[0], { ...sharedLanes[1], targets: [...sharedLanes[1].targets, 'data/shared-preview.json'] }
+    ]), /overlaps/, 'sharing must not permit duplicate targets within a later lane');
+    assert.throws(() => validateLaneDefinitions([
+      sharedLanes[0], { ...sharedLanes[1], targets: ['data/shared-preview.json/nested.json'], sharedTargets: [] }
+    ]), /overlaps/, 'sharing must not permit parent/child overlaps');
+    const atomicReport = await runRefreshLanes({
+      lanes: [...sharedLanes,
+        { id: 'ecosystem', targets: ['data/ecosystem.json', 'data/ecosystem-transport.json', 'data/ecosystem-preview.json'],
+          refresh: [{ script: 'scripts/fixture.mjs', args: ['family', 'ecosystem'] }],
+          validate: [{ script: 'scripts/fixture.mjs', args: ['fail-check'] }] },
+        { id: 'capital', targets: ['data/capital.json', 'data/capital-preview.json'],
+          refresh: [{ script: 'scripts/fixture.mjs', args: ['family', 'capital'] }], validate: [] }
+      ],
+      workspaceRoot: atomicWorkspace, publishRoot: atomicPublish,
+      backupRoot: path.join(temporary, `atomic-backup-${failedOwner}`),
+      executeStep: async (step, { cwd }) => {
+        const [action, id] = step.args;
+        if (action === 'fail-check') throw new Error('injected preview validation failure');
+        await write(cwd, `data/${id}.json`, `new-${id}`);
+        if (action === 'shared') {
+          await write(cwd, 'data/shared-preview.json', `${await read(cwd, 'data/first.json')}+${await read(cwd, 'data/second.json')}`);
+        } else {
+          await write(cwd, `data/${id}-preview.json`, `new-${id}-preview`);
+          if (id === 'ecosystem') await write(cwd, 'data/ecosystem-transport.json', 'new-transport');
+        }
+      }
+    });
+    assert.equal(atomicReport.summary.failed, 2);
+    assert.equal(atomicReport.summary.succeeded, 2);
+    for (const file of ['data/ecosystem.json', 'data/ecosystem-transport.json', 'data/ecosystem-preview.json']) {
+      assert.equal(await read(atomicPublish, file), initial[file], 'a failed preview preserves the entire source family');
+    }
+    const expectedFirst = failedOwner === 'first' ? 'old-first' : 'new-first';
+    const expectedSecond = failedOwner === 'second' ? 'old-second' : 'new-second';
+    for (const dir of [atomicWorkspace, atomicPublish]) {
+      assert.equal(await read(dir, 'data/first.json'), expectedFirst);
+      assert.equal(await read(dir, 'data/second.json'), expectedSecond);
+      assert.equal(await read(dir, 'data/shared-preview.json'), `${expectedFirst}+${expectedSecond}`,
+        'shared previews must match successful and restored sources regardless of failure order');
+      assert.equal(await read(dir, 'data/capital.json'), 'new-capital');
+      assert.equal(await read(dir, 'data/capital-preview.json'), 'new-capital-preview', 'unrelated matching families still publish');
+    }
+  }
 
   const retryScript = path.join(temporary, 'retry-step.mjs');
   const retryCounter = path.join(temporary, 'retry-count.txt');

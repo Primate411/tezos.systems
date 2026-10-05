@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import { buildProjection, serializeProjection } from '../scripts/generate-ecosystem-entry-summary.mjs';
 import { blockscoutRetryDelay, createBlockscoutClient } from '../scripts/lib/blockscout-client.mjs';
 import { fetchBlockscoutHistory } from '../scripts/lib/blockscout-history.mjs';
 import {
@@ -289,5 +290,45 @@ assert.equal(
   'fresh TzKT contract metadata should replace the previous snapshot receipt'
 );
 assert(mergedContracts.some((contract) => contract.address === 'KT1Retained'), 'historical aliases should remain retained');
+
+// A completed Monday rollover must fit startup without losing any metric or
+// source identity, including when both histories reach their full 26 weeks.
+const projectionSourceText = await fs.readFile(new URL('../data/ecosystem-stats.json', import.meta.url), 'utf8');
+const projectionSource = JSON.parse(projectionSourceText);
+const rollover = buildProjection(projectionSource, projectionSourceText);
+assert.deepEqual(JSON.parse(serializeProjection(rollover)), rollover, 'compact serialization must preserve all projection values');
+const fullHistorySource = structuredClone(projectionSource);
+fullHistorySource.networkActivity.weeks = Array.from({ length: 26 }, (_value, index) => ({
+  ...structuredClone(projectionSource.networkActivity.weeks.at(-1)),
+  weekStart: addWeeks(projectionSource.completeWeek.weekStart, index - 25).toISOString(),
+  weekEnd: addWeeks(projectionSource.completeWeek.weekStart, index - 24).toISOString()
+}));
+const fullHistory = buildProjection(fullHistorySource, JSON.stringify(fullHistorySource));
+assert(Buffer.byteLength(JSON.stringify(fullHistory, null, 2)) > 16 * 1024, 'the full-history fixture reproduces the pretty-JSON overflow');
+const fullHistoryText = serializeProjection(fullHistory);
+assert(Buffer.byteLength(fullHistoryText) <= 16 * 1024, 'both 26-week histories must fit the unchanged startup limit');
+assert.equal(fullHistory.weeks.length, 26);
+assert.equal(fullHistory.networkActivity.weeks.length, 26);
+assert.deepEqual(fullHistory.completeWeek, projectionSource.completeWeek, 'the completed window keeps its exact end clock');
+for (const [index, row] of fullHistory.networkActivity.weeks.entries()) {
+  const source = fullHistorySource.networkActivity.weeks[index];
+  assert.equal(row.weekStart, source.weekStart);
+  for (const layer of ['all', 'tezos', 'etherlink']) {
+    const metric = layer === 'all' ? row.all : row.layers[layer];
+    const original = layer === 'all' ? source.all : source.layers[layer];
+    assert.equal(metric.activeWallets, original.activeWallets);
+    assert.equal(metric.status, original.status);
+    assert.equal(metric.approximate, original.approximate === true);
+  }
+}
+const missingMetricSource = structuredClone(fullHistorySource);
+missingMetricSource.networkActivity.weeks[0].layers.tezos = { status: 'unavailable', activeWallets: null, approximate: false };
+const missingMetric = buildProjection(missingMetricSource, JSON.stringify(missingMetricSource));
+assert.equal(JSON.parse(serializeProjection(missingMetric)).networkActivity.weeks[0].layers.tezos.activeWallets, null);
+const oversized = structuredClone(fullHistory);
+oversized.universe.padding = 'x'.repeat(16 * 1024);
+const { contentHash: ignoredProjectionHash, ...oversizedUnsigned } = oversized;
+oversized.contentHash = stableHash(oversizedUnsigned);
+assert.throws(() => serializeProjection(oversized), /maximum is 16384/, 'oversized projections must still fail closed');
 
 console.log('ok - ecosystem stats boundaries, identity model, retention, ranking, contract receipts, and manifest');

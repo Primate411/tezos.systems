@@ -47,10 +47,11 @@ export async function smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMo
     const { context, page, errors, requests } = await setup(browser, installFeatureMocks, { width });
     let failCss = true, release;
     const gate = new Promise(resolve => { release = resolve; });
-    let cssPending = false;
+    let cssRequested;
+    const cssStarted = new Promise(resolve => { cssRequested = resolve; });
     await context.route('**/css/my-tezos.min.css*', async route => {
       if (failCss) return route.abort('failed');
-      cssPending = true;
+      cssRequested();
       const response = await route.fetch();
       await gate;
       return route.fulfill({ response });
@@ -64,9 +65,13 @@ export async function smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMo
       await page.waitForFunction(() => /unavailable/.test(document.getElementById('my-tezos-btn').title));
       assert.equal(await page.locator('#my-tezos-drawer').getAttribute('aria-hidden'), 'true');
       failCss = false;
+      const retryRequest = page.waitForRequest('**/css/my-tezos.min.css*', { timeout: 10000 });
       await activate();
       await page.waitForFunction(() => document.getElementById('my-tezos-btn').getAttribute('aria-busy') === 'true');
-      assert(cssPending, 'Retry reaches the held stylesheet');
+      // aria-busy is set before the browser dispatches its stylesheet request.
+      // Wait for both dispatch and interception before exercising cancellation.
+      await retryRequest;
+      await cssStarted;
       assert.equal(await page.locator('#my-tezos-drawer').getAttribute('aria-hidden'), 'true');
       await page.keyboard.press('Escape'); release();
       await page.waitForFunction(() => Boolean(document.getElementById('my-tezos-css')?.sheet));
@@ -176,7 +181,14 @@ export async function smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMo
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' }); await homeReady(page);
       assert.equal(chartRequests(requests).length, 0);
       await page.locator('[data-chamber-category="bakers"] .chamber-category-toggle').click();
+      // Signal reader scroll intent so category anchor repair does not undo
+      // Playwright's programmatic reveal before IntersectionObserver runs.
+      await page.keyboard.press('PageDown');
       await page.locator('#tz4-sparkline').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => {
+        const rect = document.getElementById('tz4-sparkline').getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+      });
       await started;
       await page.locator('[data-chamber-category="bakers"] .chamber-category-toggle').click();
       release();
@@ -185,7 +197,14 @@ export async function smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMo
       });
       assert.equal(await page.evaluate(() => Boolean(Chart.getChart(document.getElementById('tz4-sparkline')))), false, 'Collapsed sparklines remain unrendered after a delayed library');
       await page.locator('[data-chamber-category="bakers"] .chamber-category-toggle').click();
+      // Signal reader scroll intent so category anchor repair does not undo
+      // Playwright's programmatic reveal before IntersectionObserver runs.
+      await page.keyboard.press('PageDown');
       await page.locator('#tz4-sparkline').scrollIntoViewIfNeeded();
+      await page.waitForFunction(() => {
+        const rect = document.getElementById('tz4-sparkline').getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight;
+      });
       await chartReady(page, 'tz4-sparkline');
       await page.evaluate(async () => {
         const canvas = document.getElementById('tz4-sparkline');

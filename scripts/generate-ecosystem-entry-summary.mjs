@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { snapshotContentHash, stableHash } from './lib/ecosystem-stats.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -80,7 +80,6 @@ function compactNetworkMetric(metric) {
 function compactNetworkWeek(row) {
   return {
     weekStart: row.weekStart,
-    weekEnd: row.weekEnd,
     status: row.status,
     all: compactNetworkMetric(row.all),
     layers: {
@@ -90,7 +89,7 @@ function compactNetworkWeek(row) {
   };
 }
 
-function buildProjection(snapshot, sourceText) {
+export function buildProjection(snapshot, sourceText) {
   const unsigned = {
     schemaVersion: 1,
     generatedAt: snapshot.generatedAt,
@@ -154,13 +153,20 @@ function validateProjection(projection, byteLength) {
   assert(byteLength <= MAX_OUTPUT_BYTES, `Ecosystem entry summary is ${byteLength} bytes; maximum is ${MAX_OUTPUT_BYTES}`);
 }
 
+export function serializeProjection(projection) {
+  // Startup needs the metrics and start dates; the complete source retains
+  // every per-row week end. Compact JSON keeps both 26-week histories bounded.
+  const output = `${JSON.stringify(projection)}\n`;
+  validateProjection(projection, Buffer.byteLength(output));
+  return output;
+}
+
 async function main() {
   const sourceText = await fs.readFile(SOURCE_FILE, 'utf8');
   const source = JSON.parse(sourceText);
   validateSource(source);
   const projection = buildProjection(source, sourceText);
-  const output = `${JSON.stringify(projection, null, 2)}\n`;
-  validateProjection(projection, Buffer.byteLength(output));
+  const output = serializeProjection(projection);
 
   if (hasFlag('--check')) {
     const existing = await fs.readFile(OUTPUT_FILE, 'utf8');
@@ -173,7 +179,9 @@ async function main() {
   console.log(`Wrote ${OUTPUT_PATH} (${Buffer.byteLength(output)} bytes, ${projection.contentHash.slice(0, 12)})`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

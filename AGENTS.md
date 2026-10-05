@@ -776,8 +776,14 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 - `scripts/refresh-scheduled-data.mjs`: scheduled dynamic-data runner. Its lane
   catalog and rollback/publish mechanics live in
   `scripts/lib/scheduled-refresh-lanes.mjs` and
-  `scripts/lib/scheduled-refresh-runner.mjs`. Targets must be unique and
-  declared; an undeclared write is fatal and publishes nothing from that run.
+  `scripts/lib/scheduled-refresh-runner.mjs`. Each source family owns its
+  derived previews in the same rollback unit. Targets must be declared; exact
+  shared preview paths require `sharedTargets` on every owning lane, and each
+  owner regenerates/checks the preview against the current workspace sources.
+  A failed owner restores the preceding matching source/preview pair, including
+  earlier successful updates. Undeclared writes are fatal and publish nothing.
+  Ecosystem previews use compact JSON with both 26-week histories and retain
+  per-row week-end timestamps only in the full source to stay within 16 KiB.
 - `scripts/check-generated-freshness.mjs`: read-only operational audit for
   committed artifact age and semantic rollover. Keep deterministic boundary
   coverage in `tests/generated-freshness-check.mjs` and failure injection in

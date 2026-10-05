@@ -816,7 +816,7 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's October 4 review reconfirms EVM node 0.67
+  Release Radar's October 5 review reconfirms EVM node 0.67
   and Octez 25.2 using canonical publication receipts, unchanged
   FAST periods 693/694 and the current launch-documentation notice. The Q3
   mainnet target has elapsed; the unchanged Planned roadmap supplies no new date.
@@ -1852,7 +1852,13 @@ every six hours through `scripts/refresh-scheduled-data.mjs`. Each source family
 runs and validates in an isolated temporary Git worktree. A failed family is
 restored to its exact last-good files while later, unrelated families continue;
 the workflow commits the successful lanes and then remains red with the failed
-lane named in its report. Static CSS, route, sitemap, comparison, and OG outputs
+lane named in its report. Each family regenerates and validates its launcher
+preview in that same rollback unit. The shared Maxis and baker-governance
+previews are rebuilt after either input family changes, so a failed preview
+cannot publish a new source paired with old preview bytes. The Ecosystem
+preview uses compact JSON and start dates for both 26-week histories within
+16 KiB; per-row week-end timestamps remain in the full source. Static CSS,
+route, sitemap, comparison, and OG outputs
 stay on their source-driven pre-commit/manual paths rather than being rebuilt by
 the data clock. Capital, Uranium, Ecosystem Activity, Maxis, and Whale Watch
 surface the configured schedule beside the artifact's actual generation or
