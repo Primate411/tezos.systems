@@ -1856,6 +1856,8 @@ lane named in its report. Temporary OBJKT failures in Maxis use paced requests
 and smaller physical keyset pages that reconstruct the unchanged 500-row
 logical response. Short-lived, integrity-checked checkpoints resume only the
 identical interrupted request; a new observation window always starts fresh.
+Four complete successful pages permit a gradual request-size increase, so a
+brief outage does not force small requests for the rest of the season scan.
 The frozen query documents, filters, source clocks and scoring remain unchanged.
 If request recovery is exhausted, Maxis receives one deferred retry after the
 unrelated families finish, with a fresh rollback snapshot. Hard source or

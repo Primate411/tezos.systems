@@ -60,6 +60,7 @@ export function createMaxisObjktFetch({
   let notBefore = 0;
   let initialization;
   const pageSizes = new Map();
+  const healthyPages = new Map();
 
   async function initialize() {
     if (!checkpointDir) return;
@@ -89,7 +90,8 @@ export function createMaxisObjktFetch({
     try {
       await preceding;
       options.signal?.throwIfAborted();
-      if (notBefore > now()) await wait(notBefore - now(), options.signal);
+      // Another queued caller may extend the shared cooldown while we wait.
+      while (notBefore > now()) await wait(notBefore - now(), options.signal);
       const timeout = AbortSignal.timeout(requestTimeoutMs);
       const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
       const response = await upstream(url, { ...options, body: JSON.stringify(request), signal });
@@ -149,7 +151,7 @@ export function createMaxisObjktFetch({
         validateRows(checkpoint.rows, after, limit, true);
         if (checkpoint.rows.length >= limit) throw new Error('completed checkpoint');
         rows = checkpoint.rows;
-        size = checkpoint.size;
+        size = Math.min(size, checkpoint.size);
         createdAt = checkpoint.createdAt;
         log(`OBJKT transport resumed ${rows.length} validated rows for the identical request`);
       } catch (error) {
@@ -168,6 +170,7 @@ export function createMaxisObjktFetch({
         if (descriptor.keyset) {
           size = Math.min(size, Math.max(Math.min(25, limit), Math.floor(size / 5)));
           pageSizes.set(documentHash, size);
+          healthyPages.set(documentHash, 0);
         }
         notBefore = Math.max(notBefore, now() + 1000 * (2 ** (failures - 1)));
         log(`OBJKT transport retry ${failures}/2; physical page ${descriptor.keyset ? size : limit}; ${rows.length} validated rows retained`);
@@ -184,6 +187,18 @@ export function createMaxisObjktFetch({
       }
     }
     if (file) await fs.rm(file, { force: true });
+    // Probe upward only after four complete logical pages. A transient first
+    // seek must not force thousands of tiny requests after the provider heals.
+    if (descriptor.keyset && rows.length === limit && size < limit) {
+      const healthy = (healthyPages.get(documentHash) || 0) + 1;
+      healthyPages.set(documentHash, healthy);
+      if (healthy >= 4) {
+        const nextSize = Math.min(limit, size * 2);
+        pageSizes.set(documentHash, nextSize);
+        healthyPages.set(documentHash, 0);
+        log(`OBJKT transport recovered four complete pages; next physical page ${nextSize}`);
+      }
+    }
     return Response.json({ data: { [descriptor.field]: rows } });
   };
 }

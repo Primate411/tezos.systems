@@ -852,7 +852,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   unchanged frozen adapters. Serialize/pace OBJKT reads and adapt only the
   physical `limit`/`after` of the exact reviewed keyset documents; reconstruct
   each complete logical page without changing filters, windows, fields or row
-  values. Integrity-checked, 20-minute checkpoints resume an identical query
+  values. After four complete healthy logical pages, cautiously increase the
+  physical page size; another transient failure reduces it again. A resumed
+  checkpoint must respect any smaller size learned in the same process.
+  Integrity-checked, 20-minute checkpoints resume an identical query
   and all variables only; never cache completed history under a new clock.
   Do not split mint time windows: the same bounds also define token eligibility.
   Reject malformed, duplicate, out-of-order or partial responses. A typed

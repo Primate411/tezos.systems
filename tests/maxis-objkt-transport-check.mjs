@@ -59,6 +59,29 @@ try {
   const numeric = createMaxisObjktFetch({ ...options, fetch: async () => response('event', numericRows) });
   assert.deepEqual((await (await numeric(endpoint, request(document))).json()).data.event, numericRows, 'safe numeric cursor types remain unchanged');
 
+  // A single first-seek outage must not pin an entire season to tiny pages.
+  const longRows = Array.from({ length: 9001 }, (_, i) => ({ id: String(i + 1) }));
+  for (const staysConstrained of [false, true]) {
+    const pageLimits = [];
+    let requests = 0;
+    const adaptive = createMaxisObjktFetch({ ...options, fetch: async (url, init) => {
+      const variables = JSON.parse(init.body).variables;
+      pageLimits.push(variables.limit);
+      if (++requests === 1 || (staysConstrained && variables.limit > 100)) return retryable();
+      return response('event', page(longRows, variables));
+    } });
+    const complete = await fetchKeysetPages(async variables => (await (await adaptive(endpoint,
+      request(document, { ...document.variables, ...variables }))).json()).data.event, { pageSize: 500, maxPages: 1000 });
+    assert.deepEqual(complete.rows, longRows);
+    assert(pageLimits.includes(200), 'probe larger requests after sustained complete pages');
+    if (staysConstrained) {
+      assert(!pageLimits.slice(1).includes(500), 'repeated probe failures must not escalate to full pages');
+    } else {
+      assert(pageLimits.slice(1).includes(500), 'return to the original page size after recovery');
+      assert(requests < 75, 'one outage must not multiply the whole season request count');
+    }
+  }
+
   const calls = [];
   const interrupted = createMaxisObjktFetch({ ...options, checkpointDir: temporary, fetch: async (url, init) => {
     const variables = JSON.parse(init.body).variables;
@@ -70,6 +93,9 @@ try {
   assert.equal((await fs.readdir(temporary)).length, 1);
   const checkpointName = (await fs.readdir(temporary))[0];
   const checkpointText = await fs.readFile(path.join(temporary, checkpointName), 'utf8');
+  const sameProcessCallsStart = calls.length;
+  await assert.rejects(interrupted(endpoint, request(document)), isTransientObjktError);
+  assert.equal(calls[sameProcessCallsStart].limit, 25, 'resume must retain the smaller size already learned after the checkpoint was written');
   const resumedCalls = [];
   const resumed = createMaxisObjktFetch({ ...options, checkpointDir: temporary, fetch: async (url, init) => {
     const variables = JSON.parse(init.body).variables; resumedCalls.push(variables);
