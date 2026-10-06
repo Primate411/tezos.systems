@@ -10,6 +10,7 @@ import { getCalendarElapsedTime } from '../core/anniversary.js';
 import { readDashboardContinuity, subscribeDashboardContinuity } from '../core/chain-continuity.js';
 import { classifyOctezVersion, fetchOctezVersions, octezVersionsFallback } from '../core/octez-versions.js';
 import { versionedAsset } from '../core/asset-version.js';
+import { resolveLiveHeadMotion } from '../core/live-head-motion.mjs';
 import { escapeHtml, formatFreshnessStamp, refreshDataFreshnessStates, setDataFreshnessState } from '../core/utils.js';
 import { fetchCycleInfo, fetchHeroStats, fetchWithRetry } from '../core/api.js';
 import { readSavedMyTezosEntries } from '../core/wallet.js';
@@ -594,6 +595,11 @@ function updateChainHealthStrip(data, { error = false, supplemental = false, sup
     const button = document.getElementById('chain-health');
     const viewport = document.getElementById('chain-health-window');
     if (!button || !viewport) return;
+    if (suppressMotion) {
+        viewport.getAnimations({ subtree: true }).filter(animation => animation.id === 'chain-health-shift')
+            .forEach(animation => animation.cancel());
+        viewport.querySelectorAll('.chain-health-exiting').forEach(ghost => ghost.remove());
+    }
     const visibleBlockLimit = window.matchMedia?.('(max-width: 719px)')?.matches ? 10 : CHAIN_HEALTH_BLOCK_LIMIT;
     if (!button.dataset.chainHealthWired) {
         button.dataset.chainHealthWired = '1';
@@ -3094,6 +3100,7 @@ function requestHeartbeatSupplements(data) {
 }
 
 function updateBlockTicker(data, { error = false, supplemental = false, suppressMotion = false } = {}) {
+    if (document.visibilityState !== 'visible') return;
     const panel = document.getElementById('live-head');
     const button = document.getElementById('live-head-button');
     const stack = document.getElementById('live-head-stack');
@@ -3127,8 +3134,21 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
         return;
     }
     heartbeatData = data;
-    const motionSuppressed = Boolean(suppressMotion || (suppressNextHeartbeatMotion && !supplemental));
-    if (!supplemental) suppressNextHeartbeatMotion = false;
+    const motion = resolveLiveHeadMotion({
+        catchupPending: suppressNextHeartbeatMotion,
+        visible: document.visibilityState === 'visible',
+        previousLevel: panel.dataset.heartbeatLevel,
+        level: latest.level, supplemental, suppressMotion, error
+    });
+    const motionSuppressed = motion.suppressMotion;
+    suppressNextHeartbeatMotion = motion.catchupPending;
+    if (motionSuppressed) {
+        settleLiveHeadReveal(panel);
+        panel.getAnimations({ subtree: true }).filter(animation => animation.id === 'live-head-shift')
+            .forEach(animation => animation.cancel());
+        stack.querySelectorAll('.live-head-row-exiting').forEach(row => row.remove());
+        stack.querySelectorAll('[data-live-head-shift]').forEach(row => delete row.dataset.liveHeadShift);
+    }
     updateChainHealthStrip(data, { error, supplemental, suppressMotion: motionSuppressed || !heartbeatSupplementIsCurrent(latest) });
 
     dispatchContestedRoundHotSignal(latest);

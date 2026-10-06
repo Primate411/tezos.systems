@@ -2557,6 +2557,8 @@ render receipts, and account for each intentionally injected failure response.
 Finite, scoped animation checks exclude unrelated paused effects. Every browser
 suite attempt also has a ten-minute deadline; a stall remains a test failure,
 retains diagnostics, and closes its browser before the shard continues. A
+dedicated motion contract covers visibility catch-up when supplemental, cached,
+and local layout updates arrive before the next primary head receipt. A
 post-success job blends robust hosted timings into an adaptive cache ledger for
 the next run while the committed cost fixture remains the cold-start fallback.
 The workflow installs only Chromium's headless shell, retries its download, and

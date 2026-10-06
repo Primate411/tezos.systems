@@ -143,11 +143,22 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   assert.equal((await read()).animations, 0, 'Reduced motion stays still');
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.evaluate(() => {
+    window.__chainHiddenHead = document.getElementById('live-head').dataset.heartbeatLevel;
+    // Keep a previous head's motion alive across the visibility change. Quiet
+    // catch-up must cancel it, even if the refreshed receipt has the same key.
+    const bar = document.querySelector('[data-chain-health-level]');
+    const animation = bar.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(0)' }], { duration: 60000 });
+    animation.id = 'chain-health-shift';
+    const row = document.querySelector('#live-head-stack .live-head-row:nth-child(5)');
+    const rowAnimation = row.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(0)' }], { duration: 60000 });
+    rowAnimation.id = 'live-head-shift';
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
   });
   head += 3;
   await page.evaluate(() => window.__refreshChainHealth());
   assert.equal((await read()).levels.at(-1), head - 3, 'Hidden in-flight completion leaves the strip alone');
+  assert.equal(await page.evaluate(() => document.getElementById('live-head').dataset.heartbeatLevel === window.__chainHiddenHead), true,
+    'Hidden in-flight completion must also retain the visible Live Head receipt');
   await page.evaluate(() => {
     delete document.visibilityState;
     document.dispatchEvent(new Event('visibilitychange'));
@@ -155,6 +166,9 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   });
   assert.equal((await read()).levels.at(-1), head);
   assert.equal((await read()).animations, 0, 'Visibility catch-up stays motionless');
+  assert.equal(await page.evaluate(() => document.getElementById('live-head')
+    .getAnimations({ subtree: true }).filter(animation => animation.id === 'live-head-shift').length), 0,
+  'Visibility catch-up cancels a retained Live Head row animation');
 
   unavailable = true;
   const beforeFailure = await read();

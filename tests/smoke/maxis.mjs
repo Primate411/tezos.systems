@@ -144,7 +144,7 @@ export function createMaxisSmokeSuites({
       viewport: { width: 1440, height: 1000 },
       serviceWorkers: 'block'
     });
-    await installFeatureMocks(context);
+    await installFeatureMocks(context, { ledgerFlowMocks: true });
     await context.addInitScript(() => {
       localStorage.setItem('tezos-systems-theme', 'matrix');
       localStorage.setItem('tezos-toured', '1');
@@ -805,6 +805,9 @@ export function createMaxisSmokeSuites({
     await firstLedgerLink.click();
     await page.waitForFunction((target) => window.location.pathname === '/' && window.location.hash === `#ledger-flow=${encodeURIComponent(target)}`, ledgerTarget, { timeout: 10000 });
     await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForFunction(() => (
+      document.querySelector('#ledger-flow-modal .ledger-flow-body')?.dataset.ledgerFlowMode === 'exact'
+    ), null, { timeout: 15000 });
     assert(await page.locator('#ledger-flow-input').inputValue() === ledgerTarget, `tezos maxis chamber: Ledger Flow did not open ${ledgerTarget}`);
 
     const crownAliasResponse = await page.goto(`${baseUrl}/maxis/?view=crown&lane=governance`, { waitUntil: 'domcontentloaded' });
