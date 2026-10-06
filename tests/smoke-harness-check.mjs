@@ -21,6 +21,7 @@ import { SmokeCancelledError } from './lib/smoke-lifecycle.mjs';
 import { checkSmokeProcessCancellation } from './lib/smoke-cancellation-check.mjs';
 import { checkAsyncBrowserWork } from './lib/smoke-browser-work-check.mjs';
 import { checkStableClickTarget } from './lib/smoke-click-ready-check.mjs';
+import { checkSmokeArtifacts } from './lib/smoke-artifacts-check.mjs';
 
 function expectThrow(run, pattern) {
   assert.throws(run, pattern);
@@ -29,6 +30,7 @@ function expectThrow(run, pattern) {
 async function main() {
   await checkAsyncBrowserWork();
   await checkStableClickTarget();
+  await checkSmokeArtifacts();
   const costsDir = await mkdtemp(path.join(os.tmpdir(), 'smoke-costs-check-'));
   try {
     const currentCosts = JSON.parse(await readFile('tests/fixtures/smoke-suite-costs.json', 'utf8'));

@@ -121,6 +121,7 @@ export function createDataStaticChecks({
     const supabaseWrite = await readText('.github/scripts/supabase-write.js');
     const backfill = await readText('scripts/backfill-supabase-history.mjs');
     const freshness = await readText('scripts/check-supabase-history-freshness.mjs');
+    const freshnessReader = await readText('scripts/lib/history-freshness.mjs');
     const generatedWorkflow = await readText('.github/workflows/refresh-governance-surfaces.yml');
     const generatedFreshnessWorkflow = await readText('.github/workflows/audit-generated-freshness.yml');
     const comparisonWorkflow = await readText('.github/workflows/refresh-chain-comparison.yml');
@@ -156,7 +157,8 @@ export function createDataStaticChecks({
       }
     }
     if (!api.includes("from './freshness-contracts.mjs'")
-      || !freshness.includes("from '../js/core/freshness-contracts.mjs'")) {
+      || !freshness.includes("from './lib/history-freshness.mjs'")
+      || !freshnessReader.includes("from '../../js/core/freshness-contracts.mjs'")) {
       fail('browser history reads and the operational freshness checker must share one freshness contract');
     }
     for (const snippet of ['Scheduled every 2h', 'Scheduled every 30m', 'observed median ~']) {
@@ -263,7 +265,7 @@ export function createDataStaticChecks({
       if (!api.includes(table)) {
         fail(`frontend API must fetch ${table}`);
       }
-      if (!freshness.includes(table)) {
+      if (!freshnessReader.includes('Object.entries(HISTORY_FRESHNESS_LIMITS)') || !freshnessContracts.includes(table)) {
         fail(`freshness checker must inspect ${table}`);
       }
     }

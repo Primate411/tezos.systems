@@ -758,6 +758,17 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   writer using failure-isolated lanes. One upstream or validator failure must
   not suppress unrelated successful data; failed lanes retain last-good files
   and the final report still fails the Action.
+- `.github/workflows/actions-recovery.yml`: hourly and workflow-completion
+  delivery supervisor. `scripts/actions-recovery.mjs` is read-only unless passed
+  `--apply`. It catches up two-hour-old history clocks (30-minute cooldown),
+  missed eight-hour full refreshes, and only explicitly temporary failed lanes
+  (at most two recoveries, after 30 then 60 minutes). New full runs supersede old
+  chains. Preserve main-only trust, report validation, disabled workflows,
+  concurrency locks, static publication gate, and independent freshness alarms.
+  `tests/actions-recovery-check.mjs` guards these boundaries. GitHub event
+  triggers reduce cron dependence but do not provide an independent scheduler.
+  Smoke traces now start on every attempt and retain failures plus diagnostic
+  retries; successful first-attempt traces are discarded.
 - `.github/workflows/audit-generated-freshness.yml`: independent read-only
   six-hour audit of committed generated and Supabase delivery clocks.
 - `.github/scripts/collect-data.js`: collects TzKT/Octez stats and writes to

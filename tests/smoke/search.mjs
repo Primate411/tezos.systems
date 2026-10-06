@@ -248,6 +248,14 @@ export function createSearchSmokeSuites({
       serviceWorkers: 'block'
     });
     await installFeatureMocks(context);
+    // Optional briefing enrichment must not hold confirmed current signals in
+    // the initial skeleton. Release the whale read only after first Pulse paint.
+    let releaseBriefing;
+    const briefingGate = new Promise(resolve => { releaseBriefing = resolve; });
+    await context.route('**/operations/transactions?**', async route => {
+      if (new URL(route.request().url()).searchParams.get('amount.gt') === '10000000000') await briefingGate;
+      await route.fallback();
+    });
     await context.addInitScript(() => {
       localStorage.setItem('tezos-systems-theme', 'matrix');
       localStorage.setItem('tezos-toured', '1');
@@ -279,6 +287,7 @@ export function createSearchSmokeSuites({
         && island.querySelector('[data-pulse-run="live"]')
         && island.querySelectorAll('[data-hot-signal-index]').length >= 4;
     }, null, { timeout: 10000 }).catch(async error => {
+      releaseBriefing();
       const receipt = await page.evaluate(() => ({
         dashboard: document.documentElement.dataset.dashboardReady,
         pulse: document.querySelector('#pulse-ticker-strip')?.outerHTML,
@@ -287,6 +296,7 @@ export function createSearchSmokeSuites({
       }));
       throw new Error(`hero command bar: Live Pulse did not populate ${JSON.stringify(receipt)}\n${error.message}`);
     });
+    releaseBriefing();
     const livePulseState = await page.evaluate(() => ({
       runWidth: document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]')?.getBoundingClientRect().width || 0,
       viewportWidth: document.querySelector('#pulse-ticker-viewport')?.clientWidth || 0,

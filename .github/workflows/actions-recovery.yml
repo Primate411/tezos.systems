@@ -1,0 +1,45 @@
+name: Actions Recovery Supervisor
+
+on:
+  schedule:
+    - cron: '33 * * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Refresh Generated Surfaces, Collect Tezos Stats, Collect Chamber History, Validate Site]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: tezos-systems-actions-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    # Never execute code or download reports from a PR/fork workflow_run.
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Recover overdue delivery and temporary source failures
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTIONS_RECOVERY_REPORT: ${{ runner.temp }}/actions-recovery.json
+        run: node scripts/actions-recovery.mjs --apply
+      - uses: actions/upload-artifact@v6
+        if: always() && !cancelled()
+        with:
+          name: actions-recovery-report
+          path: ${{ runner.temp }}/actions-recovery.json
+          if-no-files-found: warn
+          retention-days: 14

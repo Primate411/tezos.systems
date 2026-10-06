@@ -1373,6 +1373,11 @@ export function createMyTezosViewsSmokeSuites({
 
     await page.locator('#my-tezos-tab-portfolio').click();
     await page.waitForFunction(() => document.querySelector('#portfolio-freshness')?.dataset.state === 'complete', null, { timeout: 15000 });
+    // Account totals settle independently of the lazy chart library/history.
+    // Capture an actual chart before proving that subsequent refreshes retain it.
+    await page.waitForFunction(() => Boolean(window.Chart?.getChart(
+      document.querySelector('#portfolio-history-chart')
+    )), null, { timeout: 15000 });
     const portfolioBefore = await page.evaluate((address) => {
       const drawer = document.querySelector('#drawer-body');
       const input = document.querySelector(`[data-portfolio-label="${address}"]`);

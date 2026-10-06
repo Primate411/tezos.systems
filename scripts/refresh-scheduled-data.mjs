@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { SCHEDULED_REFRESH_LANES, scheduledRefreshTargets } from './lib/scheduled-refresh-lanes.mjs';
+import { selectScheduledRefreshLanes, scheduledRefreshTargets } from './lib/scheduled-refresh-lanes.mjs';
 import { runRefreshLanes } from './lib/scheduled-refresh-runner.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -70,6 +70,7 @@ async function main() {
 
   const dirty = git(['status', '--porcelain', '--untracked-files=all'], { capture: true });
   if (dirty) throw new Error('Scheduled refresh requires a clean checkout so last-good rollback cannot overwrite local work');
+  const lanes = selectScheduledRefreshLanes(argValue('--lanes') || process.env.GENERATED_REFRESH_LANES || '');
 
   const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'tezos-systems-refresh-'));
   const worktree = path.join(temporaryRoot, 'worktree');
@@ -79,7 +80,7 @@ async function main() {
   try {
     git(['worktree', 'add', '--detach', worktree, 'HEAD']);
     report = await runRefreshLanes({
-      lanes: SCHEDULED_REFRESH_LANES,
+      lanes,
       workspaceRoot: worktree,
       publishRoot: ROOT,
       backupRoot: backups,

@@ -4102,6 +4102,13 @@ export async function updateHotTodayIsland(stats, xtzPrice) {
   if (!mergedStats?.cycle) return;
   lastXtzPrice = xtzPrice;
   lastLiveCandidateFingerprint = '';
+  // Current confirmed signals do not depend on optional briefing enrichment
+  // (whales, exact milestones, or the reader's baker). Publish them on cold
+  // start; the complete briefing then reconciles quietly into the same ticker.
+  if (!hotTodayHasRendered && pulseHasConfirmedStats(mergedStats)
+    && getLiveCandidateSignals(mergedStats).length) {
+    renderToHotIsland(mergedStats.cycle, [], mergedStats);
+  }
   try {
     const briefing = await generate(mergedStats, xtzPrice);
     renderToHotIsland(briefing.cycle, briefing.sentences, mergedStats);

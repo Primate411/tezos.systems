@@ -16,6 +16,10 @@ jobs:
 
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: tezos-systems-chamber-history
+      cancel-in-progress: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

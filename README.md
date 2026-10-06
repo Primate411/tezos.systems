@@ -816,7 +816,7 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's October 5 review reconfirms EVM node 0.67
+  Release Radar's October 6 review reconfirms EVM node 0.67
   and Octez 25.2 using canonical publication receipts, unchanged
   FAST periods 693/694 and the current launch-documentation notice. The Q3
   mainnet target has elapsed; the unchanged Planned roadmap supplies no new date.
@@ -1887,6 +1887,29 @@ the data clock. Capital, Uranium, Ecosystem Activity, Maxis, and Whale Watch
 surface the configured schedule beside the artifact's actual generation or
 source-observation age; Capital also preserves the CoinGecko quote time and
 last-good status in its compact launcher.
+`.github/workflows/actions-recovery.yml` supervises delivery hourly and after
+collector, data-refresh, and validation workflow completions. It reads the five
+actual Supabase clocks and catches up history after two hours, with a 30-minute
+cooldown and collector concurrency locks. If a full refresh has not started in
+eight hours, it dispatches one. A completed source failure can receive at most
+two later recoveries: after 30 minutes, then after another hour. Only explicitly
+temporary failed families from a validated report are selected; successful
+families are not collected again. A new full run supersedes old recovery chains.
+Hard errors, missing reports and failed site contracts require investigation.
+The writer refuses publication if the full static gate fails. Recovery receipts
+are retained as `actions-recovery-report`; dry-run with
+`node scripts/actions-recovery.mjs` reads the same plan without dispatching.
+The supervisor runs trusted main code, ignores PR/fork evidence, preserves
+disabled workflows, and cannot dispatch another supervisor. Its event triggers
+reduce dependence on delayed GitHub schedules, but remain on GitHub infrastructure.
+The independent freshness audit remains the final delivery alarm.
+
+Browser smoke now records traces from the first attempt, retains failed attempts
+and diagnostic retries, and discards successful first-attempt payloads. This
+preserves the original failure even when a retry passes. Portfolio preservation
+checks wait for the actual chart instance before comparing its identity; Live
+Pulse startup is tested with optional whale enrichment deliberately held open.
+
 `.github/workflows/audit-generated-freshness.yml` independently checks the
 committed result every six hours. It raises an 18-hour delivery alarm by default
 and a 30-hour alarm for the once-daily Edinburgh EDI Nakamoto source, accepts

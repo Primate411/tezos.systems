@@ -1,5 +1,14 @@
 const command = (script, args = [], options = {}) => ({ script, args, ...options });
 
+export function selectScheduledRefreshLanes(value = '') {
+  if (!value) return SCHEDULED_REFRESH_LANES;
+  const ids = value.split(',');
+  if (new Set(ids).size !== ids.length || ids.some(id => !SCHEDULED_REFRESH_LANES.some(lane => lane.id === id))) {
+    throw new Error('Unknown or duplicate scheduled refresh lane');
+  }
+  return SCHEDULED_REFRESH_LANES.filter(lane => ids.includes(lane.id));
+}
+
 // A source and its launcher projection are one rollback unit. Shared previews
 // are rebuilt after either input changes; each lane snapshots the latest pair.
 export const SCHEDULED_REFRESH_LANES = Object.freeze([

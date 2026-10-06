@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-06',
+        entries: [
+            { type: '⚡', text: 'Live Pulse shows confirmed signals immediately while optional briefing details finish loading' },
+            { type: '🔧', text: 'Data delivery now catches up overdue history and retries temporary source outages with bounded recovery, while preserving last-good data and freshness alarms' }
+        ]
+    },
+    {
         date: '2026-10-01',
         entries: [
             { type: '🔧', text: 'Release Radar has a fresh primary-source review and marks the Q3 Tezos X target as elapsed, while keeping the full launch unconfirmed and published operator release dates unchanged' }
