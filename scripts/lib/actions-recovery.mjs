@@ -16,7 +16,7 @@ export function temporaryFailedLanes(report) {
   const ids = new Set();
   const counts = { total: report.lanes.length, succeeded: 0, failed: 0, skipped: 0, attempted: 0 };
   for (const lane of report.lanes) {
-    if (ids.has(lane.id) || !SCHEDULED_REFRESH_LANES.some(item => item.id === lane.id)
+    if (!lane || typeof lane !== 'object' || ids.has(lane.id) || !SCHEDULED_REFRESH_LANES.some(item => item.id === lane.id)
       || !['succeeded', 'failed', 'skipped'].includes(lane.status)) return [];
     ids.add(lane.id);
     counts[lane.status]++;
@@ -24,7 +24,7 @@ export function temporaryFailedLanes(report) {
   }
   if (Object.entries(counts).some(([key, value]) => report.summary?.[key] !== value) || counts.skipped) return [];
   return report.lanes.filter(lane => lane.status === 'failed' && lane.transient === true
-    && lane.attempts?.at(-1)?.transient === true
+    && Array.isArray(lane.attempts) && lane.attempts.at(-1)?.transient === true
     && SCHEDULED_REFRESH_LANES.find(item => item.id === lane.id)?.retryTransient === true).map(lane => lane.id);
 }
 

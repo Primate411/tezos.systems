@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { planActionsRecovery, temporaryFailedLanes, GENERATED_WORKFLOW, HISTORY_WORKFLOW } from '../scripts/lib/actions-recovery.mjs';
 import { selectScheduledRefreshLanes } from '../scripts/lib/scheduled-refresh-lanes.mjs';
 import { readHistoryFreshness } from '../scripts/lib/history-freshness.mjs';
@@ -20,6 +21,7 @@ assert.equal(plan([run(100, { conclusion: 'success' })]).actions.length, 0);
 assert.equal(plan([run(100, { status: 'in_progress' })]).actions.length, 0);
 assert.equal(plan([root, run(101, { status: 'queued', created_at: ago(0.1) })]).actions.length, 0);
 for (const bad of [report({ transient: false }), report({ attempts: [{ transient: false }] }), report({ id: 'capital' }),
+  report({ attempts: {} }), { ...report(), lanes: [null] },
   { ...report(), fatal: 'out of scope' }, { ...report(), summary: {} }, { ...report(), lanes: [] }, {}, null]) {
   assert.deepEqual(temporaryFailedLanes(bad), []);
   assert.equal(plan([root], { 100: bad }).actions.length, 0, 'unknown/hard/scope/validation failures never retry');
@@ -57,4 +59,8 @@ assert.equal(receipts.length, 5, 'one failed probe must not hide the remaining c
 assert.equal(receipts.filter(row => row.ok).length, 2);
 assert.equal(receipts.find(row => row.table === 'market_history').timestamp, ago(6));
 assert.equal(receipts.find(row => row.table === 'tezosx_history').timestamp, null, 'future clocks fail closed');
+const workflow = await readFile(new URL('../.github/workflows/actions-recovery.yml', import.meta.url), 'utf8');
+assert.match(workflow, /workflows:.*Audit Generated Freshness/, 'the independent audit must wake catch-up even when collector schedules disappear');
+assert.match(workflow, /workflows:.*Nightly Smoke Canary/, 'long-running canaries provide another delivery checkpoint');
+assert.equal(plan([healthyRoot], { 100: { lanes: [null] } }, history).actions[0].workflow, HISTORY_WORKFLOW);
 console.log('ok - recovery cooldowns, caps, trusted runs, missed schedules, source selection and independent history clocks');

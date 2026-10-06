@@ -1888,7 +1888,9 @@ surface the configured schedule beside the artifact's actual generation or
 source-observation age; Capital also preserves the CoinGecko quote time and
 last-good status in its compact launcher.
 `.github/workflows/actions-recovery.yml` supervises delivery hourly and after
-collector, data-refresh, and validation workflow completions. It reads the five
+collector, data-refresh, validation, nightly, award-refresh and freshness-audit
+workflow completions. The audit completion is a catch-up opportunity even when
+the collectors' own schedules have stopped arriving. It reads the five
 actual Supabase clocks and catches up history after two hours, with a 30-minute
 cooldown and collector concurrency locks. If a full refresh has not started in
 eight hours, it dispatches one. A completed source failure can receive at most

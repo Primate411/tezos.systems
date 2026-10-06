@@ -5,7 +5,7 @@ on:
     - cron: '33 * * * *'
   workflow_dispatch:
   workflow_run:
-    workflows: [Refresh Generated Surfaces, Collect Tezos Stats, Collect Chamber History, Validate Site]
+    workflows: [Refresh Generated Surfaces, Collect Tezos Stats, Collect Chamber History, Validate Site, Audit Generated Freshness, Nightly Smoke Canary, Refresh TezosCRP Awards]
     types: [completed]
     branches: [main]
 
