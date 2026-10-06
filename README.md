@@ -1913,6 +1913,9 @@ checks wait for the actual chart instance before comparing its identity; Live
 Pulse startup is tested with optional whale enrichment deliberately held open.
 The visibility-motion helper stays inside Network Health so the repair adds no
 startup request; its state transitions retain an isolated regression check.
+Tezos X pagination queues an explicit Load more click behind an active read,
+coalesces repeated clicks, and drops the queued intent when its account,
+generation or visible view changes. The live-refresh smoke forces this overlap.
 
 `.github/workflows/audit-generated-freshness.yml` independently checks the
 committed result every six hours. It raises an 18-hour delivery alarm by default

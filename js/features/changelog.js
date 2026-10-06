@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-10-06',
         entries: [
+            { type: '🔧', text: 'Tezos X preserves Load more clicks that overlap a background refresh, while discarding queued work after an account or view change' },
             { type: '🔧', text: 'Live Head and Chain Health keep tab visibility catch-up motionless even when supplemental receipts arrive first, without adding a startup request' },
             { type: '⚡', text: 'Live Pulse shows confirmed signals immediately while optional briefing details finish loading' },
             { type: '🔧', text: 'Data delivery now catches up overdue history and retries temporary source outages with bounded recovery, while preserving last-good data and freshness alarms' },

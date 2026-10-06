@@ -1499,6 +1499,32 @@ export function createMyTezosViewsSmokeSuites({
     await page.locator('#my-tezos-tab-tezos-x').click();
     await page.waitForFunction(() => ['complete', 'partial'].includes(document.querySelector('#tezosx-status')?.dataset.state), null, { timeout: 30000 });
     await page.waitForFunction(() => document.querySelector('#tezosx-load-more')?.hidden === false, null, { timeout: 10000 });
+    // Force the exact overlap that a timer can create between Playwright's
+    // actionability check and the click: the background request owns the read,
+    // but the enabled control must retain the user's pagination intent.
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const paginationOverlap = await page.evaluate(async () => {
+        const module = await import('/js/features/my-tezos-tezosx.mjs');
+        await module.refreshMyTezosTezosX({ background: true });
+        window.__tezosXOverlappingRefresh = module.refreshMyTezosTezosX({ background: true });
+        const button = document.querySelector('#tezosx-load-more');
+        const enabled = Boolean(button && !button.disabled && !button.hidden);
+        button?.click();
+        return enabled;
+      });
+      assert(paginationOverlap, `Tezos X ${width}px overlap regression must issue an enabled pagination click`);
+      await page.waitForFunction(() => (
+        document.querySelector('#tezosx-load-more')?.hidden === true
+          && /Token approval/i.test(document.querySelector('#tezosx-details')?.textContent || '')
+      ), null, { timeout: 10000 });
+      await page.evaluate(async () => {
+        const module = await import('/js/features/my-tezos-tezosx.mjs');
+        await module.refreshMyTezosTezosX({ force: true });
+      });
+    }
+    // Also keep the ordinary pointer-driven pagination path covered.
+    await page.setViewportSize({ width: 1280, height: 900 });
     await page.locator('#tezosx-load-more').click();
     await page.waitForFunction(() => (
       document.querySelector('#tezosx-load-more')?.hidden === true

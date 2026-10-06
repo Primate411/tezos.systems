@@ -36,6 +36,7 @@ import {
 
 let initialized = false;
 let refreshInFlight = null;
+let queuedLoadMore = null;
 let generation = 0;
 let selectedAddress = '';
 let accountRows = [];
@@ -328,8 +329,28 @@ function mergeById(existing, incoming) {
 
 export async function refreshMyTezosTezosX({ force = false, loadMore = false, background = false } = {}) {
     if (!isVisible()) return null;
-    if (refreshInFlight && !force) return refreshInFlight;
-    if (refreshInFlight && force) refreshController?.abort();
+    if (refreshInFlight && !force) {
+        if (!loadMore) return refreshInFlight;
+        if (queuedLoadMore) return queuedLoadMore;
+        // A background read must not absorb an explicit pagination click.
+        // Coalesce clicks and use the resulting cursor only while its account
+        // and generation still own the visible view.
+        const address = selectedAddress;
+        const requestGeneration = generation;
+        const pending = refreshInFlight.then(() => {
+            if (!isVisible() || selectedAddress !== address || generation !== requestGeneration
+                || !currentDetails?.nextPageParams) return null;
+            return refreshMyTezosTezosX({ loadMore: true });
+        }).finally(() => {
+            if (queuedLoadMore === pending) queuedLoadMore = null;
+        });
+        queuedLoadMore = pending;
+        return pending;
+    }
+    if (force) {
+        queuedLoadMore = null;
+        if (refreshInFlight) refreshController?.abort();
+    }
     const entries = readLinkedAccounts();
     const included = scopedLinkedAccounts(entries).filter((entry) => entry.included !== false);
     const requestGeneration = ++generation;
@@ -456,6 +477,7 @@ export async function refreshMyTezosTezosX({ force = false, loadMore = false, ba
             );
             return { overview, details };
         } catch (error) {
+            if (requestGeneration !== generation || !isVisible()) return null;
             renderSummary();
             renderDetails();
             setStatus(`${error.message || 'Etherlink data unavailable'} · showing saved device-local state`, 'error');
@@ -464,9 +486,9 @@ export async function refreshMyTezosTezosX({ force = false, loadMore = false, ba
             if (refreshInFlight === pending) {
                 refreshInFlight = null;
                 refreshController = null;
+                const loadMoreButton = document.getElementById('tezosx-load-more');
+                if (loadMoreButton) loadMoreButton.disabled = false;
             }
-            const loadMoreButton = document.getElementById('tezosx-load-more');
-            if (loadMoreButton) loadMoreButton.disabled = false;
         }
     })();
     refreshInFlight = pending;
