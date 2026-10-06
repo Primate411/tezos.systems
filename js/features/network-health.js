@@ -10,7 +10,6 @@ import { getCalendarElapsedTime } from '../core/anniversary.js';
 import { readDashboardContinuity, subscribeDashboardContinuity } from '../core/chain-continuity.js';
 import { classifyOctezVersion, fetchOctezVersions, octezVersionsFallback } from '../core/octez-versions.js';
 import { versionedAsset } from '../core/asset-version.js';
-import { resolveLiveHeadMotion } from '../core/live-head-motion.mjs';
 import { escapeHtml, formatFreshnessStamp, refreshDataFreshnessStates, setDataFreshnessState } from '../core/utils.js';
 import { fetchCycleInfo, fetchHeroStats, fetchWithRetry } from '../core/api.js';
 import { readSavedMyTezosEntries } from '../core/wallet.js';
@@ -97,6 +96,18 @@ const LIVE_HEAD_ACTIVITY_TYPES = [...BLOCK_STORY_FILTER_TYPES];
 const LIVE_HEAD_ACTIVITY_V2_TYPES = ['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
 const ETHERLINK_GOVERNANCE_CURRENT_ADDRESS_SET = new Set(Object.values(ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS));
 const ETHERLINK_GOVERNANCE_ENTRYPOINTS = new Set(['new_proposal', 'upvote', 'upvote_proposal', 'vote']);
+
+// Visibility catch-up is shared by primary and supplemental receipts. Local
+// layout changes and old-head responses cannot consume the pending catch-up.
+function resolveLiveHeadMotion({ catchupPending, visible, previousLevel, level,
+    supplemental = false, suppressMotion = false, error = false }) {
+    const completedCatchup = visible && !supplemental && !suppressMotion && !error
+        && Number(level) > Number(previousLevel);
+    return {
+        suppressMotion: Boolean(suppressMotion || catchupPending || !visible),
+        catchupPending: Boolean(catchupPending && !completedCatchup)
+    };
+}
 
 const PERIODS = [
     { key: '24h', label: '24H', hours: 24, exactLimit: 22000 },
