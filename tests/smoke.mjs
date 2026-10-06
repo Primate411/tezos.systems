@@ -1743,6 +1743,7 @@ async function installFeatureMocks(context, options = {}) {
   let whaleDormancyMismatch = false;
   let bakerGovernanceFailure = false;
   let bakerGovernanceSignalRequests = 0;
+  let bakerGovernanceFailureRequests = 0;
   let bakerGovernanceHeavyRequests = 0;
   const whaleCursorRequests = [];
   const ledgerFlowRequests = [];
@@ -2070,6 +2071,7 @@ async function installFeatureMocks(context, options = {}) {
     if (leaderboardSignals && parsedUrl.pathname.endsWith('/data/baker-governance-signals.json')) {
       bakerGovernanceSignalRequests += 1;
       if (bakerGovernanceFailure) {
+        bakerGovernanceFailureRequests += 1;
         return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"smoke Baker governance signals unavailable"}' });
       }
       const generatedAt = new Date().toISOString();
@@ -4187,6 +4189,7 @@ async function installFeatureMocks(context, options = {}) {
     setBlockHeadLag(value = 0) { blockHeadLagMs = Math.max(0, Number(value) || 0); },
     failBakerGovernance(fail = false) { bakerGovernanceFailure = Boolean(fail); },
     get bakerGovernanceSignalRequests() { return bakerGovernanceSignalRequests; },
+    get bakerGovernanceFailureRequests() { return bakerGovernanceFailureRequests; },
     get bakerGovernanceHeavyRequests() { return bakerGovernanceHeavyRequests; },
     failWhaleLane(lane = '') { whaleFailureLane = lane; },
     failLedgerFlowTarget(target = '') { ledgerFlowFailureTarget = target; },

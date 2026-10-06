@@ -4,12 +4,20 @@ import path from 'node:path';
 
 // Verify the rendered indicator, not just a class or an aria-busy attribute.
 async function assertTextBubbles(page, selector, { reducedMotion = false, count = null } = {}) {
-  const bubbles = await page.locator(selector).evaluateAll(nodes => nodes.map(node => {
-    const style = getComputedStyle(node), box = node.getBoundingClientRect();
-    return { slot: node.dataset.bakerLoading, width: box.width, height: box.height,
-      color: style.color, background: style.backgroundColor, image: style.backgroundImage,
-      animation: style.animationName, opacity: style.opacity, radius: parseFloat(style.borderRadius) };
-  }));
+  // Quiet reconciliation intentionally suppresses motion for one frame. Read
+  // the settled receipt and computed styles atomically, without a timing sleep.
+  const receipt = await page.waitForFunction(selector => {
+    const nodes = [...document.querySelectorAll(selector)];
+    if (nodes.some(node => node.closest('[data-quiet-refreshing="true"]'))) return false;
+    return nodes.map(node => {
+      const style = getComputedStyle(node), box = node.getBoundingClientRect();
+      return { slot: node.dataset.bakerLoading, width: box.width, height: box.height,
+        color: style.color, background: style.backgroundColor, image: style.backgroundImage,
+        animation: style.animationName, opacity: style.opacity, radius: parseFloat(style.borderRadius) };
+    });
+  }, selector, { timeout: 5000 });
+  const bubbles = await receipt.jsonValue();
+  await receipt.dispose();
   if (count !== null) assert.equal(bubbles.length, count, `${selector}: expected every pending text slot`);
   assert.ok(bubbles.length, `${selector}: missing text placeholders`);
   for (const bubble of bubbles) {

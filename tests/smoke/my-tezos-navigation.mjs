@@ -20,7 +20,7 @@ export function createMyTezosNavigationSmokeSuites({
       viewport: { width: 390, height: 844 },
       serviceWorkers: 'block'
     });
-    await installFeatureMocks(context);
+    await installFeatureMocks(context, { ledgerFlowMocks: true });
     await context.addInitScript((address) => {
       localStorage.setItem('tezos-systems-theme', 'matrix');
       localStorage.setItem('tezos-toured', '1');
@@ -80,6 +80,9 @@ export function createMyTezosNavigationSmokeSuites({
 
     await ledgerLink.click();
     await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForFunction(() => (
+      document.querySelector('#ledger-flow-modal .ledger-flow-body')?.dataset.ledgerFlowMode === 'exact'
+    ), null, { timeout: 15000 });
     await page.waitForFunction(() => document.querySelectorAll('#ledger-flow-modal [data-site-wayfinder="ledger-flow"] .site-wayfinder-link').length === 4, null, { timeout: 5000 });
     await page.waitForFunction(() => {
       const drawer = document.querySelector('#my-tezos-drawer');

@@ -2549,7 +2549,11 @@ and all six deterministic browser-smoke shards pass. Each shard runs suites
 sequentially in isolated browser processes, continues after a failure to expose
 the complete shard result, retries only the failed suite once for diagnosis,
 and keeps the gate red when that retry is the only pass. Every shard uploads its
-result ledger; failed retry attempts add traces and rendered diagnostics. A
+result ledger. Tracing starts before the first attempt, retains original failure
+evidence even when a suite already closed its browser context, and discards
+successful first-attempt traces. Diagnostic retries remain red. Browser fixtures
+must keep source counts consistent with returned rows, wait for explicit settled
+render receipts, and account for each intentionally injected failure response. A
 post-success job blends robust hosted timings into an adaptive cache ledger for
 the next run while the committed cost fixture remains the cold-start fallback.
 The workflow installs only Chromium's headless shell, retries its download, and

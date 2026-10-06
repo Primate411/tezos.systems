@@ -8,7 +8,8 @@ export const CHANGELOG = [
         date: '2026-10-06',
         entries: [
             { type: '⚡', text: 'Live Pulse shows confirmed signals immediately while optional briefing details finish loading' },
-            { type: '🔧', text: 'Data delivery now catches up overdue history and retries temporary source outages with bounded recovery, while preserving last-good data and freshness alarms' }
+            { type: '🔧', text: 'Data delivery now catches up overdue history and retries temporary source outages with bounded recovery, while preserving last-good data and freshness alarms' },
+            { type: '🔧', text: 'Browser checks retain first-failure evidence and verify settled loading states, complete transfer fixtures, and every intentionally failed refresh' }
         ]
     },
     {

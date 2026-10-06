@@ -394,9 +394,7 @@ export function createStakingSmokeSuites({
         && /last-good governance receipts/i.test(failedGovernanceState.footer),
       `Baker Directory: compact signal refresh failures must retain validated badge maps and label them last-good ${JSON.stringify(failedGovernanceState)}`
     );
-    const expectedFailureIssue = issues.findIndex((issue) => issue.includes('503 (Service Unavailable)') && issue.includes('baker-governance-signals.json'));
-    assert(expectedFailureIssue >= 0, `Baker Directory: compact signal failure probe did not reach the browser fetch path ${JSON.stringify(issues)}`);
-    issues.splice(expectedFailureIssue, 1);
+    assert(mockState.bakerGovernanceFailureRequests > 0, 'Baker Directory: compact signal failure probe did not reach the browser fetch path');
     await page.evaluate(async () => {
       const loadedModuleUrl = performance.getEntriesByType('resource')
         .map((entry) => entry.name)
@@ -605,6 +603,17 @@ export function createStakingSmokeSuites({
     await assertPromotedLauncherGeometry(page, 'Baker Directory desktop launcher pair', { desktop: true });
 
     await context.close();
+    // The one-second background refresh can overlap the deliberate failure.
+    // Account for every injected response, including late console delivery,
+    // while still rejecting any error beyond those exact fixture receipts.
+    const failureUrl = new URL('/data/baker-governance-signals.json', baseUrl).href;
+    const expectedFailure = `Baker Directory console error: Failed to load resource: the server responded with a status of 503 (Service Unavailable) (${failureUrl})`;
+    const failureIssues = issues.filter(issue => issue === expectedFailure);
+    assert(failureIssues.length === mockState.bakerGovernanceFailureRequests,
+      `Baker Directory: every injected 503 must have exactly one browser error receipt (${failureIssues.length}/${mockState.bakerGovernanceFailureRequests})`);
+    for (let index = issues.length - 1; index >= 0; index -= 1) {
+      if (issues[index] === expectedFailure) issues.splice(index, 1);
+    }
     assert(issues.length === 0, `Baker Directory browser issues:\n${issues.join('\n')}`);
     log('ok - Baker Directory complete-set, factual signals, direct route, quiet refresh, and mobile smoke');
   }
