@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
+import { waitForSettledAnimations } from './lib/smoke-animation-ready.mjs';
 
 export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, serviceWorkers: 'block' });
@@ -229,9 +230,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       setTheme(name);
     }, theme);
     await page.waitForFunction((name) => Boolean(document.getElementById(`theme-css-${name}`)?.sheet), theme);
-    await page.evaluate(() => Promise.all(document.getAnimations()
-      .filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
-      .map(animation => animation.finished.catch(() => {}))));
+    await waitForSettledAnimations(page, '#chain-health, #header-activity-button, #live-head-filter-toggle');
     for (const width of [1440, 1101, 1024, 762, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.waitForFunction(count => document.querySelectorAll('[data-chain-health-level]').length === count, width <= 719 ? 10 : 25);

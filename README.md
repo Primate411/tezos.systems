@@ -2553,7 +2553,10 @@ result ledger. Tracing starts before the first attempt, retains original failure
 evidence even when a suite already closed its browser context, and discards
 successful first-attempt traces. Diagnostic retries remain red. Browser fixtures
 must keep source counts consistent with returned rows, wait for explicit settled
-render receipts, and account for each intentionally injected failure response. A
+render receipts, and account for each intentionally injected failure response.
+Finite, scoped animation checks exclude unrelated paused effects. Every browser
+suite attempt also has a ten-minute deadline; a stall remains a test failure,
+retains diagnostics, and closes its browser before the shard continues. A
 post-success job blends robust hosted timings into an adaptive cache ledger for
 the next run while the committed cost fixture remains the cold-start fallback.
 The workflow installs only Chromium's headless shell, retries its download, and

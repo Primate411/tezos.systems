@@ -9,7 +9,7 @@ export const CHANGELOG = [
         entries: [
             { type: '⚡', text: 'Live Pulse shows confirmed signals immediately while optional briefing details finish loading' },
             { type: '🔧', text: 'Data delivery now catches up overdue history and retries temporary source outages with bounded recovery, while preserving last-good data and freshness alarms' },
-            { type: '🔧', text: 'Browser checks retain first-failure evidence and verify settled loading states, complete transfer fixtures, and every intentionally failed refresh' }
+            { type: '🔧', text: 'Browser checks retain first-failure evidence, isolate stalled tests with bounded waits, and verify settled loading states, complete transfer fixtures, and every intentionally failed refresh' }
         ]
     },
     {

@@ -62,6 +62,10 @@ the highest-risk gotchas.
   costs and join subsequent learning, while retired suites leave the ledger.
   Direct waits of at least one second require a named receipt in
   `tests/fixtures/smoke-intentional-waits.json`. Keep
+  animation readiness scoped and bounded through `tests/lib/smoke-animation-ready.mjs`;
+  never await every page animation's completion. Each browser suite attempt has
+  a ten-minute deadline and retains a red result plus diagnostics on timeout.
+  Keep
   the Octez.Connect SDK and Kraken ticker subscription in the separate nightly
   live-upstream canary; normal CI uses pinned hermetic fixtures for both. Keep
   `tests/smoke-harness-check.mjs` in the static gate when changing runner

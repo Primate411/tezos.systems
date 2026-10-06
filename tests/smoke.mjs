@@ -18,6 +18,7 @@ import {
   parseShard,
   selectSuiteCatalog,
   SmokeInfrastructureError,
+  withSmokeSuiteDeadline,
   summarizeSuiteResults,
   unstableSuiteResults
 } from './lib/smoke-harness.mjs';
@@ -45,6 +46,7 @@ import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
 import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { waitForStableClickTarget } from './lib/smoke-click-ready.mjs';
+import { waitForSettledAnimations } from './lib/smoke-animation-ready.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { smokeLiveTimeLabels } from './lib/live-time-label-smoke.mjs';
@@ -4309,13 +4311,8 @@ async function assertPromotedLauncherGeometry(page, label, { desktop = false } =
     return ['whale-watch-entry-card', 'baker-directory-entry-card', 'cycle-history-entry-card']
       .every((id) => document.getElementById(id)?.getBoundingClientRect().height > 0);
   }, null, { timeout: 5000 });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.all(document.getAnimations().filter(animation => (
-      animation.effect?.target?.closest?.('#chambers-grid')
-      && animation.effect.getTiming().iterations !== Infinity
-    )).map(animation => animation.finished.catch(() => {})));
-  });
+  await page.evaluate(async () => { await document.fonts.ready; });
+  await waitForSettledAnimations(page, '#chambers-grid');
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const geometry = await page.evaluate(() => {
     const readCard = (selector, railsSelector) => {
@@ -6204,7 +6201,7 @@ async function main() {
         const executableSuite = getSuiteCatalog(suiteBrowser, server.baseUrl)
           .find((candidate) => candidate.name === suite.name);
         if (!executableSuite) throw new Error(`smoke suite disappeared from catalog: ${suite.name}`);
-        await executableSuite.run();
+        await withSmokeSuiteDeadline(() => executableSuite.run(), { suiteName: suite.name });
       } catch (error) {
         runError = error;
       }

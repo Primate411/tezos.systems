@@ -14,6 +14,7 @@ import {
   selectSuiteCatalog,
   summarizeSuiteResults,
   SmokeInfrastructureError,
+  withSmokeSuiteDeadline,
   unstableSuiteResults
 } from './lib/smoke-harness.mjs';
 import { selectAffectedSmokeSuites, smokeGlobMatches } from './lib/smoke-affected.mjs';
@@ -22,6 +23,7 @@ import { checkSmokeProcessCancellation } from './lib/smoke-cancellation-check.mj
 import { checkAsyncBrowserWork } from './lib/smoke-browser-work-check.mjs';
 import { checkStableClickTarget } from './lib/smoke-click-ready-check.mjs';
 import { checkSmokeArtifacts } from './lib/smoke-artifacts-check.mjs';
+import { checkSettledAnimations } from './lib/smoke-animation-ready-check.mjs';
 
 function expectThrow(run, pattern) {
   assert.throws(run, pattern);
@@ -31,6 +33,19 @@ async function main() {
   await checkAsyncBrowserWork();
   await checkStableClickTarget();
   await checkSmokeArtifacts();
+  await checkSettledAnimations();
+  const bounded = await executeSuiteCatalog([{ name: 'hung' }, { name: 'next' }], {
+    continueOnFailure: true,
+    retryInfrastructure: 2,
+    runAttempt: suite => withSmokeSuiteDeadline(
+      () => suite.name === 'hung' ? new Promise(() => {}) : 'complete',
+      { suiteName: suite.name, timeoutMs: 10 }
+    )
+  });
+  assert.deepEqual(bounded.map(result => result.status), ['failed', 'passed']);
+  assert.equal(bounded[0].iterations[0].attempts.length, 1);
+  assert.equal(bounded[0].iterations[0].attempts[0].error.name, 'SmokeSuiteTimeoutError');
+  assert.equal(bounded[0].iterations[0].attempts[0].infrastructureFailure, false, 'a hung suite must never become a transparent infrastructure retry');
   const costsDir = await mkdtemp(path.join(os.tmpdir(), 'smoke-costs-check-'));
   try {
     const currentCosts = JSON.parse(await readFile('tests/fixtures/smoke-suite-costs.json', 'utf8'));

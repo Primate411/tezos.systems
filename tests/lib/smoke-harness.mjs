@@ -18,6 +18,25 @@ export function isSmokeInfrastructureError(error) {
   return error?.infrastructure === true || error?.name === 'SmokeInfrastructureError';
 }
 
+// Keep a hung browser evaluation inside its own failure domain. The caller
+// retains diagnostics and closes the attempt's browser before continuing.
+export async function withSmokeSuiteDeadline(run, { suiteName, timeoutMs = 600_000 }) {
+  requireInteger(timeoutMs, 'suite timeout', { min: 1 });
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(run),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          const error = new Error(`${suiteName} exceeded its ${timeoutMs}ms browser suite deadline`);
+          error.name = 'SmokeSuiteTimeoutError';
+          reject(error);
+        }, timeoutMs);
+      })
+    ]);
+  } finally { clearTimeout(timer); }
+}
+
 export function parseShard(value) {
   if (!value) return null;
   const match = String(value).trim().match(/^(\d+)\/(\d+)$/);
