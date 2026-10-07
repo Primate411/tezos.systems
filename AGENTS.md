@@ -772,6 +772,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   concurrency locks, static publication gate, and independent freshness alarms.
   `tests/actions-recovery-check.mjs` guards these boundaries. GitHub event
   triggers reduce cron dependence but do not provide an independent scheduler.
+  `scripts/lib/github-recovery-transport.mjs` retries temporary GitHub reads and
+  confirms newly accepted trusted runs before repeating ambiguous dispatches.
+  Preserve the three-attempt cap, fail-closed confirmation, independent actions,
+  and failure report before the supervisor exits red.
   Smoke traces now start on every attempt and retain failures plus diagnostic
   retries; successful first-attempt traces are discarded.
 - `.github/workflows/audit-generated-freshness.yml`: independent read-only

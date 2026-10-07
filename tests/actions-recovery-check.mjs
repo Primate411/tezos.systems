@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { superviseActions } from '../scripts/actions-recovery.mjs';
 import { planActionsRecovery, temporaryFailedLanes, GENERATED_WORKFLOW, HISTORY_WORKFLOW } from '../scripts/lib/actions-recovery.mjs';
 import { isRecentCompleteRefresh, onlyGeneratedChanges, checkCadence } from '../scripts/check-generated-refresh-cadence.mjs';
 import { selectScheduledRefreshLanes } from '../scripts/lib/scheduled-refresh-lanes.mjs';
 import { readHistoryFreshness } from '../scripts/lib/history-freshness.mjs';
+import { dispatchRecoveryWorkflow, findAcceptedDispatch, isTemporaryGitHubError, retryGitHubRead } from '../scripts/lib/github-recovery-transport.mjs';
 
 const now = Date.parse('2026-10-06T20:00:00Z');
 const ago = hours => new Date(now - hours * 3_600_000).toISOString();
@@ -89,3 +93,95 @@ for (const file of ['scripts/refresh-maxis-data.mjs', 'tests/maxis-check.mjs', '
 }
 assert.equal((await checkCadence({ event: 'workflow_dispatch' })).skip, false, 'manual and recovery dispatches never coalesce');
 console.log('ok - redundant schedule guard requires fresh full success and unchanged source code');
+
+const temporaryGitHub = status => Object.assign(new Error(`gh command failed: HTTP ${status}`), { stderr: `could not create workflow dispatch event: HTTP ${status}` });
+for (const status of [408, 429, 500, 502, 503, 504]) assert(isTemporaryGitHubError(temporaryGitHub(status)));
+for (const status of [400, 401, 403, 404, 422]) assert(!isTemporaryGitHubError(temporaryGitHub(status)));
+assert(isTemporaryGitHubError(Object.assign(new Error('request timed out'), { code: 'ETIMEDOUT' })));
+assert(!isTemporaryGitHubError(new Error('invalid report with 500 rows')));
+let readAttempts = 0;
+const readDelays = [];
+assert.equal(await retryGitHubRead(() => {
+  if (++readAttempts < 3) throw temporaryGitHub(503);
+  return 'fresh inventory';
+}, { sleep: async ms => readDelays.push(ms) }), 'fresh inventory');
+assert.equal(readAttempts, 3);
+assert.deepEqual(readDelays, [2000, 5000]);
+let hardReads = 0;
+await assert.rejects(retryGitHubRead(() => { hardReads++; throw temporaryGitHub(403); }), /HTTP 403/);
+assert.equal(hardReads, 1);
+
+const action = { workflow: GENERATED_WORKFLOW, inputs: { lanes: 'maxis-season', recovery_of: '100', recovery_attempt: '1' } };
+const accepted = run(102, { event: 'workflow_dispatch', created_at: new Date(now).toISOString(), status: 'queued', conclusion: null, display_title: 'Recover generated data 100 attempt 1' });
+const confirmation = { action, repository, knownRunIds: new Set(['100']), startedAt: now };
+assert.equal(findAcceptedDispatch({ ...confirmation, runs: [accepted] }), accepted);
+for (const patch of [{ id: 100 }, { created_at: ago(1) }, { head_branch: 'other' }, { event: 'schedule' },
+  { head_repository: { full_name: 'fork/repo' } }, { display_title: 'Recover generated data 100 attempt 2' },
+  { path: `.github/workflows/${HISTORY_WORKFLOW}` }]) {
+  assert.equal(findAcceptedDispatch({ ...confirmation, runs: [{ ...accepted, ...patch }] }), undefined);
+}
+assert.equal(findAcceptedDispatch({ ...confirmation, action: { workflow: GENERATED_WORKFLOW, inputs: {} }, runs: [accepted] }), undefined, 'a partial recovery is not a full refresh receipt');
+let writes = 0;
+let confirmations = 0;
+let dispatchDelays = [];
+const invoke = overrides => dispatchRecoveryWorkflow({ action, repository, knownRunIds: new Set(['100']), now: () => now,
+  sleep: async ms => dispatchDelays.push(ms), listRuns: async () => { confirmations++; return []; }, ...overrides });
+const retried = await invoke({ dispatch: async () => { if (++writes === 1) throw temporaryGitHub(500); } });
+assert.equal(retried.result, 'dispatched');
+assert.equal(retried.dispatchAttempts, 2);
+assert.equal(confirmations, 1);
+assert.deepEqual(dispatchDelays, [5000]);
+writes = 0;
+const ambiguous = await invoke({ dispatch: async () => { writes++; throw temporaryGitHub(500); }, listRuns: async () => [accepted] });
+assert.equal(ambiguous.runId, accepted.id);
+assert.equal(ambiguous.result, 'confirmed after temporary GitHub response');
+assert.equal(writes, 1, 'accepted dispatches must never be blindly repeated after an ambiguous error');
+writes = 0;
+dispatchDelays = [];
+await assert.rejects(invoke({ dispatch: async () => { writes++; throw temporaryGitHub(503); } }), /HTTP 503/);
+assert.equal(writes, 3, 'persistent outages must remain failures after the finite retry budget');
+assert.deepEqual(dispatchDelays, [5000, 15000, 30000]);
+writes = 0;
+await assert.rejects(invoke({ dispatch: async () => { writes++; throw temporaryGitHub(502); }, listRuns: async () => { throw new Error('inventory unavailable'); } }), /inventory unavailable/);
+assert.equal(writes, 1, 'unreadable confirmation must not authorize another dispatch');
+writes = 0;
+await assert.rejects(invoke({ dispatch: async () => { writes++; throw temporaryGitHub(503); }, listRuns: async () => Array.from({ length: 100 }, (_, index) => ({ ...accepted, id: 200 + index, display_title: 'unrelated' })) }), /inventory is incomplete/);
+assert.equal(writes, 1);
+for (const status of [401, 403, 404, 422]) {
+  writes = 0;
+  await assert.rejects(invoke({ dispatch: async () => { writes++; throw temporaryGitHub(status); }, listRuns: async () => { throw new Error('hard errors must not poll'); } }), new RegExp(`HTTP ${status}`));
+  assert.equal(writes, 1);
+}
+console.log('ok - temporary GitHub reads retry, ambiguous dispatches confirm before repeating, and hard/persistent failures remain failures');
+
+const reportDirectory = await mkdtemp(path.join(tmpdir(), 'actions-recovery-report-'));
+const priorReport = process.env.ACTIONS_RECOVERY_REPORT;
+const priorSummary = process.env.GITHUB_STEP_SUMMARY;
+try {
+  process.env.ACTIONS_RECOVERY_REPORT = path.join(reportDirectory, 'report.json');
+  process.env.GITHUB_STEP_SUMMARY = path.join(reportDirectory, 'summary.md');
+  const dispatched = [];
+  await assert.rejects(superviseActions({ apply: true, repository, clock: () => now,
+    readHistory: async () => [{ table: 'market_history', timestamp: ago(3) }],
+    command: args => {
+      if (args[0] === 'api') return JSON.stringify(args[1].includes('/actions/runs?') ? { workflow_runs: [] } : { state: 'active' });
+      assert.deepEqual(args.slice(0, 2), ['workflow', 'run']);
+      dispatched.push(args[2]);
+      if (args[2] === GENERATED_WORKFLOW) throw temporaryGitHub(403);
+      return '';
+    }
+  }), /1 recovery dispatch\(es\) failed/);
+  assert.deepEqual(dispatched, [GENERATED_WORKFLOW, HISTORY_WORKFLOW], 'a failed dispatch must not block independent catch-up');
+  const saved = JSON.parse(await readFile(process.env.ACTIONS_RECOVERY_REPORT, 'utf8'));
+  assert.equal(saved.actions[0].result, 'failed');
+  assert.match(saved.actions[0].error, /HTTP 403/);
+  assert.equal(saved.actions[1].result, 'dispatched');
+  assert.match(await readFile(process.env.GITHUB_STEP_SUMMARY, 'utf8'), /failed/);
+} finally {
+  if (priorReport === undefined) delete process.env.ACTIONS_RECOVERY_REPORT;
+  else process.env.ACTIONS_RECOVERY_REPORT = priorReport;
+  if (priorSummary === undefined) delete process.env.GITHUB_STEP_SUMMARY;
+  else process.env.GITHUB_STEP_SUMMARY = priorSummary;
+  await rm(reportDirectory, { recursive: true, force: true });
+}
+console.log('ok - failed recovery dispatches retain their report and do not block independent actions');

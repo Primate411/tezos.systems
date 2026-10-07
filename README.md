@@ -1912,7 +1912,12 @@ are retained as `actions-recovery-report`; dry-run with
 The supervisor runs trusted main code, ignores PR/fork evidence, preserves
 disabled workflows, and cannot dispatch another supervisor. Its event triggers
 reduce dependence on delayed GitHub schedules, but remain on GitHub infrastructure.
-The independent freshness audit remains the final delivery alarm.
+The independent freshness audit remains the final delivery alarm. Temporary GitHub
+API failures use bounded read retries. An ambiguous dispatch failure first checks
+for a newly accepted, trusted run with the same recovery identity before trying
+again; unreadable confirmation never authorizes a duplicate. Hard errors remain
+failures, independent planned actions still run, and the supervisor saves their
+results before reporting exhausted dispatches.
 
 Browser smoke now records traces from the first attempt, retains failed attempts
 and diagnostic retries, and discards successful first-attempt payloads. This
