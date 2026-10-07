@@ -182,8 +182,9 @@ export function createDataStaticChecks({
     for (const snippet of ['SCHEDULED_FRESHNESS_HOURS = 18', 'SCHEDULED_FRESHNESS_HOURS_BY_ARTIFACT', 'nakamoto: 30', 'ECOSYSTEM_MONDAY_GRACE_HOURS = 18', 'acceptableCompletedEcosystemWeeks', 'staleAfterHours', 'generatedAtCommitCount']) {
       if (!generatedFreshness.includes(snippet)) fail(`generated freshness contract must enforce ${snippet}`);
     }
+    const freshnessIncident = await readText('.github/scripts/reconcile-freshness-incident.js');
     for (const snippet of ["cron: '47 3,9,15,21 * * *'", 'npm run check:generated:freshness', 'npm run check:supabase:freshness', 'contents: read', 'issues: write', 'actions/github-script@v8', 'tezos-systems-generated-freshness-incident', 'freshness-signature', "state: 'closed'", 'steps.generated.outcome', 'steps.history.outcome']) {
-      if (!generatedFreshnessWorkflow.includes(snippet)) fail(`generated freshness audit workflow must include ${snippet}`);
+      if (!(generatedFreshnessWorkflow + freshnessIncident).includes(snippet)) fail(`generated freshness audit workflow must include ${snippet}`);
     }
     if (generatedFreshnessWorkflow.includes('exit "$failed"')) {
       fail('generated freshness audit must reconcile one incident instead of failing every unchanged scheduled run');

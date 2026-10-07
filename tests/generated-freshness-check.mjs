@@ -122,3 +122,50 @@ const milestoneTime = evaluateGeneratedFreshness({ artifacts: fixtures('2026-08-
 assert(milestoneTime.issues.some((issue) => issue.id === 'milestones' && issue.overdueByTime));
 
 console.log('ok - generated freshness contracts cover source-specific age, Monday rollover, manual review, and milestone cadence');
+
+// Exercise the actual workflow reconciler with a recording GitHub client. An
+// unrelated successful collector must not close a still-stale generated lane.
+const { default: reconcileIncident } = await import('../.github/scripts/reconcile-freshness-incident.js');
+const { readFile } = await import('node:fs/promises');
+async function reconcile({ incident, generated = 'success', history = 'success', detail = '' } = {}) {
+  const calls = [];
+  const summary = { addHeading() { return this; }, addLink() { return this; }, addCodeBlock() { return this; }, async write() {} };
+  const github = { rest: { issues: {
+    async listForRepo() { return { data: incident ? [incident] : [] }; },
+    async create(input) { calls.push({ action: 'create', ...input }); },
+    async update(input) { calls.push({ action: 'update', ...input }); },
+    async createComment() { assert.fail('Incident changes must not post redundant comments'); }
+  } } };
+  await reconcileIncident({ github, core: { summary, info() {}, warning() {} },
+    context: { repo: { owner: 'fixture', repo: 'site' }, sha: 'current-main', runId: 123 },
+    env: { GENERATED_OUTCOME: generated, HISTORY_OUTCOME: history, GITHUB_SERVER_URL: 'https://github.com' },
+    readLogOverride: () => detail
+  });
+  return calls;
+}
+assert.deepEqual(await reconcile(), [], 'healthy data without an incident needs no write');
+const [created] = await reconcile({ history: 'failure', detail: 'fail - tezos_history: 345m old' });
+assert.equal(created.action, 'create');
+assert.match(created.body, /tezos_history: 345m old/);
+const incident = { number: 1, state: 'open', body: created.body };
+assert.deepEqual(await reconcile({ incident, history: 'failure', detail: 'fail - tezos_history: 350m old' }), [], 'changing age alone must not update or notify');
+const [changed] = await reconcile({ incident, generated: 'failure', detail: 'stale - maxis-season: 20h old' });
+assert.equal(changed.action, 'update');
+assert.match(changed.body, /maxis-season/);
+assert.equal(changed.state, undefined, 'healthy history cannot close a generated-data failure');
+const [unverified] = await reconcile({ incident, generated: 'skipped' });
+assert.notEqual(unverified.state, 'closed', 'a missing or skipped check cannot prove recovery');
+const [closed] = await reconcile({ incident });
+assert.equal(closed.state, 'closed');
+assert.equal(closed.state_reason, 'completed');
+assert(closed.body.startsWith(incident.body), 'preserve the incident receipt');
+assert.match(closed.body, /Both generated artifacts and historical ledgers passed in https:\/\/github.com\/fixture\/site\/actions\/runs\/123/);
+assert.deepEqual(await reconcile({ incident: { ...incident, state: 'closed', body: closed.body } }), []);
+const [reopened] = await reconcile({ incident: { ...incident, state: 'closed', body: closed.body }, history: 'failure', detail: 'fail - tezos_history: 310m old' });
+assert.equal(reopened.state, 'open');
+assert(!reopened.body.includes('## Recovered'), 'a new failure cannot retain the prior recovered state');
+const auditWorkflow = await readFile(new URL('../.github/workflows/audit-generated-freshness.yml', import.meta.url), 'utf8');
+for (const trigger of ['Refresh Generated Surfaces', 'Collect Tezos Stats', 'Collect Chamber History']) assert(auditWorkflow.includes(trigger));
+for (const boundary of ["conclusion == 'success'", 'head_repository.full_name == github.repository', "head_branch == 'main'", "event == 'schedule'", "event == 'workflow_dispatch'", 'ref: main', 'persist-credentials: false']) assert(auditWorkflow.includes(boundary));
+assert.match(auditWorkflow, /require\('\.\/\.github\/scripts\/reconcile-freshness-incident\.js'\)/);
+console.log('ok - freshness recovery requires both current checks, reuses one issue and records recovery without comments');

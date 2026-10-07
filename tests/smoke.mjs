@@ -4636,12 +4636,14 @@ async function assertChamberInfoTooltipsContained(page, label) {
     await button.scrollIntoViewIfNeeded();
     await button.hover();
     await waitForStableClickTarget(page, `${selector} > .card-info-btn`, label);
-    const beforeInfoClick = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
+    // Playwright may finish scrolling while preparing the pointer action.
+    // Capture the real activation boundary, not the earlier click request.
+    await button.evaluate(node => {
+      node.addEventListener('pointerdown', () => {
+        node.__infoActivationScroll = { x: scrollX, y: scrollY };
+      }, { once: true, capture: true });
+    });
     await button.click();
-    await waitForStableClickTarget(page, `${selector} > .card-info-btn`, label);
-    const afterInfoClick = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
-    assert(Math.abs(afterInfoClick.x - beforeInfoClick.x) <= 1 && Math.abs(afterInfoClick.y - beforeInfoClick.y) <= 1,
-      `${label}: opening ${selector} info moved the page: ${JSON.stringify({ beforeInfoClick, afterInfoClick })}`);
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'
     ), selector, { timeout: 5000 }).catch(async error => {
@@ -4654,6 +4656,13 @@ async function assertChamberInfoTooltipsContained(page, label) {
       }));
       throw new Error(`${label}: ${selector} info tooltip did not open: ${JSON.stringify(state)}`, { cause: error });
     });
+    const activationScroll = await button.evaluate(node => ({
+      before: node.__infoActivationScroll, after: { x: scrollX, y: scrollY }
+    }));
+    assert(activationScroll.before
+      && Math.abs(activationScroll.after.x - activationScroll.before.x) <= 1
+      && Math.abs(activationScroll.after.y - activationScroll.before.y) <= 1,
+      `${label}: activating ${selector} info moved the page: ${JSON.stringify(activationScroll)}`);
     // Fonts and late card hydration can queue another placement after opening.
     // Read one settled receipt instead of sampling an arbitrary 350 ms later.
     const geometryHandle = await page.waitForFunction((cardSelector) => {

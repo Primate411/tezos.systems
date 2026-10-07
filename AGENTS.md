@@ -774,7 +774,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   Smoke traces now start on every attempt and retain failures plus diagnostic
   retries; successful first-attempt traces are discarded.
 - `.github/workflows/audit-generated-freshness.yml`: independent read-only
-  six-hour audit of committed generated and Supabase delivery clocks.
+  six-hour audit of committed generated and Supabase delivery clocks, also run
+  after successful trusted main data deliveries. Check current main, require both
+  clocks to pass before closing the incident, and retain recovery evidence in its
+  body without posting redundant comments.
 - `.github/scripts/collect-data.js`: collects TzKT/Octez stats and writes to
   Supabase, with guardrails against critical zero values.
 - `scripts/refresh-governance-data.mjs`: canonical governance refresh entry

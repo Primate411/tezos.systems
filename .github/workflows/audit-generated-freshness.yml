@@ -5,6 +5,10 @@ on:
     # Offset from the repository writer so the audit observes the delivered result.
     - cron: '47 3,9,15,21 * * *'
   workflow_dispatch:
+  workflow_run:
+    workflows: [Refresh Generated Surfaces, Collect Tezos Stats, Collect Chamber History, Refresh TezosCRP Awards, Refresh Chain Comparison]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
@@ -16,11 +20,17 @@ concurrency:
 
 jobs:
   audit:
+    # Recheck current main after trusted delivery, never execute PR/fork code.
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch'))
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
+        id: checkout
         uses: actions/checkout@v7
         with:
+          ref: main
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -51,135 +61,11 @@ jobs:
         if: always()
         uses: actions/github-script@v8
         env:
+          CHECKED_OUT_SHA: ${{ steps.checkout.outputs.commit }}
           GENERATED_OUTCOME: ${{ steps.generated.outcome }}
           HISTORY_OUTCOME: ${{ steps.history.outcome }}
           GENERATED_LOG: ${{ runner.temp }}/generated-freshness.log
           HISTORY_LOG: ${{ runner.temp }}/history-freshness.log
         with:
           script: |
-            const fs = require('node:fs');
-            const crypto = require('node:crypto');
-            const marker = '<!-- tezos-systems-generated-freshness-incident -->';
-            const readLog = (file) => {
-              try {
-                return fs.readFileSync(file, 'utf8');
-              } catch {
-                return '';
-              }
-            };
-            const noteworthy = (text) => text
-              .split(/\r?\n/)
-              .filter((line) => /^(?:stale|fail) -|freshness failed|Error:/i.test(line.trim()))
-              .slice(-24);
-            const generated = noteworthy(readLog(process.env.GENERATED_LOG));
-            const history = noteworthy(readLog(process.env.HISTORY_LOG));
-            const failed = process.env.GENERATED_OUTCOME !== 'success'
-              || process.env.HISTORY_OUTCOME !== 'success';
-            const details = [
-              ...(process.env.GENERATED_OUTCOME !== 'success' ? generated : []),
-              ...(process.env.HISTORY_OUTCOME !== 'success' ? history : [])
-            ];
-            const failureKeys = details.map((line) => {
-              const contract = line.trim().match(/^(?:stale|fail) - ([^:]+):/i);
-              if (contract) return contract[1];
-              if (/^Error:/i.test(line.trim())) return 'error';
-              return line.trim().replace(/\d+(?:\.\d+)?/g, '#');
-            });
-            const signature = crypto
-              .createHash('sha256')
-              .update(JSON.stringify({
-                generated: process.env.GENERATED_OUTCOME,
-                history: process.env.HISTORY_OUTCOME,
-                failureKeys: [...new Set(failureKeys)].sort()
-              }))
-              .digest('hex')
-              .slice(0, 16);
-            const signatureMarker = `<!-- freshness-signature:${signature} -->`;
-            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = [
-              marker,
-              signatureMarker,
-              '# Generated freshness incident',
-              '',
-              'The scheduled read-only audit found stale or unavailable published data.',
-              '',
-              `- Commit: \`${context.sha}\``,
-              `- Workflow run: ${runUrl}`,
-              `- Generated artifacts: **${process.env.GENERATED_OUTCOME}**`,
-              `- Historical ledgers: **${process.env.HISTORY_OUTCOME}**`,
-              '',
-              '```text',
-              ...(details.length ? details : ['The failed check did not emit a recognized freshness detail.']),
-              '```',
-              '',
-              'This issue is updated only when the failure signature changes and closes automatically after recovery.'
-            ].join('\n');
-
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'all',
-              sort: 'updated',
-              direction: 'desc',
-              per_page: 100
-            });
-            const incident = issues.find((issue) => !issue.pull_request && issue.body?.includes(marker));
-
-            if (failed) {
-              core.warning(details.join('\n') || 'A freshness check failed without a recognized detail.');
-              await core.summary
-                .addHeading('Generated freshness incident')
-                .addLink('Open this workflow run', runUrl)
-                .addCodeBlock(details.join('\n') || 'No recognized freshness detail', 'text')
-                .write();
-              if (!incident) {
-                await github.rest.issues.create({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title: 'Generated freshness incident',
-                  body
-                });
-              } else if (incident.state !== 'open') {
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: incident.number,
-                  state: 'open',
-                  body
-                });
-              } else if (!incident.body?.includes(signatureMarker)) {
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: incident.number,
-                  body
-                });
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: incident.number,
-                  body: `Freshness failure changed: ${runUrl}`
-                });
-              } else {
-                core.info(`Existing incident #${incident.number} already represents this failure.`);
-              }
-            } else {
-              await core.summary
-                .addHeading('Generated freshness healthy')
-                .addLink('Open this workflow run', runUrl)
-                .write();
-              if (incident?.state === 'open') {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: incident.number,
-                  body: `Recovered in ${runUrl}. Closing this incident.`
-                });
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: incident.number,
-                  state: 'closed'
-                });
-              }
-            }
+            await require('./.github/scripts/reconcile-freshness-incident.js')({ github, context, core });

@@ -3,19 +3,29 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
 // Verify the rendered indicator, not just a class or an aria-busy attribute.
-async function assertTextBubbles(page, selector, { reducedMotion = false, count = null } = {}) {
+async function assertTextBubbles(page, selector, { reducedMotion = false, count = null, probeMissingVisual = false } = {}) {
   // Quiet reconciliation intentionally suppresses motion for one frame. Read
   // the settled receipt and computed styles atomically, without a timing sleep.
-  const receipt = await page.waitForFunction(selector => {
+  const receipt = await page.waitForFunction(({ selector, probeMissingVisual }) => {
     const nodes = [...document.querySelectorAll(selector)];
     if (nodes.some(node => node.closest('[data-quiet-refreshing="true"]'))) return false;
-    return nodes.map(node => {
-      const style = getComputedStyle(node), box = node.getBoundingClientRect();
-      return { slot: node.dataset.bakerLoading, width: box.width, height: box.height,
-        color: style.color, background: style.backgroundColor, image: style.backgroundImage,
-        animation: style.animationName, opacity: style.opacity, radius: parseFloat(style.borderRadius) };
-    });
-  }, selector, { timeout: 5000 });
+    // Inject and inspect the broken visual in the same browser task. A live
+    // reconciliation between separate evaluate calls could restore the class
+    // and make this negative probe pass for the wrong reason.
+    const probe = probeMissingVisual ? nodes[0] : null;
+    const hadVisual = probe?.classList.contains('top-continuity-baker-placeholder');
+    probe?.classList.remove('top-continuity-baker-placeholder');
+    try {
+      return nodes.map(node => {
+        const style = getComputedStyle(node), box = node.getBoundingClientRect();
+        return { slot: node.dataset.bakerLoading, width: box.width, height: box.height,
+          color: style.color, background: style.backgroundColor, image: style.backgroundImage,
+          animation: style.animationName, opacity: style.opacity, radius: parseFloat(style.borderRadius) };
+      });
+    } finally {
+      if (hadVisual) probe.classList.add('top-continuity-baker-placeholder');
+    }
+  }, { selector, probeMissingVisual }, { timeout: 5000 });
   const bubbles = await receipt.jsonValue();
   await receipt.dispose();
   if (count !== null) assert.equal(bubbles.length, count, `${selector}: expected every pending text slot`);
@@ -62,10 +72,7 @@ async function smokeColdRoster(browser, baseUrl, installFeatureMocks, artifactsD
     await assertTextBubbles(page, '[data-top-continuity-horizons] [data-baker-loading="trend"]', { count: 3 });
     // Negative probe: the contract must reject a missing visual, even when
     // its data marker and accessible loading label remain present.
-    const probe = page.locator('.top-continuity-baker-loading [data-baker-loading]').first();
-    await probe.evaluate(node => node.classList.remove('top-continuity-baker-placeholder'));
-    await assert.rejects(() => assertTextBubbles(page, '.top-continuity-baker-loading [data-baker-loading]', { count: 30 }));
-    await probe.evaluate(node => node.classList.add('top-continuity-baker-placeholder'));
+    await assert.rejects(() => assertTextBubbles(page, '.top-continuity-baker-loading [data-baker-loading]', { count: 30, probeMissingVisual: true }));
     assert.equal(await page.locator('.top-continuity-baker-loading button, .top-continuity-baker-loading a').count(), 0, 'pending actions are not fake controls');
     if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, 'baker-roster-cold-390.png') });
     release();

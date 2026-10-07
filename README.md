@@ -1926,7 +1926,9 @@ coalesces repeated clicks, and drops the queued intent when its account,
 generation or visible view changes. The live-refresh smoke forces this overlap.
 
 `.github/workflows/audit-generated-freshness.yml` independently checks the
-committed result every six hours. It raises an 18-hour delivery alarm by default
+committed result every six hours and after successful main-branch data refreshes
+and history collections. It checks current main and fresh history clocks, so
+recovered incidents close promptly. It raises an 18-hour delivery alarm by default
 and a 30-hour alarm for the once-daily Edinburgh EDI Nakamoto source, accepts
 either the previous or newly completed Ecosystem week during Monday's 18-hour
 grace period, then requires the newest Monday-to-Monday UTC week. It also
@@ -1935,6 +1937,12 @@ receipts. The audit never rewrites or promotes stale data. It maintains one
 GitHub issue for the current failure signature, updates that issue only when the
 failing contracts change, and closes it automatically after recovery so an
 unchanged incident does not generate a new failed-workflow email every six hours.
+Failure changes update its body; recovery records the passing run and closes it
+without redundant bot comments. Both freshness checks must pass before closure.
+Info-tooltip checks measure scrolling from the actual pointer activation, after
+browser positioning. The roster loading negative probe removes and inspects its
+visual in one browser task so a live refresh cannot repair the injected defect
+before the assertion.
 `.github/workflows/refresh-chain-comparison.yml` runs on the first day of each
 month, refreshes and validates the comparison receipt, rebakes the standalone
 pages, and commits only a fully verified snapshot.
