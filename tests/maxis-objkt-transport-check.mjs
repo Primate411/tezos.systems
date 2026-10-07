@@ -154,6 +154,23 @@ try {
   await rateLimited(endpoint, request(document));
   assert.deepEqual(limitedSizes, [500, 500], 'rate limiting must slow traffic without multiplying requests by shrinking pages');
 
+  // The Oct 7 outage returned immediate 503s to several concurrent adapters.
+  // Cool down the shared queue before the next operation, preserve page sizes,
+  // and retain the existing eight-failure circuit for a persistent outage.
+  for (const status of [502, 503, 504]) {
+    let outageTime = 0;
+    const outageCalls = [];
+    const recovering = createMaxisObjktFetch({ ...options, now: () => outageTime,
+      wait: async ms => { outageTime += ms; }, fetch: async (url, init) => {
+        outageCalls.push({ time: outageTime, limit: JSON.parse(init.body).variables.limit });
+        return outageCalls.length <= 2 ? new Response('', { status }) : response('event', []);
+      } });
+    await Promise.all([recovering(endpoint, request(document)), recovering(endpoint, request(documents[1]))]);
+    assert(outageCalls[1].time - outageCalls[0].time >= 5000, 'the next queued caller must observe the first outage cooldown');
+    assert(outageCalls[2].time - outageCalls[1].time >= 10000, 'continued unavailability must increase the shared cooldown');
+    assert(outageCalls.every(call => call.limit === 500), 'provider unavailability must not multiply requests with tiny pages');
+  }
+
   let pacedTime = 0;
   const starts = [];
   const paced = createMaxisObjktFetch({ now: () => pacedTime, wait: async ms => { pacedTime += ms; }, log: () => {}, fetch: async () => {

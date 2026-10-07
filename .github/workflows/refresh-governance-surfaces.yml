@@ -45,10 +45,18 @@ jobs:
           node-version: '24'
           cache: npm
 
+      - name: Avoid a duplicate scheduled scan after successful catch-up
+        id: cadence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/check-generated-refresh-cadence.mjs
+
       - name: Install dependencies
+        if: steps.cadence.outputs.skip != 'true'
         run: npm ci
 
       - name: Refresh isolated generated-data lanes
+        if: steps.cadence.outputs.skip != 'true'
         id: refresh
         env:
           # Optional: absent credentials use the public paginated REST API.
@@ -59,12 +67,12 @@ jobs:
 
       - name: Audit complete site contracts
         id: site_contracts
-        if: always()
+        if: always() && steps.cadence.outputs.skip != 'true'
         continue-on-error: true
         run: npm run test:static
 
       - name: Commit successful lane changes
-        if: always()
+        if: always() && steps.cadence.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -91,7 +99,7 @@ jobs:
           gh workflow run ci.yml --ref main
 
       - name: Report failed lanes and contract audits
-        if: always()
+        if: always() && steps.cadence.outputs.skip != 'true'
         run: |
           failed=0
           if ! node scripts/refresh-scheduled-data.mjs --check-report "$RUNNER_TEMP/generated-refresh-report.json"; then
@@ -104,7 +112,7 @@ jobs:
           exit "$failed"
 
       - name: Upload lane attempts and recovery report
-        if: always() && !cancelled()
+        if: always() && !cancelled() && steps.cadence.outputs.skip != 'true'
         uses: actions/upload-artifact@v6
         with:
           name: generated-refresh-report

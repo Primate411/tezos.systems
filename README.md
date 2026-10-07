@@ -1848,7 +1848,11 @@ so fast-moving governance/feed outputs update with each normal commit and other
 derived surfaces follow staged source changes. Manual
 `npm run refresh:generated` still rebuilds the complete distribution set.
 `.github/workflows/refresh-governance-surfaces.yml` runs dynamic generated data
-every six hours through `scripts/refresh-scheduled-data.mjs`. Each source family
+every six hours through `scripts/refresh-scheduled-data.mjs`. A delayed scheduled
+run is coalesced only when the preceding run's report proves all source families
+succeeded within two hours and only generated files have changed since then.
+Explicit dispatches, incomplete reports, failures, changed code and unavailable
+evidence always perform the requested scan. Each source family
 runs and validates in an isolated temporary Git worktree. A failed family is
 restored to its exact last-good files while later, unrelated families continue;
 the workflow commits the successful lanes and then remains red with the failed
@@ -1858,6 +1862,10 @@ logical response. A shared 650ms interval after each completed request stays
 below the provider's [120 requests/minute limit](https://data.objkt.com/docs/),
 including when small pages return instantly. Rate-limit responses honor
 `Retry-After` without shrinking pages and multiplying requests further.
+Gateway/server unavailability (502/503/504) also keeps the page size and applies
+one shared five-second, then ten-second cooldown before any queued request;
+query/database errors still reduce physical pages. This avoids hammering an
+unavailable provider or multiplying a recovered scan into tiny requests.
 Short-lived, integrity-checked checkpoints resume only the
 identical interrupted request; a new observation window always starts fresh.
 Four complete successful pages permit a gradual request-size increase, so a

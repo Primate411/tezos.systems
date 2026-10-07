@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-07',
+        entries: [
+            { type: '🔧', text: 'Browser checks settle pointer-triggered layout before clicking Chamber info controls and verify that opening their explanations keeps the page still' },
+            { type: '⚡', text: 'Data refreshes avoid redundant scans after successful catch-up and give unavailable NFT sources a shared cooldown without multiplying requests' }
+        ]
+    },
+    {
         date: '2026-10-06',
         entries: [
             { type: '🔧', text: 'Tezos X preserves Load more clicks that overlap a background refresh, while discarding queued work after an account or view change' },

@@ -781,6 +781,11 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   point. It updates generated governance vote artifacts from TzKT and fails when
   an accepted/current protocol is missing curated lore in
   `data/protocol-data.json`.
+- `scripts/check-generated-refresh-cadence.mjs`: avoids a duplicate scheduled
+  full scan immediately after successful catch-up. Require a complete successful
+  report less than two hours old and only declared generated changes since that
+  run's ancestor SHA. Manual dispatches, failures and uncertain evidence still
+  run normally; freshness ceilings and source rules remain unchanged.
 - `scripts/refresh-generated-surfaces.mjs`: manual/pre-commit generated-surface orchestrator.
   Commit mode refreshes governance/feed and root OG on every normal commit, plus
   staged-source outputs for CSS bundles, pretty chamber route shells, sitemap,
@@ -873,7 +878,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   each complete logical page without changing filters, windows, fields or row
   values. Keep 650ms between completed requests and the next request: OBJKT's
   documented limit is 120 requests/minute, including small-page retries.
-  Honor `Retry-After`; never shrink pages in response to rate limiting.
+  Honor `Retry-After`; never shrink pages in response to rate limiting or
+  502/503/504 provider unavailability. Those responses establish a shared
+  five-second, then ten-second cooldown before releasing the request queue;
+  query/database errors still adapt the physical page size.
   After four complete healthy logical pages, cautiously increase the
   physical page size; another transient failure reduces it again. A resumed
   checkpoint must respect any smaller size learned in the same process.

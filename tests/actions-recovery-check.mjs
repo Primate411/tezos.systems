@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { planActionsRecovery, temporaryFailedLanes, GENERATED_WORKFLOW, HISTORY_WORKFLOW } from '../scripts/lib/actions-recovery.mjs';
+import { isRecentCompleteRefresh, onlyGeneratedChanges, checkCadence } from '../scripts/check-generated-refresh-cadence.mjs';
 import { selectScheduledRefreshLanes } from '../scripts/lib/scheduled-refresh-lanes.mjs';
 import { readHistoryFreshness } from '../scripts/lib/history-freshness.mjs';
 
@@ -64,3 +65,27 @@ assert.match(workflow, /workflows:.*Audit Generated Freshness/, 'the independent
 assert.match(workflow, /workflows:.*Nightly Smoke Canary/, 'long-running canaries provide another delivery checkpoint');
 assert.equal(plan([healthyRoot], { 100: { lanes: [null] } }, history).actions[0].workflow, HISTORY_WORKFLOW);
 console.log('ok - recovery cooldowns, caps, trusted runs, missed schedules, source selection and independent history clocks');
+
+const complete = { schemaVersion: 1, fatal: null, startedAt: ago(0.8), completedAt: ago(0.5),
+  summary: { total: 16, attempted: 16, succeeded: 16, failed: 0, skipped: 0 },
+  lanes: selectScheduledRefreshLanes().map(lane => ({ id: lane.id, status: 'succeeded' })) };
+const completeRun = run(999, { conclusion: 'success', created_at: ago(0.9), updated_at: ago(0.4) });
+const canCoalesce = (overrides = {}) => isRecentCompleteRefresh({ run: completeRun, report: complete, now, repository, ...overrides });
+assert(canCoalesce(), 'a completed full catch-up can absorb an immediately following scheduled scan');
+for (const patch of [
+  { startedAt: ago(2) }, { startedAt: 'bad' }, { completedAt: ago(-1) },
+  { startedAt: ago(0.1) }, { completedAt: ago(0.3) }, { fatal: 'scope error' },
+  { summary: { ...complete.summary, failed: 1 } },
+  { lanes: complete.lanes.slice(1) }, { lanes: complete.lanes.map(() => complete.lanes[0]) },
+  { lanes: complete.lanes.map((lane, i) => i ? lane : { ...lane, status: 'failed' }) }
+]) assert.equal(canCoalesce({ report: { ...complete, ...patch } }), false);
+for (const patch of [{ conclusion: 'failure' }, { status: 'in_progress' }, { event: 'pull_request' },
+  { head_branch: 'other' }, { head_repository: { full_name: 'fork/repo' } }]) {
+  assert.equal(canCoalesce({ run: { ...completeRun, ...patch } }), false);
+}
+assert(onlyGeneratedChanges(['data/maxis-leaders.json', 'data/maxis/seasons/season/summary.json', 'version.json']));
+for (const file of ['scripts/refresh-maxis-data.mjs', 'tests/maxis-check.mjs', 'package-lock.json', 'data/maxis/seasons-other/file.json']) {
+  assert.equal(onlyGeneratedChanges([file]), false, 'source changes require a new full scan');
+}
+assert.equal((await checkCadence({ event: 'workflow_dispatch' })).skip, false, 'manual and recovery dispatches never coalesce');
+console.log('ok - redundant schedule guard requires fresh full success and unchanged source code');

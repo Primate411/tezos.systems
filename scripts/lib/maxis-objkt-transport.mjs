@@ -65,6 +65,7 @@ export function createMaxisObjktFetch({
   const healthyPages = new Map();
   const failureTimes = [];
   let circuitError = null;
+  let unavailableStreak = 0;
 
   function recordFailure(error) {
     const time = now();
@@ -132,10 +133,18 @@ export function createMaxisObjktFetch({
       }
       const rows = payload?.data?.[descriptor.field];
       validateRows(rows, request.variables.after, request.variables.limit, descriptor.keyset);
+      unavailableStreak = 0;
       return rows;
     } catch (error) {
       const failure = options.signal?.aborted || error?.name === 'TimeoutError' || error?.name === 'AbortError' || error instanceof TypeError
         ? transient('OBJKT transport interrupted before a complete response', error) : error;
+      if (requestStarted && [429, 502, 503, 504].includes(failure.status)) {
+        // A provider outage is shared by every queued caller. Establish its
+        // cooldown before releasing the queue, rather than letting another
+        // operation immediately hit the same unavailable server.
+        unavailableStreak += 1;
+        notBefore = Math.max(notBefore, now() + Math.min(10_000, 5000 * unavailableStreak));
+      }
       throw requestStarted && isTransientObjktError(failure) ? recordFailure(failure) : failure;
     } finally {
       notBefore = Math.max(notBefore, now() + spacingMs);
@@ -188,7 +197,7 @@ export function createMaxisObjktFetch({
       } catch (error) {
         if (circuitError || !isTransientObjktError(error) || options.signal?.aborted || ++failures >= 3) throw circuitError || error;
         healthyPages.set(documentHash, 0);
-        if (descriptor.keyset && error.status !== 429) {
+        if (descriptor.keyset && ![429, 502, 503, 504].includes(error.status)) {
           size = Math.min(size, Math.max(Math.min(25, limit), Math.floor(size / 5)));
           pageSizes.set(documentHash, size);
         }

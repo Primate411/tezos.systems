@@ -4634,8 +4634,14 @@ async function assertChamberInfoTooltipsContained(page, label) {
     // and pointer release, turning an info click into a card-surface click.
     await page.evaluate(() => document.fonts.ready);
     await button.scrollIntoViewIfNeeded();
+    await button.hover();
     await waitForStableClickTarget(page, `${selector} > .card-info-btn`, label);
+    const beforeInfoClick = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
     await button.click();
+    await waitForStableClickTarget(page, `${selector} > .card-info-btn`, label);
+    const afterInfoClick = await page.evaluate(() => ({ x: scrollX, y: scrollY }));
+    assert(Math.abs(afterInfoClick.x - beforeInfoClick.x) <= 1 && Math.abs(afterInfoClick.y - beforeInfoClick.y) <= 1,
+      `${label}: opening ${selector} info moved the page: ${JSON.stringify({ beforeInfoClick, afterInfoClick })}`);
     await page.waitForFunction((cardSelector) => (
       document.querySelector(`${cardSelector} > .card-info-btn`)?.getAttribute('aria-expanded') === 'true'
     ), selector, { timeout: 5000 }).catch(async error => {
