@@ -1533,14 +1533,16 @@ export function createMyTezosViewsSmokeSuites({
         await transactionGate;
         await route.fallback();
       };
-      await context.route(transactionsUrl, holdTransactions);
       try {
         await page.locator('#tezosx-load-more').hover();
         await page.mouse.down();
+        await context.route(transactionsUrl, holdTransactions);
         const backgroundRequest = page.waitForRequest(transactionsUrl, { timeout: 10000 });
         await page.evaluate(async () => {
           const module = await import('/js/features/my-tezos-tezosx.mjs');
-          window.__tezosXOverlappingRefresh = module.refreshMyTezosTezosX({ background: true });
+          // A timer may already own a request emitted during hover. Start a
+          // distinct read after pointerdown so this wait cannot join that read.
+          window.__tezosXOverlappingRefresh = module.refreshMyTezosTezosX({ force: true, background: true });
         });
         await backgroundRequest;
         assert(await page.locator('#tezosx-load-more').isEnabled(),

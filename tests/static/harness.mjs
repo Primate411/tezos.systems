@@ -70,7 +70,7 @@ export function createHarnessStaticChecks({
       [canaryWorkflow, 'live-upstream', 'smoke-costs']
     ]) {
       const source = workflow.split(`\n  ${job}:\n`)[1]?.split(/\n  [a-z][a-z-]+:\n/)[0] || '';
-      if (!source.includes(`needs: ${producer}`) || !source.includes(`image: \${{ needs.${producer}.outputs.playwright-image }}`) || !source.includes('options: --ipc=host')) {
+      if (!source.includes(`needs: ${producer}`) || !source.includes(`image: \${{ needs.${producer}.outputs.playwright-image }}`) || !source.includes('options: --ipc=host') || !source.includes('git config --global --add safe.directory "$GITHUB_WORKSPACE"')) {
         fail(`${job} must use the official image matching the installed Playwright package with shared browser memory`);
       }
     }

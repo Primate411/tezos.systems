@@ -88,6 +88,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      # Checkout's action process and bash may use different container homes.
+      - name: Trust the mounted checkout for shell Git commands
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -140,6 +144,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+
+      # Checkout's action process and bash may use different container homes.
+      - name: Trust the mounted checkout for shell Git commands
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

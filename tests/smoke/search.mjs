@@ -245,11 +245,21 @@ export function createSearchSmokeSuites({
 
     if (section === 'all' || section === 'desktop') {
     await smokeSearchCatalogRecovery(browser, baseUrl);
-    const context = await browser.newContext({
-      viewport: { width: 1280, height: 900 },
-      serviceWorkers: 'block'
-    });
-    await installFeatureMocks(context);
+    const createCommandBarContext = async () => {
+      const context = await browser.newContext({
+        viewport: { width: 1280, height: 900 },
+        serviceWorkers: 'block'
+      });
+      await installFeatureMocks(context);
+      await context.addInitScript(() => {
+        localStorage.setItem('tezos-systems-theme', 'matrix');
+        localStorage.setItem('tezos-toured', '1');
+        localStorage.setItem('tezos-welcomed', '1');
+        localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+      });
+      return context;
+    };
+    let context = await createCommandBarContext();
     // Optional briefing enrichment must not hold confirmed current signals in
     // the initial skeleton. Release the whale read only after first Pulse paint.
     let releaseBriefing;
@@ -258,13 +268,7 @@ export function createSearchSmokeSuites({
       if (new URL(route.request().url()).searchParams.get('amount.gt') === '10000000000') await briefingGate;
       await route.fallback();
     });
-    await context.addInitScript(() => {
-      localStorage.setItem('tezos-systems-theme', 'matrix');
-      localStorage.setItem('tezos-toured', '1');
-      localStorage.setItem('tezos-welcomed', '1');
-      localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
-    });
-    const page = await context.newPage();
+    let page = await context.newPage();
     await page.clock.install();
     attachIssueCollectors(page, 'hero command bar', issues);
 
@@ -442,6 +446,17 @@ export function createSearchSmokeSuites({
     }));
     assert(deckChromeState.commandDeckHeadCount === 0, 'hero command bar: command deck should not show protocol chrome above search');
     assert(deckChromeState.upgradeShareCount === 0, 'hero command bar: old upgrade share button should not remain in the first-screen search deck');
+
+    // The Pulse timer proof uses a controlled clock. Keep that clock out of
+    // the subsequent search gestures and debounce/network readiness checks.
+    // Clock installation affects every page in its context, including intents.
+    await context.close();
+    context = await createCommandBarContext();
+    page = await context.newPage();
+    attachIssueCollectors(page, 'hero command bar search', issues);
+    const searchResponse = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+    assert(searchResponse?.ok(), `hero command bar search: dashboard failed with HTTP ${searchResponse?.status()}`);
+    await page.waitForFunction(() => document.querySelector('#hero-slot')?.dataset.heroSearchWired === '1', null, { timeout: 30000 });
 
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 3000 });
@@ -856,6 +871,13 @@ export function createSearchSmokeSuites({
     await page.locator('#hero-search-input').fill('');
     await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6 && Boolean(document.querySelector('#hero-search-panel .hero-search-index-loom')), null, { timeout: 5000 });
     await page.locator('#hero-search-input').fill('zzzz-no-index-path');
+    // Empty results are valid only after cold baker/alias discovery settles.
+    // The hosted receipt can still be honestly "checking" at five seconds.
+    await page.waitForFunction(() => (
+      document.getElementById('hero-search-input')?.value === 'zzzz-no-index-path'
+        && document.getElementById('hero-search-panel')?.getAttribute('aria-busy') === 'false'
+        && document.querySelector('#hero-search-panel .hero-search-empty')
+    ), null, { timeout: 15000 });
     await page.waitForFunction(() => Boolean(document.querySelector('#hero-search-panel .hero-search-empty') && document.querySelector('#hero-search-panel .hero-search-index-recovery')), null, { timeout: 5000 });
     const recoveryState = await page.evaluate(() => ({
       path: document.getElementById('hero-slot')?.dataset.heroSearchPath || '',

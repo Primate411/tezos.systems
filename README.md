@@ -1917,8 +1917,11 @@ The independent freshness audit remains the final delivery alarm.
 Browser smoke now records traces from the first attempt, retains failed attempts
 and diagnostic retries, and discards successful first-attempt payloads. This
 preserves the original failure even when a retry passes. Failure logs include
-the source locations in extracted test modules as well as the runner. Portfolio preservation
-checks wait for the actual chart instance before comparing its identity; Live
+the source locations in extracted test modules as well as the runner. Controlled
+Pulse-clock checks use a separate browser context from search input and debounce
+checks. Search waits for cold baker/alias discovery to finish before asserting
+empty results. Pagination overlap probes start a distinct read after pointerdown.
+Portfolio preservation checks wait for the actual chart instance before comparing its identity; Live
 Pulse startup is tested with optional whale enrichment deliberately held open.
 The visibility-motion helper stays inside Network Health so the repair adds no
 startup request; its state transitions retain an isolated regression check.
@@ -2591,8 +2594,8 @@ the package installed by `npm ci`. The shared version resolver publishes that
 image from the installed package; static validation and nightly planning pass it
 to their dependent jobs. Browser binaries, fonts, and system libraries are
 preinstalled, so repeated package-manager updates cannot consume the test budget.
-Container jobs retain bash and shared browser memory. A scheduled high-risk five-repeat
-canary and a separate live pinned-dependency canary expose flakes and upstream
+Container jobs retain bash and shared browser memory, and trust only their mounted
+checkout for shell Git reads. A scheduled high-risk five-repeat canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
 CI and nightly artifact transfers use `actions/upload-artifact@v6` and
 `actions/download-artifact@v7`, which declare the Node.js 24 runtime. Test
