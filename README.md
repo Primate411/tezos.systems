@@ -1928,6 +1928,8 @@ checks. Search waits for cold baker/alias discovery to finish before asserting
 empty results. Pagination overlap probes start a distinct read after pointerdown.
 Network Health captures its settled receipt state and assertion snapshot in one
 browser task, including supplemental missed-baking reads that can start later.
+The all-room geometry fixture waits for every requested launcher preview to
+settle before pointer tests, so late initial content cannot move the target.
 Portfolio preservation checks wait for the actual chart instance before comparing its identity; Live
 Pulse startup is tested with optional whale enrichment deliberately held open.
 The visibility-motion helper stays inside Network Health so the repair adds no

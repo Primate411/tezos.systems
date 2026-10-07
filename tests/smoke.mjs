@@ -4995,6 +4995,29 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
   // for its data; offscreen preloads now yield to what the reader can see.
   await page.locator('#lb-entry-card').scrollIntoViewIfNeeded();
   await page.locator('#lb-entry-switcher-strip[data-lb-sample-blocks="2500"][data-lb-switcher-count="3"]').waitFor({ state: 'attached', timeout: 10000 });
+  // This fixture explicitly hydrates every room. Wait for every first preview
+  // before measuring or clicking: a title/footer exists before source content
+  // arrives, and a late row above the target can move an otherwise stable button.
+  await page.waitForFunction(() => {
+    const cards = Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card'));
+    return cards.length > 0 && cards.every(card => {
+      if (card.hasAttribute('data-chamber-skeleton')) return false;
+      // These two launchers keep freshness inside their preview instead of
+      // using the shared footer label. Follow their native render receipts.
+      if (card.id === 'capital-entry-card') return card.querySelector('#capital-entry-front')?.dataset.capitalRendered === '1';
+      if (card.id === 'network-pulse-entry-card') {
+        const value = card.querySelector('#network-pulse-entry-value')?.textContent?.trim();
+        return Boolean(value && value !== 'Opening pulse');
+      }
+      return Boolean(card.dataset.updatedLabel?.trim()) && !/refreshing|loading/i.test(card.dataset.updatedLabel);
+    });
+  }, null, { timeout: 20000 }).catch(async error => {
+    const readiness = await page.locator('#chambers-section .chamber-entry-card').evaluateAll(cards => cards
+      .map(card => ({ id: card.id || card.dataset.stat, skeleton: card.hasAttribute('data-chamber-skeleton'), label: card.dataset.updatedLabel || '',
+        capitalRendered: card.querySelector('#capital-entry-front')?.dataset.capitalRendered,
+        pulseValue: card.querySelector('#network-pulse-entry-value')?.textContent?.trim() })));
+    throw new Error(`${label}: initial Chamber previews did not settle: ${JSON.stringify(readiness)}`, { cause: error });
+  });
   await assertChamberControlGeometry(page, label);
   await assertChamberInfoTooltipsContained(page, label);
   await page.waitForFunction(() => [
