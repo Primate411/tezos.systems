@@ -1522,6 +1522,44 @@ export function createMyTezosViewsSmokeSuites({
         const module = await import('/js/features/my-tezos-tezosx.mjs');
         await module.refreshMyTezosTezosX({ force: true });
       });
+
+      // Hold a real pointer press across the later background render. Merely
+      // clicking when the read starts misses the disabled-button race that
+      // suppresses the browser's click event between pointerdown and pointerup.
+      const transactionsUrl = `https://explorer.etherlink.com/api/v2/addresses/${SAMPLE_ETHERLINK_ADDRESS}/transactions`;
+      let releaseTransactions;
+      const transactionGate = new Promise(resolve => { releaseTransactions = resolve; });
+      const holdTransactions = async route => {
+        await transactionGate;
+        await route.fallback();
+      };
+      await context.route(transactionsUrl, holdTransactions);
+      try {
+        await page.locator('#tezosx-load-more').hover();
+        await page.mouse.down();
+        const backgroundRequest = page.waitForRequest(transactionsUrl, { timeout: 10000 });
+        await page.evaluate(async () => {
+          const module = await import('/js/features/my-tezos-tezosx.mjs');
+          window.__tezosXOverlappingRefresh = module.refreshMyTezosTezosX({ background: true });
+        });
+        await backgroundRequest;
+        assert(await page.locator('#tezosx-load-more').isEnabled(),
+          `Tezos X ${width}px background render must preserve an in-progress pointer click`);
+        await page.mouse.up();
+        releaseTransactions();
+        await page.waitForFunction(() => (
+          document.querySelector('#tezosx-load-more')?.hidden === true
+            && /Token approval/i.test(document.querySelector('#tezosx-details')?.textContent || '')
+        ), null, { timeout: 10000 });
+      } finally {
+        releaseTransactions();
+        await page.mouse.up();
+        await context.unroute(transactionsUrl, holdTransactions);
+      }
+      await page.evaluate(async () => {
+        const module = await import('/js/features/my-tezos-tezosx.mjs');
+        await module.refreshMyTezosTezosX({ force: true });
+      });
     }
     // Also keep the ordinary pointer-driven pagination path covered.
     await page.setViewportSize({ width: 1280, height: 900 });

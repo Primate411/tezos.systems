@@ -37,6 +37,7 @@ import {
 let initialized = false;
 let refreshInFlight = null;
 let queuedLoadMore = null;
+let paginationBusy = false;
 let generation = 0;
 let selectedAddress = '';
 let accountRows = [];
@@ -226,7 +227,9 @@ function renderDetails() {
     const loadMore = document.getElementById('tezosx-load-more');
     if (loadMore) {
         loadMore.hidden = !currentDetails?.nextPageParams;
-        loadMore.disabled = Boolean(refreshInFlight);
+        // Background reads must keep this control actionable through pointerup.
+        // Otherwise the browser can suppress the click before it reaches our queue.
+        loadMore.disabled = paginationBusy;
     }
     if (!selectedAddress) {
         const hasLinks = readLinkedAccounts().length > 0;
@@ -356,6 +359,7 @@ export async function refreshMyTezosTezosX({ force = false, loadMore = false, ba
     const requestGeneration = ++generation;
     if (!background) renderLinkedAccounts();
     if (!included.length) {
+        paginationBusy = false;
         accountRows = [];
         currentDetails = null;
         renderSummary();
@@ -371,6 +375,7 @@ export async function refreshMyTezosTezosX({ force = false, loadMore = false, ba
         return null;
     }
     if (!selectedAddress) selectedAddress = included[0].address;
+    paginationBusy = !background;
     setStatus('Reading Etherlink RPC and Blockscout…', 'loading');
     const controller = new AbortController();
     refreshController = controller;
@@ -486,6 +491,7 @@ export async function refreshMyTezosTezosX({ force = false, loadMore = false, ba
             if (refreshInFlight === pending) {
                 refreshInFlight = null;
                 refreshController = null;
+                paginationBusy = false;
                 const loadMoreButton = document.getElementById('tezosx-load-more');
                 if (loadMoreButton) loadMoreButton.disabled = false;
             }
@@ -579,6 +585,8 @@ export function destroyMyTezosTezosXForTests() {
     refreshController?.abort();
     refreshController = null;
     refreshInFlight = null;
+    queuedLoadMore = null;
+    paginationBusy = false;
     initialized = false;
     accountRows = [];
     currentDetails = null;

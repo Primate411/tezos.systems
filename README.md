@@ -1923,7 +1923,10 @@ The visibility-motion helper stays inside Network Health so the repair adds no
 startup request; its state transitions retain an isolated regression check.
 Tezos X pagination queues an explicit Load more click behind an active read,
 coalesces repeated clicks, and drops the queued intent when its account,
-generation or visible view changes. The live-refresh smoke forces this overlap.
+generation or visible view changes. Background reads keep Load more enabled
+through the whole pointer gesture; only explicit reads disable it. The live-refresh
+smoke holds a real pointer press across a delayed background response on desktop
+and mobile, then verifies that releasing it loads the older page.
 
 `.github/workflows/audit-generated-freshness.yml` independently checks the
 committed result every six hours and after successful main-branch data refreshes
