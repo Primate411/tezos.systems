@@ -294,8 +294,8 @@ async function main() {
     const packageJson = JSON.parse(await readFile('node_modules/playwright/package.json', 'utf8'));
     assert.equal(
       await readFile(versionOutputPath, 'utf8'),
-      `version=${packageJson.version}\n`,
-      'workflow helper must publish the installed Playwright version through GITHUB_OUTPUT'
+      `version=${packageJson.version}\nimage=mcr.microsoft.com/playwright:v${packageJson.version}-noble\n`,
+      'workflow helper must publish the installed Playwright version and matching browser image through GITHUB_OUTPUT'
     );
   } finally {
     await rm(versionOutputDir, { recursive: true, force: true });

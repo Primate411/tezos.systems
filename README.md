@@ -234,7 +234,7 @@ tezos.systems/
 │   ├── static-checks.mjs              # Dependency-free repo contract checks
 │   └── smoke.mjs                      # Playwright browser smoke suites
 ├── scripts/
-│   ├── resolve-playwright-version.mjs # Portable GitHub Actions cache-key output
+│   ├── resolve-playwright-version.mjs # Matching hosted Playwright browser image
 │   ├── refresh-governance-data.mjs    # Canonical governance refresh command
 │   ├── refresh-maxis-data.mjs         # Canonical Maxis and protocol-season artifacts
 │   ├── refresh-maxis-careers.mjs      # Canonical governance career history
@@ -1916,7 +1916,8 @@ The independent freshness audit remains the final delivery alarm.
 
 Browser smoke now records traces from the first attempt, retains failed attempts
 and diagnostic retries, and discards successful first-attempt payloads. This
-preserves the original failure even when a retry passes. Portfolio preservation
+preserves the original failure even when a retry passes. Failure logs include
+the source locations in extracted test modules as well as the runner. Portfolio preservation
 checks wait for the actual chart instance before comparing its identity; Live
 Pulse startup is tested with optional whale enrichment deliberately held open.
 The visibility-motion helper stays inside Network Health so the repair adds no
@@ -2585,9 +2586,12 @@ dedicated motion contract covers visibility catch-up when supplemental, cached,
 and local layout updates arrive before the next primary head receipt. A
 post-success job blends robust hosted timings into an adaptive cache ledger for
 the next run while the committed cost fixture remains the cold-start fallback.
-The workflow installs only Chromium's headless shell, retries its download, and
-caches it by the resolved Playwright version rather than invalidating the large
-browser cache for unrelated lockfile edits. A scheduled high-risk five-repeat
+All hosted browser jobs use the official Playwright Ubuntu Noble image matching
+the package installed by `npm ci`. The shared version resolver publishes that
+image from the installed package; static validation and nightly planning pass it
+to their dependent jobs. Browser binaries, fonts, and system libraries are
+preinstalled, so repeated package-manager updates cannot consume the test budget.
+Container jobs retain bash and shared browser memory. A scheduled high-risk five-repeat
 canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
 CI and nightly artifact transfers use `actions/upload-artifact@v6` and

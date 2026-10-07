@@ -64,6 +64,13 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
     window.__refreshChainHealth = refreshNetworkHealth;
     await refreshNetworkHealth();
   });
+  // A timer can already own a response captured before the fixture changed.
+  // Drain that read, then explicitly fetch the current fixture. Use this for
+  // every source/scenario transition, not just the severity-table loop.
+  const refreshScenario = () => page.evaluate(async () => {
+    await window.__refreshChainHealth();
+    return window.__refreshChainHealth();
+  });
   const read = () => page.evaluate(() => {
     const viewport = document.getElementById('chain-health-window');
     const bars = [...viewport.querySelectorAll('[data-chain-health-level]')];
@@ -172,14 +179,14 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
 
   unavailable = true;
   const beforeFailure = await read();
-  await page.evaluate(() => window.__refreshChainHealth());
+  await refreshScenario();
   const afterFailure = await read();
   assert.deepEqual(afterFailure.levels, beforeFailure.levels);
   assert(afterFailure.stale, 'Source failure marks last-good history stale');
   assert.equal(afterFailure.summary, 'STALE');
   assert.equal(afterFailure.announcement, '', 'Stale receipts do not announce current risk');
   unavailable = false;
-  await page.evaluate(() => window.__refreshChainHealth());
+  await refreshScenario();
 
   // Exact threshold and quorum boundaries, including partial and missing data.
   const geometrySnapshot = () => page.evaluate(() => {
@@ -213,12 +220,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       ['partial', `${count - 9}/${count} ?`, `9 strong (6,500 to below 7,000 on a 7,000-power scale), ${count - 9} unavailable`]
     ]) {
       scenario = mode;
-      await page.evaluate(async () => {
-        // A timer may already own a response from the previous scenario.
-        // Drain it, then request the newly selected same-head receipt.
-        await window.__refreshChainHealth();
-        await window.__refreshChainHealth();
-      });
+      await refreshScenario();
       const current = await read();
       assert.equal(current.summary, text);
       assert(current.label.includes(`last ${count} blocks: ${description}.`), current.label);
@@ -230,13 +232,13 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
         <= document.getElementById('chain-health-window').getBoundingClientRect().left), `${width}/${mode}: the complete status stays clear of the strip`);
     }
     unavailable = true;
-    await page.evaluate(() => window.__refreshChainHealth());
+    await refreshScenario();
     assert.equal((await read()).summary, 'STALE');
     assert.deepEqual(await geometrySnapshot(), stableGeometry, 'Source failure must not change geometry');
     unavailable = false;
   }
   scenario = 'bands';
-  await page.evaluate(() => window.__refreshChainHealth());
+  await refreshScenario();
 
   for (const theme of ['ember', 'clean']) {
     await page.evaluate(async (name) => {
@@ -359,7 +361,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   }), 'Forced colors preserve visible bars and the risk outline');
   await page.emulateMedia({ forcedColors: 'none' });
   scenario = 'mixed';
-  await page.evaluate(() => window.__refreshChainHealth());
+  await refreshScenario();
   await page.setViewportSize({ width: 1440, height: 1000 });
   const inspectedLevel = Math.floor((head - 12) / 5) * 5 + 1;
   const inspectedBar = page.locator(`[data-chain-health-level="${inspectedLevel}"]`);
@@ -397,7 +399,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   assert.equal(await inspector.getAttribute('data-live-head-level'), String(head - 1));
   await page.keyboard.press('Escape');
   scenario = 'bands';
-  await page.evaluate(() => window.__refreshChainHealth());
+  await refreshScenario();
   await page.locator('.chain-health-label').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible' });
   await page.locator('#network-health-modal .health-block-row').first().waitFor({ state: 'visible' });

@@ -6280,7 +6280,9 @@ async function main() {
           const callsite = String(error.stack || '')
             .split('\n')
             .map((line) => line.trim())
-            .find((line) => line.includes('/tests/smoke.mjs:')) || '';
+            .filter((line) => line.startsWith('at ') && /[\\/]tests[\\/]/.test(line))
+            .slice(0, 4)
+            .join('\n');
           log(`unstable - ${suite.name} attempt ${attempt}: ${error.message}${callsite ? `\n${callsite}` : ''}`);
         } else if (type === 'infrastructure-retry') {
           log(`infra-retry - ${suite.name} pre-test startup ${infrastructureRetry}/${infrastructureRetries}: ${error.message}`);

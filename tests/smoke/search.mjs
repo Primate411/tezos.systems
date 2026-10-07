@@ -1,3 +1,5 @@
+import { waitForStableClickTarget } from '../lib/smoke-click-ready.mjs';
+
 // Browser workflows owned by search. Shared dependencies remain explicit.
 export function createSearchSmokeSuites({
   SAMPLE_ADDRESS,
@@ -443,6 +445,8 @@ export function createSearchSmokeSuites({
 
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 3000 });
+    await page.locator('#hero-search-input').hover();
+    await waitForStableClickTarget(page, '#hero-search-input', 'hero command bar direct launch');
     const pointerSearchBox = await page.locator('#hero-search-input').boundingBox();
     const pointerViewport = page.viewportSize();
     assert(pointerSearchBox && pointerViewport && pointerSearchBox.y >= 0 && pointerSearchBox.y + pointerSearchBox.height <= pointerViewport.height, `hero command bar: search input is not available for a direct pointer launch ${JSON.stringify({ pointerSearchBox, pointerViewport })}`);
@@ -951,17 +955,23 @@ export function createSearchSmokeSuites({
     );
     const showAllResult = page.locator('#hero-search-panel .hero-search-result').filter({ hasText: /Show all \d+ results/ });
     await showAllResult.scrollIntoViewIfNeeded();
-    const expansionBefore = await page.evaluate(() => {
+    await showAllResult.hover();
+    await waitForStableClickTarget(page, '#hero-search-panel [data-result-id="show-more"]', 'hero command bar expansion');
+    await page.evaluate(() => {
       const panel = document.getElementById('hero-search-panel');
       const option = panel?.querySelector('[data-result-id="show-more"]');
-      const panelRect = panel?.getBoundingClientRect();
-      const optionRect = option?.getBoundingClientRect();
-      return {
-        anchorOffset: optionRect && panelRect ? optionRect.top - panelRect.top : 0,
-        visibleIds: Array.from(panel?.querySelectorAll('.hero-search-result:not([data-result-id="show-more"])') || [], (row) => row.dataset.resultId)
-      };
+      // Playwright can finish scrolling or waiting for motion before delivery.
+      // The reading anchor belongs to the actual gesture, not its preparation.
+      option.addEventListener('pointerdown', () => {
+        window.__showMoreActivation = {
+          anchorOffset: option.getBoundingClientRect().top - panel.getBoundingClientRect().top,
+          visibleIds: Array.from(panel.querySelectorAll('.hero-search-result:not([data-result-id="show-more"])'), row => row.dataset.resultId)
+        };
+      }, { once: true });
     });
     await showAllResult.click();
+    const expansionBefore = await page.evaluate(() => window.__showMoreActivation);
+    assert(expansionBefore, 'hero command bar: Show all must receive a real pointer activation');
     await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel .hero-search-result').length > 11, null, { timeout: 5000 });
     const expansionAfter = await page.evaluate((before) => {
       const panel = document.getElementById('hero-search-panel');
@@ -1370,10 +1380,9 @@ export function createSearchSmokeSuites({
       && new URLSearchParams(location.search).get('lane') === 'transaction'
       && !new URLSearchParams(location.search).has('view'), null, { timeout: 5000 });
 
-    const stableSelectionResponse = await intentPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
-    assert(stableSelectionResponse?.ok(), `hero command bar stable selection: dashboard failed with HTTP ${stableSelectionResponse?.status()}`);
-    await intentPage.locator('#hero-search-input').fill('governance');
-    await intentPage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Tezos L1 Governance', null, { timeout: 5000 });
+    // The shell input exists before its search handlers are installed. This
+    // selection-preservation case needs the same ready control as other intents.
+    await seedIntent('governance', 'Tezos L1 Governance');
     await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: /Show all \d+ results/ }).click();
     await intentPage.locator('#hero-search-input').press('ArrowDown');
     const selectedBeforeAsync = await intentPage.evaluate(() => {

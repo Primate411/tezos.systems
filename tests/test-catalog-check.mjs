@@ -48,7 +48,7 @@ assert.match(initialLoadJob, /\n    needs: static-contracts\n/, 'load measuremen
 const harnessStep = initialLoadJob.indexOf('run: npm run test:initial-load');
 const measurementStep = initialLoadJob.indexOf('run: npm run measure:load:ci');
 assert(harnessStep >= 0 && measurementStep > harnessStep, 'CI checks the browser harness before measuring budgets');
-assert(initialLoadJob.includes('run: node scripts/resolve-playwright-version.mjs'), 'load CI shares the portable Playwright version resolver');
+assert(initialLoadJob.includes('image: ${{ needs.static-contracts.outputs.playwright-image }}'), 'load CI uses the browser image resolved from the installed package by static validation');
 assert.match(initialLoadJob, /if: always\(\)\s+uses: actions\/upload-artifact@v6\s+with:\s+name: initial-load\s+path: test-artifacts\/initial-load\n/, 'load reports upload on measurement failure');
 const deployNeeds = jobSource('deploy-pages').match(/\n    needs: \[([^\]]+)\]/)?.[1].split(',').map(value => value.trim());
 assert(deployNeeds?.includes('browser-smoke') && deployNeeds.includes('initial-load'), 'Pages requires both the full smoke catalog and the load budget gate');

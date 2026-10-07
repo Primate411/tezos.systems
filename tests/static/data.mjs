@@ -369,7 +369,7 @@ export function createDataStaticChecks({
       }
     }
     const ciWorkflow = await readText('.github/workflows/ci.yml');
-    for (const snippet of ['pull_request:', 'branches: [main]', 'workflow_dispatch:', "github.event_name == 'workflow_dispatch'", 'npm run test:static', 'fail-fast: false', 'shard: [1, 2, 3, 4, 5, 6]', 'actions/cache@v5', 'playwright install-deps chromium', 'playwright install --only-shell chromium', 'npm run test:smoke:ci', '--suite-costs .cache/smoke-suite-costs.json', '--shard ${{ matrix.shard }}/6', 'if: always()', 'actions/upload-artifact@v6', 'Learn hosted smoke timings', 'scripts/update-smoke-costs.mjs', 'actions/cache/save@v5', 'needs: browser-smoke', 'pages: write', 'id-token: write', 'actions/configure-pages@v6', 'actions/upload-pages-artifact@v5', 'include-hidden-files: true', 'actions/deploy-pages@v5']) {
+    for (const snippet of ['pull_request:', 'branches: [main]', 'workflow_dispatch:', "github.event_name == 'workflow_dispatch'", 'npm run test:static', 'fail-fast: false', 'shard: [1, 2, 3, 4, 5, 6]', 'image: ${{ needs.static-contracts.outputs.playwright-image }}', 'options: --ipc=host', 'npm run test:smoke:ci', '--suite-costs .cache/smoke-suite-costs.json', '--shard ${{ matrix.shard }}/6', 'if: always()', 'actions/upload-artifact@v6', 'Learn hosted smoke timings', 'scripts/update-smoke-costs.mjs', 'actions/cache/save@v5', 'needs: browser-smoke', 'pages: write', 'id-token: write', 'actions/configure-pages@v6', 'actions/upload-pages-artifact@v5', 'include-hidden-files: true', 'actions/deploy-pages@v5']) {
       if (!ciWorkflow.includes(snippet)) fail(`site validation workflow must include ${snippet}`);
     }
 

@@ -13,9 +13,15 @@ concurrency:
   group: validate-site-${{ github.ref }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   static-contracts:
     runs-on: ubuntu-latest
+    outputs:
+      playwright-image: ${{ steps.playwright-version.outputs.image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -28,6 +34,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: node scripts/resolve-playwright-version.mjs
 
       - name: Run static contracts
         run: npm run test:static
@@ -65,6 +75,9 @@ jobs:
   browser-smoke:
     name: Browser smoke (${{ matrix.shard }}/6)
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.static-contracts.outputs.playwright-image }}
+      options: --ipc=host
     needs: static-contracts
     timeout-minutes: 45
     strategy:
@@ -83,33 +96,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Resolve Playwright version
-        id: playwright-version
-        run: node scripts/resolve-playwright-version.mjs
-
-      - name: Cache Playwright browser
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-chromium-shell
-
-      - name: Install Chromium dependencies
-        run: npx playwright install-deps chromium
-
-      - name: Install Chromium headless shell
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          attempt=1
-          while ! npx playwright install --only-shell chromium; do
-            if [ "$attempt" -ge 3 ]; then
-              exit 1
-            fi
-            sleep_seconds=$((attempt * 5))
-            sleep "$sleep_seconds"
-            attempt=$((attempt + 1))
-          done
 
       - name: Restore adaptive smoke costs
         id: smoke-costs
@@ -146,6 +132,9 @@ jobs:
   initial-load:
     name: Initial load budgets
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.static-contracts.outputs.playwright-image }}
+      options: --ipc=host
     needs: static-contracts
     timeout-minutes: 30
     steps:
@@ -160,33 +149,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Resolve Playwright version
-        id: playwright-version
-        run: node scripts/resolve-playwright-version.mjs
-
-      - name: Cache Playwright browser
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-chromium-shell
-
-      - name: Install Chromium dependencies
-        run: npx playwright install-deps chromium
-
-      - name: Install Chromium headless shell
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          attempt=1
-          while ! npx playwright install --only-shell chromium; do
-            if [ "$attempt" -ge 3 ]; then
-              exit 1
-            fi
-            sleep_seconds=$((attempt * 5))
-            sleep "$sleep_seconds"
-            attempt=$((attempt + 1))
-          done
 
       - name: Check initial load harness
         run: npm run test:initial-load

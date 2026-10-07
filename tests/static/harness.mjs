@@ -53,8 +53,25 @@ export function createHarnessStaticChecks({
       if (!workflow.includes('run: node scripts/resolve-playwright-version.mjs')) {
         fail(`${label} must resolve the installed Playwright version through the tested portable helper`);
       }
+      if (!workflow.includes('playwright-image: ${{ steps.playwright-version.outputs.image }}') || !workflow.includes('shell: bash')) {
+        fail(`${label} must publish the matching browser image and preserve bash in container jobs`);
+      }
+      if (/playwright install|ms-playwright|playwright-cache/.test(workflow)) {
+        fail(`${label} must use preinstalled browser dependencies instead of per-job package downloads`);
+      }
       if (workflow.includes('node -p \\"require(')) {
         fail(`${label} must not restore the nested shell quoting that breaks Playwright version resolution`);
+      }
+    }
+    for (const [workflow, job, producer] of [
+      [ciWorkflow, 'browser-smoke', 'static-contracts'],
+      [ciWorkflow, 'initial-load', 'static-contracts'],
+      [canaryWorkflow, 'high-risk-repeat', 'smoke-costs'],
+      [canaryWorkflow, 'live-upstream', 'smoke-costs']
+    ]) {
+      const source = workflow.split(`\n  ${job}:\n`)[1]?.split(/\n  [a-z][a-z-]+:\n/)[0] || '';
+      if (!source.includes(`needs: ${producer}`) || !source.includes(`image: \${{ needs.${producer}.outputs.playwright-image }}`) || !source.includes('options: --ipc=host')) {
+        fail(`${job} must use the official image matching the installed Playwright package with shared browser memory`);
       }
     }
     for (const snippet of ['process.env.GITHUB_OUTPUT', "new URL('../node_modules/playwright/package.json'", 'appendFileSync(outputPath', 'Invalid installed Playwright version']) {

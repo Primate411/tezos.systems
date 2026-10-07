@@ -47,8 +47,9 @@ the highest-risk gotchas.
   bundled Chromium first, falls back to system Chrome/Chromium, and honors
   `BROWSER_EXECUTABLE_PATH`; do not copy browser-candidate lists into new
   scripts. GitHub workflows must resolve the installed package version through
-  `scripts/resolve-playwright-version.mjs`; do not inline nested shell quoting
-  for the Playwright browser cache key.
+  `scripts/resolve-playwright-version.mjs` and use its matching official browser
+  container image. Keep browser libraries and fonts preinstalled; do not restore
+  per-job apt installs or nested shell quoting for version resolution.
 - `tests/smoke.mjs` supports deterministic runtime-balanced `--shard
   index/total` selection from `tests/fixtures/smoke-suite-costs.json`,
   `--continue-on-failure`, diagnostic fresh-browser assertion retries, typed
