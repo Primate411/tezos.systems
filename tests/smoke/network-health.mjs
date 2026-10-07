@@ -414,7 +414,17 @@ export function createNetworkHealthSmokeSuites({
     await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row-exiting').length === 0, null, { timeout: 5000 });
     await page.waitForFunction(() => Boolean(document.querySelector('#live-head-stack .live-head-row[data-story-quiet="true"] .live-head-quiet')), null, { timeout: 15000 });
 
-    const healthState = await page.evaluate(() => {
+    // Supplemental baking receipts can start after the earlier activity wait.
+    // Capture readiness and the assertion snapshot in one browser task so a
+    // later loading render cannot slip between a settled wait and the read.
+    const healthStateHandle = await page.waitForFunction(() => {
+      const liveRows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'));
+      if (liveRows.length !== 4 || liveRows.some((row) => (
+        row.classList.contains('live-head-row-exiting')
+          || row.dataset.gasState === 'loading'
+          || row.querySelector('.live-head-story.is-loading, .live-head-story[data-miss-state="loading"], [data-round-miss-state="loading"]')
+          || /syncing/i.test(row.querySelector('.live-head-story')?.textContent || '')
+      ))) return null;
       const modal = document.querySelector('#network-health-modal');
       const modalContent = modal?.querySelector('.health-content');
       const healthGrid = modal?.querySelector('.health-dashboard-grid');
@@ -852,7 +862,9 @@ export function createNetworkHealthSmokeSuites({
         topPriceBarHasPulseDot: Boolean(priceBar?.querySelector('#uptime-pulse-dot')),
         intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
       };
-    });
+    }, null, { timeout: 15000 });
+    const healthState = await healthStateHandle.jsonValue();
+    await healthStateHandle.dispose();
 
     const liveHeadPillFitProbe = await page.evaluate(async () => {
       const panel = document.getElementById('live-head');
