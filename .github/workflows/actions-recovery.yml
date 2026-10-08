@@ -36,7 +36,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ACTIONS_RECOVERY_REPORT: ${{ runner.temp }}/actions-recovery.json
         run: node scripts/actions-recovery.mjs --apply
-      - uses: actions/upload-artifact@v6
+      - uses: ./.github/actions/upload-artifact
         if: always() && !cancelled()
         with:
           name: actions-recovery-report

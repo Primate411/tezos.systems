@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload audit report and diagnostics
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: ./.github/actions/upload-artifact
         with:
           name: unused-code
           path: test-artifacts/unused-code
@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload smoke results and diagnostics
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: ./.github/actions/upload-artifact
         with:
           name: browser-smoke-${{ matrix.shard }}-of-6
           path: test-artifacts/smoke-${{ matrix.shard }}
@@ -166,7 +166,7 @@ jobs:
 
       - name: Upload initial load report and diagnostics
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: ./.github/actions/upload-artifact
         with:
           name: initial-load
           path: test-artifacts/initial-load
@@ -214,7 +214,7 @@ jobs:
           key: smoke-costs-${{ runner.os }}-${{ github.run_id }}
 
       - name: Upload adaptive timing ledger
-        uses: actions/upload-artifact@v6
+        uses: ./.github/actions/upload-artifact
         with:
           name: adaptive-smoke-costs
           path: .cache/smoke-suite-costs.json

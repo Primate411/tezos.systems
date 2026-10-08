@@ -763,6 +763,9 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   writer using failure-isolated lanes. One upstream or validator failure must
   not suppress unrelated successful data; failed lanes retain last-good files
   and the final report still fails the Action.
+- `.github/actions/upload-artifact/action.yml`: shared three-attempt report and
+  test-artifact upload with 20/60-second backoff. Keep names unique per job,
+  overwrite only on retry, preserve cancellation, and fail after exhaustion.
 - `.github/workflows/actions-recovery.yml`: hourly and workflow-completion
   delivery supervisor. `scripts/actions-recovery.mjs` is read-only unless passed
   `--apply`. It catches up two-hour-old history clocks (30-minute cooldown),

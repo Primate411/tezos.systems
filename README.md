@@ -816,12 +816,14 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's October 6 review reconfirms EVM node 0.67
+  Release Radar's October 8 review reconfirms EVM node 0.67
   and Octez 25.2 using canonical publication receipts, unchanged
   FAST periods 693/694 and the current launch-documentation notice. The Q3
   mainnet target has elapsed; the unchanged Planned roadmap supplies no new date.
   September 24 Ganesha-r2 maintenance is explicitly
-  scoped to Shadownet. Etherlink kernel 7.1 deployment, recorded SLOW/FAST
+  scoped to Shadownet. October 6 RPC and October 8 Previewnet hardware maintenance
+  are infrastructure receipts, not new launch declarations. Etherlink kernel 7.1
+  deployment, recorded SLOW/FAST
   governance, and the wider Tezos X rollout remain distinct. The previous
   inference from one empty FAST window is explicitly corrected. The 36-hour
   review clock and 14-day expiry still require a new evidence review to extend.
@@ -2606,10 +2608,13 @@ preinstalled, so repeated package-manager updates cannot consume the test budget
 Container jobs retain bash and shared browser memory, and trust only their mounted
 checkout for shell Git reads. A scheduled high-risk five-repeat canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
-CI and nightly artifact transfers use `actions/upload-artifact@v6` and
-`actions/download-artifact@v7`, which declare the Node.js 24 runtime. Test
-diagnostics, shard ledgers and shared timing snapshots retain their existing
-names, paths and retention periods.
+CI, nightly and recovery report uploads share `.github/actions/upload-artifact`,
+which uses `actions/upload-artifact@v6` with at most three attempts separated by
+20 and 60 seconds. Only a failed attempt is retried; retries replace that job's
+uniquely named partial artifact, cancellation stops retries, and an exhausted
+upload still fails the job. Downloads use `actions/download-artifact@v7`. Both
+upstream actions declare the Node.js 24 runtime. Diagnostics, shard ledgers and
+shared timing snapshots retain their names, paths and retention periods.
 The nightly shards share one frozen copy of the latest successful CI timing
 ledger, with the committed fixture as the cold-cache fallback. Missing suites
 use their current fixture costs and join future timing updates; retired suites

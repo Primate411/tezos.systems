@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload lane attempts and recovery report
         if: always() && !cancelled() && steps.cadence.outputs.skip != 'true'
-        uses: actions/upload-artifact@v6
+        uses: ./.github/actions/upload-artifact
         with:
           name: generated-refresh-report
           path: ${{ runner.temp }}/generated-refresh-report.json

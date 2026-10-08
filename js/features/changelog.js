@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-08',
+        entries: [
+            { type: '🔧', text: 'Release checks retry temporary report-storage outages before failing, and daily maintenance reviews Release Radar evidence before it expires' }
+        ]
+    },
+    {
         date: '2026-10-07',
         entries: [
             { type: '🔧', text: 'Browser checks settle pointer-triggered layout before clicking Chamber info controls and verify that opening their explanations keeps the page still' },
