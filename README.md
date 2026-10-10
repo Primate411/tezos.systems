@@ -817,7 +817,7 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's October 9 review reconfirms EVM node 0.67
+  Release Radar's October 10 review reconfirms EVM node 0.67
   and Octez 25.2 using canonical publication receipts, unchanged
   FAST periods 693/694 and the current launch-documentation notice. The Q3
   mainnet target has elapsed; the unchanged Planned roadmap supplies no new date.
