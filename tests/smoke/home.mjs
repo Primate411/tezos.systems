@@ -1,6 +1,7 @@
 // Browser workflows owned by home. Shared dependencies remain explicit.
 import { observeHomeData, assertPopulatedHome } from '../lib/home-data-ready.mjs';
 import { smokeChamberOverhaul } from '../lib/chamber-overhaul-smoke.mjs';
+import { assertInstantPointerRetryScroll } from '../lib/smoke-pointer-scroll.mjs';
 export function createHomeSmokeSuites({
   SAMPLE_ADDRESS,
   assert,
@@ -1133,6 +1134,7 @@ export function createHomeSmokeSuites({
   }
 
   async function smokeUxChanges(browser, baseUrl) {
+    await assertInstantPointerRetryScroll(browser);
     const issues = [];
     const context = await browser.newContext({
       viewport: { width: 1366, height: 900 },
