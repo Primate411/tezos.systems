@@ -87,17 +87,22 @@ export async function smokeChamberOverhaul(browser, baseUrl, installFeatureMocks
       for (const width of [390, 320]) {
         await page.setViewportSize({ width, height: 900 });
         const badge = page.locator(`#${route}-freshness`);
-        // A supported degraded receipt label must fit without fixed-height
-        // clipping, regardless of the current fixture's collection clock.
-        await badge.evaluate(node => { node.textContent = 'Stale snapshot · indicative current observations unavailable'; });
-        const geometry = await badge.evaluate(node => {
-          const box = node.getBoundingClientRect(), range = document.createRange();
-          range.selectNodeContents(node);
-          const lines = [...range.getClientRects()];
-          return { height: box.height, lines: lines.length, fits: lines.every(line =>
-            line.top >= box.top - 1 && line.bottom <= box.bottom + 1 && line.left >= box.left - 1 && line.right <= box.right + 1) };
-        });
-        check(geometry.lines > 1 && geometry.fits, `${route} ${width}px: wrapped status must stay inside its badge: ${JSON.stringify(geometry)}`);
+        // A supported degraded receipt label must fit at its natural width.
+        // Its line count differs with host fonts, so constrain a second case
+        // in character units to exercise wrapping on every browser host.
+        for (const constrained of [false, true]) {
+          const geometry = await badge.evaluate((node, constrained) => {
+            node.textContent = 'Stale snapshot · indicative current observations unavailable';
+            node.style.maxInlineSize = constrained ? '24ch' : '';
+            const box = node.getBoundingClientRect(), range = document.createRange();
+            range.selectNodeContents(node);
+            const lines = [...range.getClientRects()];
+            return { height: box.height, lines: lines.length, fits: lines.every(line =>
+              line.top >= box.top - 1 && line.bottom <= box.bottom + 1 && line.left >= box.left - 1 && line.right <= box.right + 1) };
+          }, constrained);
+          check(geometry.fits && (!constrained || geometry.lines > 1),
+            `${route} ${width}px: ${constrained ? 'wrapped' : 'natural'} status must stay inside its badge: ${JSON.stringify(geometry)}`);
+        }
       }
     } finally { await context.close(); }
   }
