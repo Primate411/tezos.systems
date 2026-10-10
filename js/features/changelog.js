@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-10',
+        entries: [
+            { type: '🔧', text: 'Automated release checks use a corrected browser driver to prevent scroll-induced misclicks, with a regression check that preserves normal page scrolling and real pointer testing' }
+        ]
+    },
+    {
         date: '2026-10-08',
         entries: [
             { type: '🔧', text: 'Release checks retry temporary report-storage outages before failing, and daily maintenance reviews Release Radar evidence before it expires' },

@@ -2038,9 +2038,9 @@ callers use `scripts/lib/playwright-browser.cjs`, which tries Playwright's
 bundled Chromium first and falls back to a local Chrome/Chromium-family browser.
 Set `BROWSER_EXECUTABLE_PATH` only when you need to force a specific executable.
 Playwright 1.64 or newer keeps pointer-retry preparation scrolls instant even
-on pages with smooth scrolling; the UX regression suite exercises an obscured
-button that requires alternate alignment without disabling hit testing or page
-scroll behavior. This prevents the test runner from clicking during its own
+on pages with smooth scrolling; the UX regression suite exercises
+`tests/lib/smoke-pointer-scroll.mjs`, whose obscured button requires alternate
+alignment without disabling hit testing or page scroll behavior. This prevents the test runner from clicking during its own
 scroll animation.
 The smoke runner supports deterministic runtime-balanced `--shard index/total`
 selection from `tests/fixtures/smoke-suite-costs.json`, fresh-browser
