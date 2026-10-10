@@ -6201,8 +6201,8 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     min-height: 100%;
     overflow: visible !important;
 }
-/* One exit position in every room: the same corner inset whatever padding a
-   room gives its dialog (the shell measures it into --chamber-pad-*). A float
+/* One exit position in every normalized room: the same corner inset whatever
+   padding its CSS tokens declare. Excluded overlays retain their own exits. A float
    cannot rise into its parent's top padding and a sticky offset is measured
    from the scroller's content edge, so the exit sticks at that edge and a
    translate lifts it to the shared inset, before and after scrolling. The
@@ -6210,8 +6210,7 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
 .chamber-content {
     --chamber-exit-inset: 12px;
 }
-.chamber-content > .chamber-close,
-.chamber-room-shell > .modal-close {
+.chamber-room-shell > :is(.chamber-close, .modal-close) {
     position: sticky !important;
     top: 0 !important;
     right: auto !important;

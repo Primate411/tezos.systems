@@ -48,6 +48,7 @@ export function createChamberLoadingSmokeSuites({
         dashboardNodes: !!document.querySelector('#hero-slot, #chambers-grid, #my-tezos-drawer, #history-modal'),
         scripts: performance.getEntriesByType('resource').filter(r => /\.(?:js|mjs)$/.test(new URL(r.name).pathname)).length,
         readingModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/chamber-reading.js').length,
+        headerModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/chamber-header.js').length,
         priorityModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/core/load-priority.js').length,
         codecModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/core/tezoscrp-codec.mjs').length,
         textLoadingModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/text-loading.js').length,
@@ -56,7 +57,7 @@ export function createChamberLoadingSmokeSuites({
         overflow: document.documentElement.scrollWidth > innerWidth,
         timeOrigin: performance.timeOrigin
       }));
-      assert(cold.readingModules === 1 && cold.codecModules === 1 && cold.textLoadingModules === 1 && cold.priorityModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules - cold.codecModules - cold.textLoadingModules - cold.priorityModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
+      assert(cold.readingModules === 1 && cold.headerModules === 1 && cold.codecModules === 1 && cold.textLoadingModules === 1 && cold.priorityModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules - cold.headerModules - cold.codecModules - cold.textLoadingModules - cold.priorityModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
       assert(cold.theme === theme && !cold.overflow, `standalone ${width}: theme or geometry changed`);
       const forbidden = requests.filter(url => /\/(?:app|api|network-health|history|my-tezos|daily-briefing|price|comparison)\.js|chart\.umd|chartjs-adapter|\.supabase\.co|\.tzkt\.io|rpc\.tez\.capital/.test(url));
       assert(forbidden.length === 0, `standalone ${width}: unrelated startup work ${forbidden.join('\n')}`);
@@ -219,7 +220,7 @@ export function createChamberLoadingSmokeSuites({
     const cancelledPage = await cancelledContext.newPage();
     await cancelledPage.goto(`${baseUrl}/tezoscrp/`, { waitUntil: 'domcontentloaded' });
     await sawStyle;
-    await cancelledPage.getByRole('link', { name: 'Return to Tezos Systems', exact: true }).click();
+    await cancelledPage.getByRole('link', { name: /Return to Tezos Systems$/ }).click();
     await cancelledPage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 15000 });
     releaseStyle();
     await cancelledPage.waitForFunction(() => Boolean(document.getElementById('tezoscrp-css')?.sheet));

@@ -7,7 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-10-08',
         entries: [
-            { type: '🔧', text: 'Release checks retry temporary report-storage outages before failing, and daily maintenance reviews Release Radar evidence before it expires' }
+            { type: '🔧', text: 'Release checks retry temporary report-storage outages before failing, and daily maintenance reviews Release Radar evidence before it expires' },
+            { type: '🔧', text: 'Release Radar keeps its close button visible and reachable on desktop and phones when opened and scrolled, while shared Chamber exits stay within their own rooms' }
         ]
     },
     {

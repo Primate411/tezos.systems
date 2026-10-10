@@ -1,4 +1,5 @@
 // Browser workflows owned by pulse. Shared dependencies remain explicit.
+import { waitForSettledAnimations } from '../lib/smoke-animation-ready.mjs';
 export function createPulseSmokeSuites({
   ROOT,
   SAMPLE_ADDRESS,
@@ -661,6 +662,27 @@ export function createPulseSmokeSuites({
       const overlayLocator = page.locator('#release-radar-overlay.active');
       await overlayLocator.waitFor({ state: 'visible' });
 
+      await waitForSettledAnimations(page, '.release-radar-overlay-content');
+      const assertRadarClose = async (phase) => {
+        const state = await page.evaluate(() => {
+          const dialog = document.querySelector('.release-radar-overlay-content');
+          const close = dialog?.querySelector('[data-release-radar-close]');
+          const d = dialog?.getBoundingClientRect();
+          const c = close?.getBoundingClientRect();
+          const hit = c && document.elementFromPoint(c.left + c.width / 2, c.top + c.height / 2);
+          return {
+            inside: Boolean(d && c && c.left >= d.left && c.top >= d.top && c.right <= d.right && c.bottom <= d.bottom),
+            reachable: Boolean(hit && close?.contains(hit)),
+            width: c?.width || 0,
+            height: c?.height || 0,
+            overflow: dialog ? dialog.scrollWidth - dialog.clientWidth : 999
+          };
+        });
+        assert(state.inside && state.reachable && state.width >= 24 && state.height >= 24 && state.overflow <= 1,
+          `release radar pulse ${label}: ${phase} close control must remain inside and clickable ${JSON.stringify(state)}`);
+      };
+      await assertRadarClose('opened');
+
       const overlayPresentation = await page.evaluate(() => {
         const overlay = document.getElementById('release-radar-overlay');
         const dialog = overlay?.querySelector('.release-radar-overlay-content');
@@ -875,6 +897,7 @@ export function createPulseSmokeSuites({
         `release radar pulse ${label}: background refresh replayed or stranded the card animation ${JSON.stringify(quietAfter)}`
       );
 
+      await assertRadarClose('scrolled and refreshed');
       await page.locator('[data-release-radar-close]').click();
       await page.waitForFunction(() => !document.getElementById('release-radar-overlay')?.classList.contains('active'));
       await page.waitForTimeout(120);

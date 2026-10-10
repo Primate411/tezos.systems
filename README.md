@@ -7,6 +7,7 @@ Live site: [tezos.systems](https://tezos.systems)
 
 Chambers keep one main reading scroller and a reachable, bare X close control
 near the upper-right corner. The 44px control stays with the reading scroller.
+Release Radar and ctez retain their own overlay controls.
 Compact view rails, search, and chart controls lead into the data; methodology and full source
 receipts expand on demand. Open receipt disclosures and compatible view reading
 positions are retained, while background refreshes preserve the reader’s place.
