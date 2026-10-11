@@ -168,4 +168,29 @@ const auditWorkflow = await readFile(new URL('../.github/workflows/audit-generat
 for (const trigger of ['Refresh Generated Surfaces', 'Collect Tezos Stats', 'Collect Chamber History']) assert(auditWorkflow.includes(trigger));
 for (const boundary of ["conclusion == 'success'", 'head_repository.full_name == github.repository', "head_branch == 'main'", "event == 'schedule'", "event == 'workflow_dispatch'", 'ref: main', 'persist-credentials: false']) assert(auditWorkflow.includes(boundary));
 assert.match(auditWorkflow, /require\('\.\/\.github\/scripts\/reconcile-freshness-incident\.js'\)/);
+// Evaluate the workflow's actual follow-up conditions against the hosted
+// cancellation regression. A failed generated check must still allow history
+// and incident reconciliation; a superseded run must stop even during checkout.
+for (const name of ['Audit historical ledgers', 'Reconcile one freshness incident']) {
+  const block = auditWorkflow.split(`      - name: ${name}\n`)[1]?.split('\n      - name:')[0];
+  assert(block, `Missing workflow step: ${name}`);
+  const condition = block.match(/^        if: (.+)$/m)?.[1].replace(/^\$\{\{\s*|\s*\}\}$/g, '');
+  assert(condition, `Missing explicit follow-up condition: ${name}`);
+  assert.match(condition, /(?:cancelled|always|failure|success)\(\)/, 'Override the implicit success gate so failed checks remain independent');
+  const evaluate = new Function('cancelled', 'always', 'success', 'steps', `return (${condition});`);
+  for (const [cancelled, checkout, generated, history, expected] of [
+    [true, 'cancelled', 'skipped', 'skipped', false],
+    [true, 'success', 'success', 'success', false],
+    [false, 'failure', 'skipped', 'skipped', false],
+    [false, 'success', 'failure', 'skipped', true],
+    [false, 'success', 'success', 'failure', true],
+    [false, 'success', 'success', 'success', true]
+  ]) {
+    assert.equal(evaluate(() => cancelled, () => true,
+      () => [checkout, generated, history].every(outcome => outcome === 'success'),
+      { checkout: { outcome: checkout }, generated: { outcome: generated }, history: { outcome: history } }),
+    expected, `${name}: cancelled=${cancelled}, checkout=${checkout}, generated=${generated}, history=${history}`);
+  }
+}
+console.log('ok - superseded audits stop after cancellation while real freshness failures retain independent checks');
 console.log('ok - freshness recovery requires both current checks, reuses one issue and records recovery without comments');

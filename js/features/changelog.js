@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-11',
+        entries: [
+            { type: '🔧', text: 'Superseded freshness audits stop cleanly instead of running checks against an interrupted checkout; independent data checks and recovery evidence remain intact' }
+        ]
+    },
+    {
         date: '2026-10-10',
         entries: [
             { type: '🔧', text: 'Automated release checks use a corrected browser driver to prevent scroll-induced misclicks, with a regression check that preserves normal page scrolling and real pointer testing' }

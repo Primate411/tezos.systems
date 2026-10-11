@@ -1958,6 +1958,9 @@ failing contracts change, and closes it automatically after recovery so an
 unchanged incident does not generate a new failed-workflow email every six hours.
 Failure changes update its body; recovery records the passing run and closes it
 without redundant bot comments. Both freshness checks must pass before closure.
+Superseded audits stop on cancellation; follow-up checks and incident reconciliation
+require a completed checkout, while a failed generated check still allows the
+independent history check.
 Info-tooltip checks measure scrolling from the actual pointer activation, after
 browser positioning. The roster loading negative probe removes and inspects its
 visual in one browser task so a live refresh cannot repair the injected defect

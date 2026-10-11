@@ -51,14 +51,14 @@ jobs:
 
       - name: Audit historical ledgers
         id: history
-        if: always()
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         continue-on-error: true
         run: |
           set -o pipefail
           npm run check:supabase:freshness 2>&1 | tee "$RUNNER_TEMP/history-freshness.log"
 
       - name: Reconcile one freshness incident
-        if: always()
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         uses: actions/github-script@v8
         env:
           CHECKED_OUT_SHA: ${{ steps.checkout.outputs.commit }}
