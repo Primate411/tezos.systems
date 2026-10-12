@@ -1962,8 +1962,10 @@ Superseded audits stop on cancellation; follow-up checks and incident reconcilia
 require a completed checkout, while a failed generated check still allows the
 independent history check.
 Info-tooltip checks measure scrolling from the actual pointer activation, after
-browser positioning. The roster loading negative probe removes and inspects its
-visual in one browser task so a live refresh cannot repair the injected defect
+browser positioning. Section-help geometry compares the same settled hover state
+before and after the real click, with bounded animation waits scoped to the button
+and its panel; the one-pixel movement limit remains unchanged. The roster loading
+negative probe removes and inspects its visual in one browser task so a live refresh cannot repair the injected defect
 before the assertion.
 `.github/workflows/refresh-chain-comparison.yml` runs on the first day of each
 month, refreshes and validates the comparison receipt, rebakes the standalone

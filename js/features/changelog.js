@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-12',
+        entries: [
+            { type: '🔧', text: 'Section-help release checks compare settled button states so normal hover animation cannot cause a false layout-shift failure; real clicks and strict movement checks remain required' }
+        ]
+    },
+    {
         date: '2026-10-11',
         entries: [
             { type: '🔧', text: 'Superseded freshness audits stop cleanly instead of running checks against an interrupted checkout; independent data checks and recovery evidence remain intact' }

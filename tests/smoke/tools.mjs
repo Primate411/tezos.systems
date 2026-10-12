@@ -1,4 +1,5 @@
 // Browser workflows owned by tools. Shared dependencies remain explicit.
+import { waitForSettledAnimations } from '../lib/smoke-animation-ready.mjs';
 export function createToolsSmokeSuites({
   assert,
   assertAllSparklineLatestValues,
@@ -912,6 +913,10 @@ export function createToolsSmokeSuites({
 
     for (const contract of sectionHelpContracts) {
       await page.locator(contract.button).scrollIntoViewIfNeeded();
+      // Compare the same settled hover state across the real pointer click.
+      // Otherwise the intended scale transition looks like a layout shift.
+      await page.locator(contract.button).hover();
+      await waitForSettledAnimations(page, contract.button);
       const sectionGeometryBefore = await page.evaluate(({ button, section }) => {
         const trigger = document.querySelector(button);
         const triggerRect = trigger?.getBoundingClientRect();
@@ -926,6 +931,7 @@ export function createToolsSmokeSuites({
       }, contract);
       await page.locator(contract.button).click();
       await page.locator(`${contract.panel}.is-visible`).waitFor({ state: 'visible', timeout: 5000 });
+      await waitForSettledAnimations(page, `${contract.button}, ${contract.panel}`);
       const helpState = await page.evaluate(({ button, panel, section, title, href, before }) => {
         const trigger = document.querySelector(button);
         const popover = document.querySelector(panel);
