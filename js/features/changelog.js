@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-13',
+        entries: [
+            { type: '🔧', text: 'The Liquidity Baking percentage sizes to its text so hover scaling stays clear of the vote tape; release checks explicitly verify the settled hover layout' }
+        ]
+    },
+    {
         date: '2026-10-12',
         entries: [
             { type: '🔧', text: 'Section-help release checks compare settled button states so normal hover animation cannot cause a false layout-shift failure; real clicks and strict movement checks remain required' }

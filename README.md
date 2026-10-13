@@ -1342,7 +1342,9 @@ inline modal styles in `js/core/app.js`.
   baker vote tape and recent unique vote-switcher strip on the tile, recent
   block votes, latest baker votes, contextual help, protocol-history lore, EMA
   threshold meter and auto-scaled trend sparkline, 6-second open-monitor
-  refreshes, and 60-second dashboard-tile refreshes. The tile and open monitor
+  refreshes, and 60-second dashboard-tile refreshes. The tile's EMA value sizes
+  to its text so its hover scale stays clear of the adjacent vote tape; browser
+  checks verify the fully settled hover geometry. The tile and open monitor
   share one contiguous 2,500-block window with bounded 32-block overlap
   refreshes. The open monitor also
   shows sampled EMA drift/forecasting, a history strip, vote-change feed, and

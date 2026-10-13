@@ -1,4 +1,5 @@
 // Browser workflows owned by governance. Shared dependencies remain explicit.
+import { waitForSettledAnimations } from '../lib/smoke-animation-ready.mjs';
 export function createGovernanceSmokeSuites({
   ETHERLINK_FAST_CONTRACT,
   ETHERLINK_FAST_PROPOSAL,
@@ -219,6 +220,10 @@ export function createGovernanceSmokeSuites({
       return Number.isFinite(latest) && Math.abs(latest - (100 / 3)) < 0.01;
     }, null, { timeout: 10000 });
 
+    // Exercise the fully hovered EMA: scaling a stretched grid cell can overlap
+    // the vote tape even though the idle columns are correctly separated.
+    await page.locator('#lb-entry-ema').hover();
+    await waitForSettledAnimations(page, '#lb-entry-card');
     const dashboardState = await page.evaluate(() => ({
       protocolPromptCount: document.querySelectorAll('#gov-countdown-banner, #gov-countdown-banner-slot, #upgrade-status .voting-status-compact').length,
       upgradeStatusActive: document.querySelector('#upgrade-status')?.classList.contains('active') || false,
