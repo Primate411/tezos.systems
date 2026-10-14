@@ -1252,7 +1252,12 @@ inline modal styles in `js/core/app.js`.
   celebratory for 72 hours. Generated catalog receipts make that window shared
   across visitors, target block timestamps provide exact block-height timing,
   every 100th cycle uses its exact Octez cycle-boundary timestamp, and bounded
-  local observation remains only as a fallback. The existing Cycle 1250
+  local observation remains a fallback for other milestone tracks. Exact boundary requests retain
+  the 2.8-second initial briefing budget; block and cycle crossings wait for exact
+  on-chain timestamps instead of interpolating from an older catalog. Verified
+  late receipts reconcile quietly
+  within a separate 10-second network cap, and failed reads can recover on a later
+  normal refresh. The existing Cycle 1250
   landmark remains part of the catalog. Each milestone card
   can open the existing branded
   image-share composer with milestone-specific promotional tweet styles.

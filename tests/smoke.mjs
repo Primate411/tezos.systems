@@ -1741,6 +1741,7 @@ async function installFeatureMocks(context, options = {}) {
   const bakerPageOffsets = [];
   let whaleArtifactRequests = 0;
   let whaleLiveRequests = 0;
+  let networkHealthActivityTapeRequests = 0;
   let whaleFailureLane = '';
   let whaleDormancyMismatch = false;
   let bakerGovernanceFailure = false;
@@ -3590,7 +3591,15 @@ async function installFeatureMocks(context, options = {}) {
       }
       if (url.includes('/operations/transactions?')) {
         const txParams = parsedUrl.searchParams;
-        if (whaleChamberMocks && txParams.has('amount.ge')) {
+        // Network Health has its own five-row activity tape. Its identical
+        // amount floor does not make it a Whale Chamber polling request.
+        const isNetworkHealthActivityTape = txParams.size === 4
+          && txParams.get('status') === 'applied'
+          && txParams.get('amount.ge') === '1000000000'
+          && txParams.get('sort.desc') === 'id'
+          && txParams.get('limit') === '5';
+        if (isNetworkHealthActivityTape) networkHealthActivityTapeRequests += 1;
+        if (whaleChamberMocks && txParams.has('amount.ge') && !isNetworkHealthActivityTape) {
           whaleLiveRequests += 1;
           if (txParams.has('timestamp.ge') || txParams.has('timestamp.gt')) {
             whaleCursorRequests.push({ lane: 'transactions', cursor: txParams.has('timestamp.ge') ? 'timestamp.ge' : 'timestamp.gt' });
@@ -4201,6 +4210,7 @@ async function installFeatureMocks(context, options = {}) {
     get ledgerFlowTzktRequests() { return [...ledgerFlowTzktRequests]; },
     get whaleArtifactRequests() { return whaleArtifactRequests; },
     get whaleCursorRequests() { return whaleCursorRequests.map((entry) => ({ ...entry })); },
+    get networkHealthActivityTapeRequests() { return networkHealthActivityTapeRequests; },
     get whaleLiveRequests() { return whaleLiveRequests; }
   };
 }

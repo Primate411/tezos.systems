@@ -1670,10 +1670,9 @@ export function createHomeSmokeSuites({
     const boundaryGate = new Promise(resolve => { releaseBoundary = resolve; });
     let holdBoundary = true;
     await context.route(`**/blocks/${startLevel}/header`, async route => {
-      if (holdBoundary) {
-        holdBoundary = false;
-        await boundaryGate;
-      }
+      // Hold every pooled provider, including a failover, until the single
+      // verification gate opens. A valid fallback must not bypass this fixture.
+      if (holdBoundary) await boundaryGate;
       await route.fallback();
     });
     // Exercise both initial and cached desktop boot on a constrained renderer.
@@ -1681,13 +1680,20 @@ export function createHomeSmokeSuites({
     const initialCycleLoad = loadCyclePage(page);
     const primeCandidates = (async () => { try {
       await boundaryHeld;
+      const beyondInitialBudget = waitForIntentionalRealTime(page, 'cycle-milestone-late-boundary');
       // A real-time signal may render while exact milestone verification is
       // pending. Its candidate cache must not hide the later verified receipt.
       await page.evaluate(() => window.dispatchEvent(new CustomEvent('hot-signal', {
         detail: { id: 'cycle-receipt-pending', category: 'network', title: 'Pending receipt smoke', text: 'Concurrent signal during exact cycle verification', score: 90 }
       })));
-      await page.waitForFunction(() => document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready');
+      await Promise.all([
+        beyondInitialBudget,
+        page.waitForFunction(() => document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready')
+      ]);
+      assert(await page.locator('[data-hot-signal-id="milestone-cycle-1300"]').count() === 0,
+        'cycle milestone: a pending boundary receipt must not create a verified milestone');
     } finally {
+      holdBoundary = false;
       releaseBoundary();
     } })();
     await Promise.all([initialCycleLoad, primeCandidates]);

@@ -60,6 +60,7 @@ const LS_RELEASE_RADAR_LAST_GOOD = 'tezos-systems-release-radar-last-good-v1';
 const BRIEFING_SCHEMA_VERSION = 15;
 const PRICE_FETCH_TIMEOUT_MS = 2500;
 const MILESTONE_FETCH_TIMEOUT_MS = 2800;
+const MILESTONE_RECEIPT_TIMEOUT_MS = 10000;
 const MILESTONE_CATALOG_URL = '/data/milestone-catalog.json';
 const HOT_TODAY_LIVE_TICK_MS = 1000;
 const HOT_TODAY_INITIAL_TIMEOUT_MS = 20000;
@@ -851,6 +852,41 @@ function exactMilestoneMoment(trackId, target, now = Date.now()) {
   return moment && moment.createdAt <= now && moment.expiresAt > now ? moment : null;
 }
 
+function requestExactMilestoneMoment({ key, url, level, target, current }) {
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), MILESTONE_RECEIPT_TIMEOUT_MS);
+  let verified = false;
+  const receipt = fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal })
+    .then(response => response.ok ? response.json() : null)
+    .then((block) => {
+      const createdAt = Date.parse(block?.timestamp || '');
+      if (Number(block?.level) !== Number(level) || !Number.isFinite(createdAt)) return null;
+      verified = true;
+      const moment = {
+        target: Number(target),
+        createdAt,
+        expiresAt: createdAt + MILESTONE_MOMENT_TTL_MS,
+        crossedValue: Number(current)
+      };
+      exactMilestoneMoments.set(key, moment);
+      lastLiveCandidateFingerprint = '';
+      // Initial briefing work stays bounded, but a verified late receipt must
+      // still reach the existing visibility-gated, quiet reconciliation path.
+      if (moment.createdAt <= Date.now() && moment.expiresAt > Date.now()) scheduleHotSignalRender();
+      return moment.expiresAt > Date.now() ? moment : null;
+    })
+    .catch(() => null)
+    .finally(() => {
+      clearTimeout(deadline);
+      // Share pending requests and keep verified expired receipts, but allow a
+      // later normal briefing refresh to recover from a failed source read.
+      if (!verified) exactMilestoneMomentPromises.delete(key);
+    });
+  const initial = withTimeout(receipt, MILESTONE_FETCH_TIMEOUT_MS);
+  exactMilestoneMomentPromises.set(key, initial);
+  return initial;
+}
+
 async function resolveExactBlockMilestoneMoment(stats = {}) {
   const track = MILESTONE_TRACKS.find(entry => entry.id === 'blocks');
   const current = track?.value(stats);
@@ -863,22 +899,10 @@ async function resolveExactBlockMilestoneMoment(stats = {}) {
   if (existing) return existing;
   if (exactMilestoneMomentPromises.has(key)) return exactMilestoneMomentPromises.get(key);
 
-  const promise = fetchMilestoneJson(`${API_URLS.tzkt}/blocks/${target}`).then((block) => {
-    const createdAt = Date.parse(block?.timestamp || '');
-    if (Number(block?.level) !== Number(target) || !Number.isFinite(createdAt)) return null;
-    const moment = {
-      target: Number(target),
-      createdAt,
-      expiresAt: createdAt + MILESTONE_MOMENT_TTL_MS,
-      crossedValue: Number(current)
-    };
-    exactMilestoneMoments.set(key, moment);
-    // A real-time render may have cached candidates while this receipt loaded.
-    lastLiveCandidateFingerprint = '';
-    return moment.expiresAt > Date.now() ? moment : null;
-  }).catch(() => null);
-  exactMilestoneMomentPromises.set(key, promise);
-  return promise;
+  return requestExactMilestoneMoment({
+    key, target, current, level: target,
+    url: `${API_URLS.tzkt}/blocks/${target}`
+  });
 }
 
 async function resolveExactCycleMilestoneMoment(stats = {}) {
@@ -903,21 +927,10 @@ async function resolveExactCycleMilestoneMoment(stats = {}) {
   });
   if (!targetLevel) return null;
 
-  const promise = fetchMilestoneJson(`${API_URLS.octez}/chains/main/blocks/${targetLevel}/header`).then((header) => {
-    const createdAt = Date.parse(header?.timestamp || '');
-    if (Number(header?.level) !== Number(targetLevel) || !Number.isFinite(createdAt)) return null;
-    const moment = {
-      target: Number(target),
-      createdAt,
-      expiresAt: createdAt + MILESTONE_MOMENT_TTL_MS,
-      crossedValue: Number(current)
-    };
-    exactMilestoneMoments.set(key, moment);
-    lastLiveCandidateFingerprint = '';
-    return moment.expiresAt > Date.now() ? moment : null;
-  }).catch(() => null);
-  exactMilestoneMomentPromises.set(key, promise);
-  return promise;
+  return requestExactMilestoneMoment({
+    key, target, current, level: targetLevel,
+    url: `${API_URLS.octez}/chains/main/blocks/${targetLevel}/header`
+  });
 }
 
 function readMilestoneMomentLog() {
@@ -1028,14 +1041,15 @@ function buildMilestoneSignals(stats = {}) {
       anchorValue: priorValue,
       anchorObservedAt: priorObservedAt
     }).filter(moment => Math.max(0, Number(current) - moment.target) <= (finiteNumber(track.afterWindow) ?? Number.POSITIVE_INFINITY));
-    const exactTarget = ['blocks', 'cycle'].includes(track.id)
+    const requiresExactBoundary = ['blocks', 'cycle'].includes(track.id);
+    const exactTarget = requiresExactBoundary
       ? [...thresholds].reverse().find(value => value <= current)
       : null;
-    const exactKey = exactTarget == null ? '' : `${track.id}:${exactTarget}`;
     const exactMoment = exactTarget == null ? null : exactMilestoneMoment(track.id, exactTarget, now);
-    const exactBoundaryResolved = exactKey ? exactMilestoneMoments.has(exactKey) : false;
     const activeMoments = new Map();
-    const activeMomentCandidates = exactBoundaryResolved
+    // Block and cycle clocks have exact chain receipts. Never interpolate a
+    // fresh crossing from a stale catalog while that receipt is pending.
+    const activeMomentCandidates = requiresExactBoundary
       ? (exactMoment ? [exactMoment] : [])
       : [...lifecycle.activeMoments, ...locallyObservedMoments, ...catalogMoments];
     activeMomentCandidates

@@ -34,6 +34,13 @@ export function createActivitySmokeSuites({
 
     const response = await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `ledger flow chamber: dashboard failed with HTTP ${response?.status()}`);
+    // Exercise the independent Network Health tape before the no-Whale-poll
+    // assertion, so source attribution cannot depend on dashboard boot timing.
+    await page.evaluate(async () => {
+      const response = await fetch('https://api.tzkt.io/v1/operations/transactions?status=applied&amount.ge=1000000000&sort.desc=id&limit=5');
+      if (!response.ok || !Array.isArray(await response.json())) throw new Error('Network Health activity tape fixture unavailable');
+    });
+    assert(mockState.networkHealthActivityTapeRequests >= 1, 'ledger flow chamber: Network Health tape receipt was not classified');
     await page.locator('#chambers-grid > .chamber-category[data-chamber-category="people"] .chamber-category-toggle').click();
     await page.locator('#ledger-flow-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 15000 });
     await page.locator('#ledger-flow-entry-card').dispatchEvent('pointerenter');
