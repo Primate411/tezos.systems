@@ -87,6 +87,7 @@ class ValleyEffect {
         this.grass = [];
         this.grassCandidateCount = 0;
         this.pathwayPath = null;
+        this.atmosphereLayer = null;
         this.trees = [];
         this.clouds = [];
         this.seeds = [];
@@ -182,6 +183,7 @@ class ValleyEffect {
         this.grass = [];
         this.grassCandidateCount = 0;
         this.pathwayPath = null;
+        this.atmosphereLayer = null;
         this.trees = [];
         this.clouds = [];
         this.seeds = [];
@@ -316,6 +318,7 @@ class ValleyEffect {
         this.canvas.height = Math.round(this.height * this.dpr);
         this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
         this.ctx.imageSmoothingEnabled = true;
+        this.atmosphereLayer = null;
         this.buildScene();
         this.updateDebugState();
     }
@@ -1157,6 +1160,7 @@ class ValleyEffect {
             ctx.beginPath();
             ctx.strokeStyle = palette[band];
             ctx.lineCap = 'round';
+            let bandLineWidth = ctx.lineWidth;
 
             for (let index = 0; index < visibleCount; index += 1) {
                 const blade = this.grass[index];
@@ -1186,7 +1190,7 @@ class ValleyEffect {
                 const tipX = blade.x + bend;
                 const tipY = blade.y - blade.length;
 
-                ctx.lineWidth = blade.width;
+                bandLineWidth = blade.width;
                 ctx.moveTo(blade.x, blade.y);
                 ctx.quadraticCurveTo(
                     blade.x + (bend * 0.28),
@@ -1195,6 +1199,9 @@ class ValleyEffect {
                     tipY
                 );
             }
+            // Canvas applies one width to this entire stroke, so only the last
+            // blade width mattered before. Avoid thousands of redundant setters.
+            ctx.lineWidth = bandLineWidth;
             ctx.stroke();
         }
 
@@ -1237,6 +1244,29 @@ class ValleyEffect {
     }
 
     drawAtmosphere(ctx) {
+        // These gradients depend only on viewport size. Rasterize once at the
+        // decorative 1x resolution, retaining the camera's 40px overscan.
+        const width = this.width + 80;
+        const height = this.height + 80;
+        if (!this.atmosphereLayer
+            || this.atmosphereLayer.width !== width
+            || this.atmosphereLayer.height !== height) {
+            const layer = document.createElement('canvas');
+            layer.width = width;
+            layer.height = height;
+            const layerContext = layer.getContext('2d');
+            if (!layerContext) {
+                this.paintAtmosphere(ctx);
+                return;
+            }
+            layerContext.translate(40, 40);
+            this.paintAtmosphere(layerContext);
+            this.atmosphereLayer = layer;
+        }
+        ctx.drawImage(this.atmosphereLayer, -40, -40);
+    }
+
+    paintAtmosphere(ctx) {
         const horizon = this.height * 0.52;
         const mist = ctx.createLinearGradient(0, horizon - 45, 0, horizon + (this.height * 0.19));
         mist.addColorStop(0, 'rgba(244, 215, 168, 0)');

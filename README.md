@@ -385,7 +385,10 @@ Matrix rain and the grouped canvas backgrounds load only for a theme that uses
 them, and remain unloaded under reduced motion. A later theme choice retries a
 failed download; a delayed download checks the current theme before drawing.
 Valley's small loader still subscribes early to retain initial statistics,
-while its substantial renderer remains lazy. Picker previews and Chamber-to-home
+while its substantial renderer remains lazy. Its viewport-sized mist/vignette
+layer is rasterized once and rebuilt on resize, and each grass band sets its
+stroke width once; the 30 fps cap and strict browser performance budgets stay
+in force. Picker previews and Chamber-to-home
 navigation reuse the loaded modules without installing another set of listeners.
 Aurora's header title uses a desktop-specific multicolor sweep so the one-line
 wordmark stays as vivid as the wrapped mobile title.

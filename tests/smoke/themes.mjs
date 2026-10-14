@@ -222,6 +222,61 @@ export function createThemesSmokeSuites({
       `Valley grass must cover every depth while roots stay off the naturally overhung path ending at the hilltop bench: ${JSON.stringify(grassBankState)}`
     );
 
+    const paintReuse = await page.evaluate(async () => {
+      const { createValleyEffect } = await import('/js/effects/valley-effects.js');
+      return [[1366, 900], [390, 844], [844, 390]].map(([width, height]) => {
+        const effect = createValleyEffect();
+        effect.width = width;
+        effect.height = height;
+        const canvases = Array.from({ length: 2 }, () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          return canvas;
+        });
+        const contexts = canvases.map(canvas => canvas.getContext('2d', { willReadFrequently: true }));
+        for (const ctx of contexts) {
+          ctx.fillStyle = '#69754A';
+          ctx.fillRect(0, 0, width, height);
+        }
+        const paintAtmosphere = effect.paintAtmosphere.bind(effect);
+        let gradientPasses = 0;
+        effect.paintAtmosphere = ctx => { gradientPasses += 1; paintAtmosphere(ctx); };
+        effect.drawAtmosphere(contexts[0]);
+        paintAtmosphere(contexts[1]);
+        const pixels = contexts.map(ctx => ctx.getImageData(0, 0, width, height).data);
+        let maxChannelDifference = 0;
+        for (let index = 0; index < pixels[0].length; index += 1) {
+          maxChannelDifference = Math.max(maxChannelDifference, Math.abs(pixels[0][index] - pixels[1][index]));
+        }
+        const layer = effect.atmosphereLayer;
+        effect.drawAtmosphere(contexts[0]);
+        const reused = gradientPasses === 1 && effect.atmosphereLayer === layer;
+        const boundedRaster = layer.width === width + 80 && layer.height === height + 80;
+        effect.width += 1;
+        effect.drawAtmosphere(contexts[0]);
+        const resized = gradientPasses === 2 && effect.atmosphereLayer !== layer;
+        effect.width = width;
+        effect.ctx = contexts[0];
+        effect.buildScene();
+        const lineWidth = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'lineWidth');
+        let widthWrites = 0;
+        Object.defineProperty(effect.ctx, 'lineWidth', {
+          configurable: true,
+          get() { return lineWidth.get.call(this); },
+          set(value) { widthWrites += 1; lineWidth.set.call(this, value); }
+        });
+        effect.drawGrass(effect.ctx, 1, false);
+        effect.stop();
+        return { width, height, reused, boundedRaster, resized, maxChannelDifference, widthWrites, released: effect.atmosphereLayer === null };
+      });
+    });
+    assert(paintReuse.every(state => (
+      state.reused && state.boundedRaster && state.resized && state.released
+        // Precomposing translucent gradients allows only 8-bit rounding error.
+        && state.maxChannelDifference <= 2 && state.widthWrites === 4
+    )), `Valley static paint reuse, appearance, or bounded grass state writes regressed: ${JSON.stringify(paintReuse)}`);
+
     const canvasSignature = () => page.evaluate(() => {
       const canvas = document.getElementById('valley-background-canvas');
       if (!(canvas instanceof HTMLCanvasElement)) return null;
@@ -300,7 +355,7 @@ export function createThemesSmokeSuites({
     const measuredFps = (cadenceEnd.frame - cadenceStart.frame) / ((cadenceEnd.time - cadenceStart.time) / 1000);
     assert(
       measuredFps >= 20 && measuredFps <= 40,
-      `Valley rendered outside its bounded frame cadence (${measuredFps.toFixed(1)} fps)`
+      `Valley rendered outside its bounded frame cadence (${measuredFps.toFixed(1)} fps): ${JSON.stringify({ cadenceStart, cadenceEnd, longTaskSample })}`
     );
     if (longTaskObservationSupported) {
       assert(

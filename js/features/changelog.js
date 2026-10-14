@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-14',
+        entries: [
+            { type: '⚡', text: 'Valley reuses its static atmosphere and avoids repeated grass paint setup to keep the landscape smoother without changing its motion or detail' }
+        ]
+    },
+    {
         date: '2026-10-13',
         entries: [
             { type: '🔧', text: 'The Liquidity Baking percentage sizes to its text so hover scaling stays clear of the vote tape; release checks explicitly verify the settled hover layout' }
