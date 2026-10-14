@@ -236,9 +236,9 @@ export function createThemesSmokeSuites({
         });
         const contexts = canvases.map(canvas => canvas.getContext('2d', { willReadFrequently: true }));
         const directPaint = [effect.paintMist.bind(effect), effect.paintVignette.bind(effect)];
-        let gradientPasses = 0;
+        const gradientPasses = [0, 0];
         for (const [index, name] of ['paintMist', 'paintVignette'].entries()) {
-          effect[name] = ctx => { gradientPasses += 1; directPaint[index](ctx); };
+          effect[name] = ctx => { gradientPasses[index] += 1; directPaint[index](ctx); };
         }
         let maxChannelDifference = 0;
         for (const background of ['#69754A', '#000000', '#ffffff', '#263831']) {
@@ -253,15 +253,13 @@ export function createThemesSmokeSuites({
             maxChannelDifference = Math.max(maxChannelDifference, Math.abs(pixels[0][index] - pixels[1][index]));
           }
         }
-        const layer = effect.atmosphereLayer;
+        const layer = effect.vignetteLayer;
         effect.drawAtmosphere(contexts[0]);
-        const reused = gradientPasses === 2 && effect.atmosphereLayer === layer;
-        const boundedRaster = layer.canvases.length === 2
-          && layer.canvases.every(({ canvas }) => canvas.width === width + 80 && canvas.height === height + 80)
-          && layer.canvases[0].height <= Math.ceil(height * 0.25) + 1;
+        const reused = gradientPasses[0] === 5 && gradientPasses[1] === 1 && effect.vignetteLayer === layer;
+        const boundedRaster = layer.width === width + 80 && layer.height === height + 80;
         effect.width += 1;
         effect.drawAtmosphere(contexts[0]);
-        const resized = gradientPasses === 4 && effect.atmosphereLayer !== layer;
+        const resized = gradientPasses[0] === 6 && gradientPasses[1] === 2 && effect.vignetteLayer !== layer;
         effect.width = width;
         effect.ctx = contexts[0];
         effect.buildScene();
@@ -274,7 +272,7 @@ export function createThemesSmokeSuites({
         });
         effect.drawGrass(effect.ctx, 1, false);
         effect.stop();
-        return { width, height, reused, boundedRaster, resized, maxChannelDifference, widthWrites, released: effect.atmosphereLayer === null };
+        return { width, height, reused, boundedRaster, resized, maxChannelDifference, widthWrites, released: effect.vignetteLayer === null };
       });
     });
     assert(paintReuse.every(state => (
