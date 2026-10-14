@@ -235,14 +235,33 @@ jobs:
       - name: Checkout validated repository
         uses: actions/checkout@v7
 
+      - name: Set up Pages artifact client
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: .github/scripts/pages-artifact-ready/package-lock.json
+
+      - name: Install pinned Pages artifact client
+        run: npm ci --prefix .github/scripts/pages-artifact-ready --ignore-scripts --no-audit --no-fund
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
       - name: Upload validated site artifact
+        id: pages-artifact
         uses: actions/upload-pages-artifact@v5
         with:
           path: '.'
           include-hidden-files: true
+
+      - name: Wait for the uploaded Pages artifact
+        uses: actions/github-script@v8
+        timeout-minutes: 3
+        env:
+          PAGES_ARTIFACT_ID: ${{ steps.pages-artifact.outputs.artifact_id }}
+        with:
+          script: await require('./.github/scripts/pages-artifact-ready/run.cjs')({ core });
 
       - name: Deploy validated site
         id: deployment

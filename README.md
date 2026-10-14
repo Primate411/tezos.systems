@@ -2648,6 +2648,13 @@ preinstalled, so repeated package-manager updates cannot consume the test budget
 Container jobs retain bash and shared browser memory, and trust only their mounted
 checkout for shell Git reads. A scheduled high-risk five-repeat canary and a separate live pinned-dependency canary expose flakes and upstream
 drift without weakening the release gate.
+Pages waits for its exact uploaded artifact ID to appear in the same official
+artifact client used by `actions/deploy-pages`, with at most twelve checks five
+seconds apart and a three-minute step deadline. Missing, ambiguous or empty
+artifacts still fail; upload success alone does not authorize deployment. The
+pinned client and lockfile live under `.github/scripts/pages-artifact-ready`,
+which is excluded from the published archive.
+
 CI, nightly and recovery report uploads share `.github/actions/upload-artifact`,
 which uses `actions/upload-artifact@v6` with at most three attempts separated by
 20 and 60 seconds. Only a failed attempt is retried; retries replace that job's
