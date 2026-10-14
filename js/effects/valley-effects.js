@@ -1244,29 +1244,46 @@ class ValleyEffect {
     }
 
     drawAtmosphere(ctx) {
-        // These gradients depend only on viewport size. Rasterize once at the
-        // decorative 1x resolution, retaining the camera's 40px overscan.
+        // Keep the original two source-over passes: merging translucent
+        // gradients accumulates alpha rounding differently across renderers.
+        // Cache each at decorative 1x resolution with the camera's 40px overscan.
         const width = this.width + 80;
         const height = this.height + 80;
         if (!this.atmosphereLayer
             || this.atmosphereLayer.width !== width
             || this.atmosphereLayer.height !== height) {
-            const layer = document.createElement('canvas');
-            layer.width = width;
-            layer.height = height;
-            const layerContext = layer.getContext('2d');
-            if (!layerContext) {
-                this.paintAtmosphere(ctx);
-                return;
+            const canvases = [];
+            for (const paint of ['paintMist', 'paintVignette']) {
+                const layer = document.createElement('canvas');
+                const isMist = paint === 'paintMist';
+                const top = isMist ? Math.floor(this.height * 0.52 - 45) : -40;
+                const bottom = isMist ? Math.ceil(this.height * 0.52 - 45 + this.height * 0.25) : this.height + 40;
+                layer.width = width;
+                layer.height = height;
+                const layerContext = layer.getContext('2d');
+                if (!layerContext) {
+                    this.paintAtmosphere(ctx);
+                    return;
+                }
+                layerContext.translate(40, 40);
+                this[paint](layerContext);
+                canvases.push({ canvas: layer, top, height: bottom - top });
             }
-            layerContext.translate(40, 40);
-            this.paintAtmosphere(layerContext);
-            this.atmosphereLayer = layer;
+            this.atmosphereLayer = { width, height, canvases };
         }
-        ctx.drawImage(this.atmosphereLayer, -40, -40);
+        for (const { canvas, top, height: paintedHeight } of this.atmosphereLayer.canvases) {
+            // Copy only the mist band. Keep the full raster's pixel coordinates
+            // so native gradient dithering agrees with the uncached renderer.
+            ctx.drawImage(canvas, 0, top + 40, width, paintedHeight, -40, top, width, paintedHeight);
+        }
     }
 
     paintAtmosphere(ctx) {
+        this.paintMist(ctx);
+        this.paintVignette(ctx);
+    }
+
+    paintMist(ctx) {
         const horizon = this.height * 0.52;
         const mist = ctx.createLinearGradient(0, horizon - 45, 0, horizon + (this.height * 0.19));
         mist.addColorStop(0, 'rgba(244, 215, 168, 0)');
@@ -1274,7 +1291,9 @@ class ValleyEffect {
         mist.addColorStop(1, 'rgba(224, 199, 154, 0)');
         ctx.fillStyle = mist;
         ctx.fillRect(-40, horizon - 45, this.width + 80, this.height * 0.25);
+    }
 
+    paintVignette(ctx) {
         const vignette = ctx.createRadialGradient(
             this.width * 0.5,
             this.height * 0.44,

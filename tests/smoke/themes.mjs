@@ -235,27 +235,33 @@ export function createThemesSmokeSuites({
           return canvas;
         });
         const contexts = canvases.map(canvas => canvas.getContext('2d', { willReadFrequently: true }));
-        for (const ctx of contexts) {
-          ctx.fillStyle = '#69754A';
-          ctx.fillRect(0, 0, width, height);
-        }
-        const paintAtmosphere = effect.paintAtmosphere.bind(effect);
+        const directPaint = [effect.paintMist.bind(effect), effect.paintVignette.bind(effect)];
         let gradientPasses = 0;
-        effect.paintAtmosphere = ctx => { gradientPasses += 1; paintAtmosphere(ctx); };
-        effect.drawAtmosphere(contexts[0]);
-        paintAtmosphere(contexts[1]);
-        const pixels = contexts.map(ctx => ctx.getImageData(0, 0, width, height).data);
+        for (const [index, name] of ['paintMist', 'paintVignette'].entries()) {
+          effect[name] = ctx => { gradientPasses += 1; directPaint[index](ctx); };
+        }
         let maxChannelDifference = 0;
-        for (let index = 0; index < pixels[0].length; index += 1) {
-          maxChannelDifference = Math.max(maxChannelDifference, Math.abs(pixels[0][index] - pixels[1][index]));
+        for (const background of ['#69754A', '#000000', '#ffffff', '#263831']) {
+          for (const ctx of contexts) {
+            ctx.fillStyle = background;
+            ctx.fillRect(0, 0, width, height);
+          }
+          effect.drawAtmosphere(contexts[0]);
+          for (const paint of directPaint) paint(contexts[1]);
+          const pixels = contexts.map(ctx => ctx.getImageData(0, 0, width, height).data);
+          for (let index = 0; index < pixels[0].length; index += 1) {
+            maxChannelDifference = Math.max(maxChannelDifference, Math.abs(pixels[0][index] - pixels[1][index]));
+          }
         }
         const layer = effect.atmosphereLayer;
         effect.drawAtmosphere(contexts[0]);
-        const reused = gradientPasses === 1 && effect.atmosphereLayer === layer;
-        const boundedRaster = layer.width === width + 80 && layer.height === height + 80;
+        const reused = gradientPasses === 2 && effect.atmosphereLayer === layer;
+        const boundedRaster = layer.canvases.length === 2
+          && layer.canvases.every(({ canvas }) => canvas.width === width + 80 && canvas.height === height + 80)
+          && layer.canvases[0].height <= Math.ceil(height * 0.25) + 1;
         effect.width += 1;
         effect.drawAtmosphere(contexts[0]);
-        const resized = gradientPasses === 2 && effect.atmosphereLayer !== layer;
+        const resized = gradientPasses === 4 && effect.atmosphereLayer !== layer;
         effect.width = width;
         effect.ctx = contexts[0];
         effect.buildScene();
@@ -273,7 +279,7 @@ export function createThemesSmokeSuites({
     });
     assert(paintReuse.every(state => (
       state.reused && state.boundedRaster && state.resized && state.released
-        // Precomposing translucent gradients allows only 8-bit rounding error.
+        // Cached source-over passes allow only bounded 8-bit rounding error.
         && state.maxChannelDifference <= 2 && state.widthWrites === 4
     )), `Valley static paint reuse, appearance, or bounded grass state writes regressed: ${JSON.stringify(paintReuse)}`);
 

@@ -385,8 +385,9 @@ Matrix rain and the grouped canvas backgrounds load only for a theme that uses
 them, and remain unloaded under reduced motion. A later theme choice retries a
 failed download; a delayed download checks the current theme before drawing.
 Valley's small loader still subscribes early to retain initial statistics,
-while its substantial renderer remains lazy. Its viewport-sized mist/vignette
-layer is rasterized once and rebuilt on resize, and each grass band sets its
+while its substantial renderer remains lazy. Its viewport-sized mist and vignette
+are rasterized separately, retain their original compositing order, and rebuild
+on resize; each frame copies only the painted mist band. Each grass band sets its
 stroke width once; the 30 fps cap and strict browser performance budgets stay
 in force. Picker previews and Chamber-to-home
 navigation reuse the loaded modules without installing another set of listeners.
