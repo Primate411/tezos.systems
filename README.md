@@ -754,7 +754,9 @@ inline modal styles in `js/core/app.js`.
   a tight, transparent theme-derived hairline while preserving
   `MAINNET AGE · SINCE 2018`: approaching thresholds use a lighter dashed
   outline with a separate `SOON` marker, then crossed thresholds re-arm with a
-  stronger solid outline and `NEW` marker above the top-right corner.
+  stronger solid outline and `NEW` marker above the top-right corner. Updating
+  the same milestone's receipt expiry preserves its animation and disclosure;
+  validity still follows the source timestamp and expiry timer.
   Hover or keyboard focus reveals an anchored event card on desktop. On phones
   and touch-first layouts, the first tap pins that explanation without
   navigating; a second tap on the runtime, or the card's explicit action,

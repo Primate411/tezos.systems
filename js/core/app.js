@@ -3679,8 +3679,10 @@ function initUptimeClock() {
         const unseen = active && !uptimeMilestoneIsSeen(signal);
         const crossed = unseen && status === 'crossed';
         const near = unseen && status === 'near';
+        // Receipt expiry reschedules validity below; it is not a new visual
+        // identity and must not replay the marker or close an open disclosure.
         const renderSignature = active
-            ? `${signal.id}|${status}|${signal.shortLabel || signal.icon || signal.title}|${signal.expiresAt || ''}|${unseen ? 'unseen' : 'seen'}`
+            ? `${signal.id}|${status}|${signal.shortLabel || signal.icon || signal.title}|${unseen ? 'unseen' : 'seen'}`
             : '';
         if (renderSignature === renderedUptimeMilestoneSignature) return;
         renderedUptimeMilestoneSignature = renderSignature;

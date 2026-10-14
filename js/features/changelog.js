@@ -7,7 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-10-14',
         entries: [
-            { type: '🔧', text: 'Block and cycle milestones wait for exact on-chain timestamps and recover quietly when their source replies after the initial briefing wait' },
+            { type: '🔧', text: 'Block and cycle milestones wait for exact on-chain timestamps, recover late receipts quietly, and preserve the New marker when receipt validity changes' },
             { type: '⚡', text: 'Valley reuses its static atmosphere and avoids repeated grass paint setup to keep the landscape smoother without changing its motion or detail' }
         ]
     },

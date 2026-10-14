@@ -2060,21 +2060,19 @@ export function createHomeSmokeSuites({
     await loadCyclePage(peerPage);
     for (const [label, openPage] of [['mobile', mobilePage], ['peer', peerPage]]) {
       const forcedState = await openPage.evaluate(() => {
-        window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
-          detail: {
-            milestone: {
-              id: 'milestone-cycle-1300',
-              kind: 'event',
-              tone: 'milestone',
-              category: 'milestone',
-              route: '#health',
-              shortLabel: '1,300 cycles',
-              title: '1,300 cycles',
-              text: 'Cycle 1,300 is confirmed on-chain.',
-              expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000)
-            }
-          }
-        }));
+        const milestone = {
+          id: 'milestone-cycle-1300',
+          kind: 'event',
+          tone: 'milestone',
+          category: 'milestone',
+          route: '#health',
+          shortLabel: '1,300 cycles',
+          title: '1,300 cycles',
+          text: 'Cycle 1,300 is confirmed on-chain.',
+          expiresAt: Date.now() + (3 * 24 * 60 * 60 * 1000)
+        };
+        window.__cycleMilestoneSignal = milestone;
+        window.dispatchEvent(new CustomEvent('hot-signal-rendered', { detail: { milestone } }));
         const clock = document.querySelector('#top-continuity-history');
         return {
           route: clock?.dataset.milestoneRoute || '',
@@ -2098,6 +2096,24 @@ export function createHomeSmokeSuites({
         animation.pause();
       });
     });
+    const receiptRefresh = await mobilePage.evaluate(() => {
+      const marker = document.querySelector('.top-continuity-milestone-new');
+      const animations = marker.getAnimations();
+      const before = getComputedStyle(marker).opacity;
+      // A more precise receipt changes validity, not the milestone's identity.
+      window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
+        detail: { milestone: { ...window.__cycleMilestoneSignal, expiresAt: Date.now() + 66 * 60 * 60 * 1000 } }
+      }));
+      const after = marker.getAnimations();
+      return {
+        retained: animations.length > 0 && animations.length === after.length
+          && animations.every((animation, index) => animation === after[index]),
+        opacityBefore: before,
+        opacityAfter: getComputedStyle(marker).opacity
+      };
+    });
+    assert(receiptRefresh.retained && receiptRefresh.opacityAfter === receiptRefresh.opacityBefore,
+      `mobile cycle milestone: a receipt expiry update must retain the marker animations and opacity ${JSON.stringify(receiptRefresh)}`);
     const mobileClock = mobilePage.locator('#top-continuity-history');
     const activityTopBeforeTap = await mobilePage.locator('#header-activity-button').evaluate((element) => element.getBoundingClientRect().top);
     const beforeTap = await mobilePage.evaluate(() => {
@@ -2178,6 +2194,11 @@ export function createHomeSmokeSuites({
         && Number.parseFloat(getComputedStyle(popover).opacity) >= 0.98;
     }, null, { timeout: 1500 });
     const firstTap = await mobilePage.evaluate(() => {
+      // Keep the reader's open explanation when the same receipt gets a more
+      // precise expiry. The active expiry timer still follows that new value.
+      window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
+        detail: { milestone: { ...window.__cycleMilestoneSignal, expiresAt: Date.now() + 65 * 60 * 60 * 1000 } }
+      }));
       const clock = document.querySelector('#top-continuity-history');
       const popover = document.querySelector('#top-continuity-milestone-popover');
       const milestoneLink = document.querySelector('#top-continuity-milestone-link');
