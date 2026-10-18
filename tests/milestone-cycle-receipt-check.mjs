@@ -4,12 +4,20 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { exactCycleMilestoneMoment, fetchJson } from '../scripts/generate-milestone-catalog.mjs';
+import { exactCycleMilestoneMoment, fetchJson, milestoneRefreshCadence } from '../scripts/generate-milestone-catalog.mjs';
 import { MILESTONE_MOMENT_TTL_MS } from '../js/features/milestone-lifecycle.mjs';
 import { SCHEDULED_REFRESH_LANES } from '../scripts/lib/scheduled-refresh-lanes.mjs';
 import { runRefreshLanes } from '../scripts/lib/scheduled-refresh-runner.mjs';
 
 const now = Date.parse('2026-10-18T12:00:00Z');
+const generatedAt = '2026-10-01T00:00:00Z';
+const catalogAge = hours => Date.parse(generatedAt) + hours * 3600000;
+const existing = { generatedAt, generatedAtCommitCount: 900 };
+assert.equal(milestoneRefreshCadence(existing, { now: catalogAge(328), commitCount: 999 }).due, false);
+assert.equal(milestoneRefreshCadence(existing, { now: catalogAge(327.99), commitCount: 999, beforeNextSchedule: true }).due, false);
+assert.equal(milestoneRefreshCadence(existing, { now: catalogAge(328), commitCount: 999, beforeNextSchedule: true }).due, true);
+assert.equal(milestoneRefreshCadence(existing, { now: catalogAge(336), commitCount: 999 }).due, true);
+assert.equal(milestoneRefreshCadence(existing, { now: catalogAge(1), commitCount: 1000 }).due, true);
 const geometry = { currentCycle: 1302, currentCycleStartLevel: 14203489, blocksPerCycle: 14400 };
 const receipt = { level: 14174689, cycle: 1300, timestamp: new Date(now - 3600000).toISOString() };
 const transient = () => Object.assign(new Error('HTTP 503'), { exitCode: 75 });
@@ -56,6 +64,7 @@ try {
 // receipt failure, including byte-for-byte preservation of its original clock.
 const lane = SCHEDULED_REFRESH_LANES.find(lane => lane.id === 'milestones');
 assert.equal(lane.retryTransient, true);
+assert.deepEqual(lane.refresh[0].args, ['--before-next-schedule', '--project-next-commit']);
 const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'milestone-receipt-'));
 try {
   const generator = fileURLToPath(new URL('../scripts/generate-milestone-catalog.mjs', import.meta.url));

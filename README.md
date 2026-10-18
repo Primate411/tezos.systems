@@ -1853,9 +1853,10 @@ until close; a future scoring upgrade must live in a separately versioned
 evaluator rather than reinterpreting an old season through new code. Finalized
 archives validate and render against their own frozen lane catalog, not the
 current evaluator's category constants.
-The milestone generator is cadence-gated: scheduled runs refresh it after 14
-days, while pre-commit runs refresh it after 100 commits, whichever happens
-first. Historical cycle receipts try the current RPC, the archive RPC, and then
+The milestone catalog has a 14-day or 100-commit freshness ceiling. Scheduled
+runs refresh up to eight hours before the time limit to cover the next six-hour
+writer interval and dispatch delay, and account for the commit they will publish.
+Manual and pre-commit cadence checks retain the original ceilings. Historical cycle receipts try the current RPC, the archive RPC, and then
 TzKT's exact block record, validating the requested level, source timestamp, and
 indexed cycle. Transient milestone-source failures receive one deferred lane
 retry; persistent failures keep the complete last-good catalog and its clock.

@@ -198,18 +198,34 @@ export async function exactCycleMilestoneMoment(geometry, thresholds, now, reque
   return moment.createdAt <= now && moment.expiresAt > now ? moment : null;
 }
 
+export function milestoneRefreshCadence(existing, { now, commitCount, force = false, beforeNextSchedule = false }) {
+  const input = {
+    generatedAt: existing?.generatedAt,
+    generatedAtCommitCount: existing?.generatedAtCommitCount,
+    now,
+    commitCount,
+    force
+  };
+  const cadence = milestoneCatalogCadence(input);
+  // The writer runs every six hours; allow two more hours of dispatch delay.
+  // This changes when we collect, never the audit's 14-day/100-commit ceiling.
+  if (beforeNextSchedule && !cadence.due) {
+    cadence.due = milestoneCatalogCadence({ ...input, now: now + 8 * 60 * 60 * 1000 }).due;
+  }
+  return cadence;
+}
+
 async function main() {
   const now = Date.now();
   const existing = await readJson(OUTPUT_FILE);
   const currentCommitCount = Number(git(['rev-list', '--count', 'HEAD'])) || 0;
   const effectiveCommitCount = currentCommitCount + (hasFlag('--project-next-commit') ? 1 : 0);
   const force = hasFlag('--force');
-  const cadence = milestoneCatalogCadence({
-    generatedAt: existing?.generatedAt,
-    generatedAtCommitCount: existing?.generatedAtCommitCount,
+  const cadence = milestoneRefreshCadence(existing, {
     now,
     commitCount: effectiveCommitCount,
-    force
+    force,
+    beforeNextSchedule: hasFlag('--before-next-schedule')
   });
 
   if (!cadence.due) {
