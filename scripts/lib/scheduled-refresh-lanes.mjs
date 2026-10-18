@@ -124,6 +124,7 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   {
     id: 'milestones',
     label: 'Milestone catalog',
+    retryTransient: true,
     targets: ['data/milestone-catalog.json'],
     refresh: [command('scripts/generate-milestone-catalog.mjs')],
     validate: []

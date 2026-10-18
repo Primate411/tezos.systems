@@ -1855,7 +1855,11 @@ archives validate and render against their own frozen lane catalog, not the
 current evaluator's category constants.
 The milestone generator is cadence-gated: scheduled runs refresh it after 14
 days, while pre-commit runs refresh it after 100 commits, whichever happens
-first. `npm run refresh:milestones` forces a manual refresh. The browser consumes
+first. Historical cycle receipts try the current RPC, the archive RPC, and then
+TzKT's exact block record, validating the requested level, source timestamp, and
+indexed cycle. Transient milestone-source failures receive one deferred lane
+retry; persistent failures keep the complete last-good catalog and its clock.
+`npm run refresh:milestones` forces a manual refresh. The browser consumes
 the union of generated and shared base thresholds plus unexpired crossing
 receipts, so an older manifest cannot suppress a newly shipped target. Octez
 supplies canonical block/cycle truth while TzKT supplies indexed statistics.

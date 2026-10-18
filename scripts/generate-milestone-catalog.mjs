@@ -46,7 +46,7 @@ function finitePositive(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-async function fetchJson(baseUrl, pathname, timeoutMs = 12_000) {
+export async function fetchJson(baseUrl, pathname, timeoutMs = 12_000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -54,8 +54,14 @@ async function fetchJson(baseUrl, pathname, timeoutMs = 12_000) {
       headers: { Accept: 'application/json' },
       signal: controller.signal
     });
-    if (!response.ok) throw new Error(`${pathname} returned HTTP ${response.status}`);
+    if (!response.ok) throw Object.assign(new Error(`${pathname} returned HTTP ${response.status}`), {
+      exitCode: response.status === 429 || response.status >= 500 ? 75 : 1
+    });
     return await response.json();
+  } catch (error) {
+    if (error.name === 'AbortError' || error.name === 'TimeoutError'
+      || (error instanceof TypeError && error.message === 'fetch failed')) error.exitCode = 75;
+    throw error;
   } finally {
     clearTimeout(timer);
   }
@@ -100,6 +106,7 @@ async function liveMilestoneValues(now) {
     fetchJson(TZKT, '/delegates?active=true&select=address,consensusAddress,bakingPower&limit=10000')
   ]);
 
+  if (statsResult.status === 'rejected') throw statsResult.reason;
   const stats = valueFrom(statsResult);
   const levelInfo = metadata?.level_info || {};
   const currentLevel = finitePositive(header?.level);
@@ -141,7 +148,7 @@ function nextTarget(thresholds, current) {
   return thresholds.find(target => target > value) || null;
 }
 
-async function exactCycleMilestoneMoment(geometry, thresholds, now) {
+export async function exactCycleMilestoneMoment(geometry, thresholds, now, request = fetchJson) {
   const current = finitePositive(geometry?.currentCycle);
   const target = [...thresholds].reverse().find(value => value <= current);
   if (!current || !target) return null;
@@ -153,14 +160,35 @@ async function exactCycleMilestoneMoment(geometry, thresholds, now) {
   });
   if (!targetLevel) return null;
   const headerPath = `/chains/main/blocks/${targetLevel}/header`;
-  let header;
-  try {
-    header = await fetchJson(OCTEZ, headerPath);
-  } catch {
-    header = await fetchJson(OCTEZ_ARCHIVE, headerPath);
+  // Rolling RPCs may prune this block. Keep the exact historical level and
+  // timestamp when falling back to the archive or TzKT; never date it from now.
+  const sources = [
+    { base: OCTEZ, pathname: headerPath },
+    { base: OCTEZ_ARCHIVE, pathname: headerPath },
+    { base: TZKT, pathname: `/blocks/${targetLevel}`, indexed: true }
+  ];
+  let createdAt;
+  const failures = [];
+  for (const source of sources) {
+    try {
+      const header = await request(source.base, source.pathname);
+      const timestamp = Date.parse(header?.timestamp || '');
+      if (Number(header?.level) !== targetLevel || !Number.isFinite(timestamp)
+        || timestamp <= 0 || timestamp > now
+        || (source.indexed && Number(header?.cycle) !== target)) {
+        throw new Error(`Invalid exact cycle receipt for level ${targetLevel}`);
+      }
+      createdAt = timestamp;
+      break;
+    } catch (error) {
+      failures.push({ source: source.base, error });
+    }
   }
-  const createdAt = Date.parse(header?.timestamp || '');
-  if (Number(header?.level) !== Number(targetLevel) || !Number.isFinite(createdAt)) return null;
+  if (createdAt == null) {
+    throw Object.assign(new Error(`Cannot verify cycle ${target} at level ${targetLevel}: ${failures.map(({ source, error }) => `${source}: ${error.message}`).join('; ')}`), {
+      exitCode: failures.some(({ error }) => error.exitCode === 75) ? 75 : 1
+    });
+  }
   const moment = {
     target,
     createdAt,
@@ -189,16 +217,7 @@ async function main() {
     return;
   }
 
-  let snapshot;
-  try {
-    snapshot = await liveMilestoneValues(now);
-  } catch (error) {
-    if (existing) {
-      console.warn(`Milestone catalog refresh deferred: ${error.message}`);
-      return;
-    }
-    throw error;
-  }
+  const snapshot = await liveMilestoneValues(now);
 
   const { values, cycleGeometry } = snapshot;
   const cycleThresholds = extendMilestoneThresholds('cycle', values.cycle);
@@ -244,7 +263,9 @@ async function main() {
   console.log(`Wrote data/milestone-catalog.json at commit count ${effectiveCommitCount}`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = error.exitCode === 75 ? 75 : 1;
+  });
+}

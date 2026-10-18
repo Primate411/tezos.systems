@@ -213,7 +213,8 @@ export function createMilestonesStaticChecks({
       assert.ok(generator.includes('MILESTONE_MOMENT_TTL_MS'));
       assert.ok(generator.includes("const OCTEZ = 'https://eu.rpc.tez.capital'"));
       assert.ok(generator.includes("const OCTEZ_ARCHIVE = 'https://tezos-mainnet.octez.io'"));
-      assert.ok(generator.includes('fetchJson(OCTEZ_ARCHIVE, headerPath)'));
+      assert.ok(generator.includes('{ base: OCTEZ_ARCHIVE, pathname: headerPath }'));
+      assert.ok(generator.includes('pathname: `/blocks/${targetLevel}`'));
       assert.ok(generator.includes('exactCycleMilestoneMoment'));
       assert.ok(generator.includes('Octez mainnet head and cycle with TzKT indexed statistics'));
       assert.ok(orchestrator.includes("MILESTONE_TARGETS = ['data/milestone-catalog.json']"));
