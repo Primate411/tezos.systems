@@ -97,6 +97,7 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   },
   ...['teztree', 'ttcrowd', 'hacktez'].map(source => ({
     id: `community-funding-${source}`,
+    retryTransient: true,
     label: `Community Funding: ${source}`,
     targets: [`data/community-funding-${source}.json`, `data/community-funding-${source}-preview.json`],
     refresh: [command('scripts/refresh-community-funding.mjs', [`--source=${source}`])],

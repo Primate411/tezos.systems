@@ -40,7 +40,13 @@ Browser Back reopens the room and its selected view after returning to Home.
 
 The three same-origin `data/community-funding-*.json` receipts refresh in separate
 six-hour scheduled lanes. Each lane validates its full source response before
-replacing its last-good file. TezTree closure/deadline overrides its generic live
+replacing its last-good file. Temporary HTTP 429/5xx and network failures receive
+up to three bounded request attempts, then one deferred lane retry; the recovery
+supervisor can retry that failed source separately. Retry-After is honored within
+a one-minute window; longer cooldowns require investigation. Invalid or partial
+catalogs are never retried as outages. Persistent failures keep both snapshot and
+preview bytes and clocks unchanged, and remain visible in the freshness incident.
+TezTree closure/deadline overrides its generic live
 status; mutez amounts stay exact. TTCrowd preserves the catalog’s USD, EUR or XTZ
 valuation and reported progress, with steward identity and accounting basis from
 each campaign summary. Its contribution and treasury accounting remain distinct;
