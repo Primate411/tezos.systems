@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-19T13:21:48.346Z",
-  "contentHash": "39fcd690a2ed6d64dde1d46c61f92ea6481869016809a6a83a650c8c539baf8e",
+  "generatedAt": "2026-10-19T21:57:55.012Z",
+  "contentHash": "fee2ba31650cbb14801c95576c6a9b4d77e89c1b8eafe4df6fe719d048d6918a",
   "sources": {
     "defillama": {
       "label": "DefiLlama",
@@ -12,8 +12,8 @@
         "https://api.llama.fi/protocols",
         "https://stablecoins.llama.fi/stablecoincharts/{chain}"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
@@ -44,12 +44,12 @@
         "https://api.tzkt.io/v1/operations/transactions/count",
         "https://api.tzkt.io/v1/blocks"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
-        "statisticsLevel": 15441396,
+        "statisticsLevel": 15446424,
         "transactionDays": 30,
         "feeDays": 30,
         "transactionDefinition": "status=applied; TzKT transaction operations; includes indexed internal calls",
@@ -64,8 +64,8 @@
       "endpoints": [
         "https://explorer.etherlink.com/api/v2/stats"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
@@ -81,8 +81,8 @@
       "endpoints": [
         "https://explorer.etherlink.com/stats-service/api/v1/lines/{metric}"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
@@ -111,12 +111,12 @@
         "https://api.coingecko.com/api/v3/coins/tezos/market_chart",
         "https://api.coingecko.com/api/v3/coins/tezos/tickers"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
-        "tickerDepth": "requested; missing values remain unavailable",
+        "tickerDepth": "unavailable; basic ticker catalog only",
         "priceDays": {
           "usd": 365,
           "btc": 365,
@@ -127,7 +127,8 @@
         "tickerRows": 86,
         "tickerTruncated": false,
         "tickerNextPageChecked": 2,
-        "tickerNextPageRows": 0
+        "tickerNextPageRows": 0,
+        "tickerDepthError": "https://api.coingecko.com/api/v3/coins/tezos/tickers failed after 4 attempts: https://api.coingecko.com/api/v3/coins/tezos/tickers returned HTTP 429"
       }
     },
     "uraniumIssuer": {
@@ -138,8 +139,8 @@
         "https://help.uranium.io/en/articles/10222923-what-is-the-contract-address",
         "https://help.uranium.io/en/articles/11604935-token-not-appearing-in-wallet-usdc-xu3o8"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
@@ -158,14 +159,14 @@
         "https://explorer.etherlink.com/api/v2/tokens/0x79052Ab3C166D4899a1e0DD033aC3b379AF0B1fD/counters",
         "https://explorer.etherlink.com/api/v2/tokens/0x79052Ab3C166D4899a1e0DD033aC3b379AF0B1fD/transfers"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
         "contract": "0x79052Ab3C166D4899a1e0DD033aC3b379AF0B1fD",
         "holderCounter": 3154,
-        "transferCounter": 86387,
+        "transferCounter": 86402,
         "latestTransferRows": 1,
         "truncated": true
       }
@@ -177,8 +178,8 @@
       "endpoints": [
         "https://api.llama.fi/protocols"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
@@ -198,8 +199,8 @@
       "endpoints": [
         "https://api.coingecko.com/api/v3/coins/list?include_platform=true"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
@@ -227,13 +228,13 @@
       "endpoints": [
         "https://data.objkt.com/v3/graphql"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
         "windowDays": 30,
-        "listingSales": 20461,
+        "listingSales": 20609,
         "mintEvents": 20000,
         "marketplaceGroups": [
           "objktcom",
@@ -254,13 +255,13 @@
       "endpoints": [
         "https://gitlab.com/api/v4/projects/tezos%2Ftezos/repository/commits"
       ],
-      "retrievedAt": "2026-10-19T13:21:48.346Z",
-      "checkedAt": "2026-10-19T13:21:48.346Z",
+      "retrievedAt": "2026-10-19T21:57:55.012Z",
+      "checkedAt": "2026-10-19T21:57:55.012Z",
       "status": "ok",
       "error": null,
       "coverage": {
         "windowDays": 28,
-        "commits": 315,
+        "commits": 321,
         "authors": 19,
         "pages": 4,
         "truncated": false
@@ -273,7 +274,7 @@
         "id": "tezos",
         "label": "Tezos",
         "tvl": {
-          "currentUsd": 19925610,
+          "currentUsd": 19938437,
           "history": [
             {
               "date": "2020-09-30",
@@ -9117,12 +9118,12 @@
             },
             {
               "date": "2026-10-19",
-              "valueUsd": 19925610
+              "valueUsd": 19938437
             }
           ]
         },
         "stablecoins": {
-          "currentUsd": 29273340.52,
+          "currentUsd": 29255790.78,
           "history": [
             {
               "date": "2022-08-15",
@@ -18282,8 +18283,8 @@
             },
             {
               "date": "2026-10-19",
-              "valueUsd": 29273340.52,
-              "canonicalUsd": 29273340.52,
+              "valueUsd": 29255790.78,
+              "canonicalUsd": 29255790.78,
               "bridgedUsd": 0
             }
           ]
@@ -18294,169 +18295,169 @@
             "name": "Youves",
             "category": "Synthetics",
             "parentProtocol": null,
-            "tvlUsd": 17222674.44,
+            "tvlUsd": 17234618.34,
             "url": "https://app.youves.com",
-            "sharePct": 50.1301
+            "sharePct": 50.1304
           },
           {
             "slug": "binance-cex",
             "name": "Binance CEX",
             "category": "CEX",
             "parentProtocol": null,
-            "tvlUsd": 11969756.27,
+            "tvlUsd": 11989923.87,
             "url": "https://www.binance.com",
-            "sharePct": 34.8404
+            "sharePct": 34.8751
           },
           {
             "slug": "sirius",
             "name": "Sirius",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 1948511.25,
+            "tvlUsd": 1940160.17,
             "url": "https://siriustoken.io/",
-            "sharePct": 5.6715
+            "sharePct": 5.6433
           },
           {
             "slug": "bitfinex",
             "name": "Bitfinex",
             "category": "CEX",
             "parentProtocol": null,
-            "tvlUsd": 1878194.38,
+            "tvlUsd": 1878065.85,
             "url": "https://www.bitfinex.com",
-            "sharePct": 5.4669
+            "sharePct": 5.4627
           },
           {
             "slug": "gate",
             "name": "Gate",
             "category": "CEX",
             "parentProtocol": null,
-            "tvlUsd": 450558.31,
+            "tvlUsd": 450491.03,
             "url": "https://www.gate.com",
-            "sharePct": 1.3114
+            "sharePct": 1.3103
           },
           {
             "slug": "quipuswap-v1",
             "name": "QuipuSwap V1",
             "category": "Dexs",
             "parentProtocol": "parent#quipuswap",
-            "tvlUsd": 409934.01,
+            "tvlUsd": 408917.48,
             "url": "https://quipuswap.com",
-            "sharePct": 1.1932
+            "sharePct": 1.1894
           },
           {
             "slug": "crunchy",
             "name": "Crunchy",
             "category": "Yield Aggregator",
             "parentProtocol": "parent#crunchy-network",
-            "tvlUsd": 69860.82,
+            "tvlUsd": 70610.37,
             "url": null,
-            "sharePct": 0.2033
+            "sharePct": 0.2054
           },
           {
             "slug": "ctez",
             "name": "ctez",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 66968.95,
+            "tvlUsd": 67333.4,
             "url": null,
-            "sharePct": 0.1949
+            "sharePct": 0.1959
           },
           {
             "slug": "quipuswap-v2",
             "name": "QuipuSwap V2",
             "category": "Dexs",
             "parentProtocol": "parent#quipuswap",
-            "tvlUsd": 57450.48,
+            "tvlUsd": 57447.87,
             "url": "https://quipuswap.com",
-            "sharePct": 0.1672
+            "sharePct": 0.1671
           },
           {
             "slug": "quipuswap-v3",
             "name": "QuipuSwap V3",
             "category": "Dexs",
             "parentProtocol": "parent#quipuswap",
-            "tvlUsd": 48181.65,
+            "tvlUsd": 48021.28,
             "url": "https://quipuswap.com",
-            "sharePct": 0.1402
+            "sharePct": 0.1397
           },
           {
             "slug": "spicyswap",
             "name": "SpicySwap",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 46576.95,
+            "tvlUsd": 46510.06,
             "url": "https://spicyswap.xyz/#/app",
-            "sharePct": 0.1356
+            "sharePct": 0.1353
           },
           {
             "slug": "plenty",
             "name": "Plenty",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 39285.56,
+            "tvlUsd": 39499.13,
             "url": null,
-            "sharePct": 0.1143
+            "sharePct": 0.1149
           },
           {
             "slug": "quipuswap-stableswap",
             "name": "QuipuSwap Stableswap",
             "category": "Dexs",
             "parentProtocol": "parent#quipuswap",
-            "tvlUsd": 37727.2,
+            "tvlUsd": 37578.85,
             "url": "https://quipuswap.com",
-            "sharePct": 0.1098
+            "sharePct": 0.1093
           },
           {
             "slug": "kordfi",
             "name": "KordFi",
             "category": "Yield",
             "parentProtocol": null,
-            "tvlUsd": 25955.85,
+            "tvlUsd": 25872.15,
             "url": "https://kord.fi/",
-            "sharePct": 0.0755
+            "sharePct": 0.0753
           },
           {
             "slug": "matter-defi",
             "name": "Matter Defi",
             "category": "Yield",
             "parentProtocol": null,
-            "tvlUsd": 22918.8,
+            "tvlUsd": 22964.29,
             "url": "https://matterdefi.xyz",
-            "sharePct": 0.0667
+            "sharePct": 0.0668
           },
           {
             "slug": "yupana",
             "name": "Yupana",
             "category": "Lending",
             "parentProtocol": null,
-            "tvlUsd": 19992.49,
+            "tvlUsd": 19911.86,
             "url": "https://yupana.finance/",
-            "sharePct": 0.0582
+            "sharePct": 0.0579
           },
           {
             "slug": "dexter-exchange",
             "name": "Dexter Exchange",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 16622.65,
+            "tvlUsd": 16784.69,
             "url": null,
-            "sharePct": 0.0484
+            "sharePct": 0.0488
           },
           {
             "slug": "vortex-protocol",
             "name": "Vortex Protocol",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 11183.98,
+            "tvlUsd": 11264.41,
             "url": null,
-            "sharePct": 0.0326
+            "sharePct": 0.0328
           },
           {
             "slug": "kolibri",
             "name": "Kolibri",
             "category": "CDP",
             "parentProtocol": null,
-            "tvlUsd": 7480.82,
+            "tvlUsd": 7494.63,
             "url": "https://kolibri.finance",
             "sharePct": 0.0218
           },
@@ -18465,7 +18466,7 @@
             "name": "AliensFarm",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 1963.68,
+            "tvlUsd": 1972.84,
             "url": null,
             "sharePct": 0.0057
           },
@@ -18474,7 +18475,7 @@
             "name": "Latoken",
             "category": "CEX",
             "parentProtocol": null,
-            "tvlUsd": 1404.48,
+            "tvlUsd": 1404.66,
             "url": "https://latoken.com",
             "sharePct": 0.0041
           },
@@ -18483,16 +18484,16 @@
             "name": "Flame DeFi",
             "category": "Yield",
             "parentProtocol": null,
-            "tvlUsd": 1391.94,
+            "tvlUsd": 1390.25,
             "url": null,
-            "sharePct": 0.0041
+            "sharePct": 0.004
           },
           {
             "slug": "tezfin",
             "name": "TezFin",
             "category": "Lending",
             "parentProtocol": null,
-            "tvlUsd": 1368.77,
+            "tvlUsd": 1369.85,
             "url": "https://app.tezos.finance/dashboard",
             "sharePct": 0.004
           }
@@ -18502,7 +18503,7 @@
         "id": "etherlink",
         "label": "Etherlink",
         "tvl": {
-          "currentUsd": 16052291,
+          "currentUsd": 16049876,
           "history": [
             {
               "date": "2024-06-27",
@@ -21878,16 +21879,16 @@
             },
             {
               "date": "2026-10-18",
-              "valueUsd": 16203517
+              "valueUsd": 16208579
             },
             {
               "date": "2026-10-19",
-              "valueUsd": 16052291
+              "valueUsd": 16049876
             }
           ]
         },
         "stablecoins": {
-          "currentUsd": 20058368.78,
+          "currentUsd": 20062438.62,
           "history": [
             {
               "date": "2025-12-14",
@@ -23745,9 +23746,9 @@
             },
             {
               "date": "2026-10-19",
-              "valueUsd": 20058368.78,
-              "canonicalUsd": 6003243.08,
-              "bridgedUsd": 14055125.7
+              "valueUsd": 20062438.62,
+              "canonicalUsd": 6007086.49,
+              "bridgedUsd": 14055352.13
             }
           ]
         },
@@ -23757,27 +23758,27 @@
             "name": "Curve DEX",
             "category": "Dexs",
             "parentProtocol": "parent#curve-finance",
-            "tvlUsd": 8784699,
+            "tvlUsd": 8770132.96,
             "url": "https://curve.finance",
-            "sharePct": 30.6423
+            "sharePct": 30.5663
           },
           {
             "slug": "uranium.io",
             "name": "Uranium.io",
             "category": "RWA",
             "parentProtocol": null,
-            "tvlUsd": 7582707.7,
+            "tvlUsd": 7609516.69,
             "url": "https://uranium.io/en",
-            "sharePct": 26.4495
+            "sharePct": 26.5213
           },
           {
             "slug": "ultrayield-curator",
             "name": "UltraYield Curator",
             "category": "Risk Curators",
             "parentProtocol": "parent#ultrayield",
-            "tvlUsd": 4948887.63,
+            "tvlUsd": 4949909.68,
             "url": "https://ultrayield.app/",
-            "sharePct": 17.2624
+            "sharePct": 17.2518
           },
           {
             "slug": "morpho-blue",
@@ -23786,61 +23787,61 @@
             "parentProtocol": "parent#morpho",
             "tvlUsd": 3663813.46,
             "url": "https://app.morpho.org",
-            "sharePct": 12.7799
+            "sharePct": 12.7694
           },
           {
             "slug": "gearbox",
             "name": "Gearbox",
             "category": "Lending",
             "parentProtocol": null,
-            "tvlUsd": 1421169.61,
+            "tvlUsd": 1421325,
             "url": "https://gearbox.finance/",
-            "sharePct": 4.9572
+            "sharePct": 4.9537
           },
           {
             "slug": "liquidity-house",
             "name": "Liquidity House",
             "category": "Prediction Market",
             "parentProtocol": null,
-            "tvlUsd": 1244531.15,
+            "tvlUsd": 1243367.14,
             "url": "https://liquidity.house",
-            "sharePct": 4.3411
+            "sharePct": 4.3335
           },
           {
             "slug": "hanji-protocol",
             "name": "Hanji Protocol",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 504439.28,
+            "tvlUsd": 509500.7,
             "url": "https://hanji.io",
-            "sharePct": 1.7596
+            "sharePct": 1.7758
           },
           {
             "slug": "uniswap-v3",
             "name": "Uniswap V3",
             "category": "Dexs",
             "parentProtocol": "parent#uniswap",
-            "tvlUsd": 389658.8,
+            "tvlUsd": 396435.14,
             "url": "https://app.uniswap.org/",
-            "sharePct": 1.3592
+            "sharePct": 1.3817
           },
           {
             "slug": "gate",
             "name": "Gate",
             "category": "CEX",
             "parentProtocol": null,
-            "tvlUsd": 55336.73,
+            "tvlUsd": 54909.74,
             "url": "https://www.gate.com",
-            "sharePct": 0.193
+            "sharePct": 0.1914
           },
           {
             "slug": "organic-growth",
             "name": "Organic Growth",
             "category": "Launchpad",
             "parentProtocol": null,
-            "tvlUsd": 27236.33,
+            "tvlUsd": 27185.34,
             "url": null,
-            "sharePct": 0.095
+            "sharePct": 0.0947
           },
           {
             "slug": "rockawayx",
@@ -23856,7 +23857,7 @@
             "name": "IguanaDEX V3",
             "category": "Dexs",
             "parentProtocol": "parent#iguanadex",
-            "tvlUsd": 12361.99,
+            "tvlUsd": 12363.84,
             "url": null,
             "sharePct": 0.0431
           },
@@ -23865,16 +23866,16 @@
             "name": "Superloop",
             "category": "Onchain Capital Allocator",
             "parentProtocol": "parent#superlend-xyz",
-            "tvlUsd": 9423.49,
+            "tvlUsd": 9373.29,
             "url": null,
-            "sharePct": 0.0329
+            "sharePct": 0.0327
           },
           {
             "slug": "superlend",
             "name": "Superlend",
             "category": "Lending",
             "parentProtocol": "parent#superlend-xyz",
-            "tvlUsd": 5065.45,
+            "tvlUsd": 5066.67,
             "url": null,
             "sharePct": 0.0177
           },
@@ -23883,7 +23884,7 @@
             "name": "TachySwap",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 337.08,
+            "tvlUsd": 337.77,
             "url": null,
             "sharePct": 0.0012
           },
@@ -23901,7 +23902,7 @@
             "name": "IguanaDEX V2",
             "category": "Dexs",
             "parentProtocol": "parent#iguanadex",
-            "tvlUsd": 154.26,
+            "tvlUsd": 154.6,
             "url": null,
             "sharePct": 0.0005
           },
@@ -23910,7 +23911,7 @@
             "name": "vfat.io",
             "category": "Yield Aggregator",
             "parentProtocol": "parent#vfat",
-            "tvlUsd": 61.41,
+            "tvlUsd": 61.42,
             "url": "https://vfat.io/yield",
             "sharePct": 0.0002
           },
@@ -23919,7 +23920,7 @@
             "name": "Symmetric",
             "category": "Dexs",
             "parentProtocol": null,
-            "tvlUsd": 22.97,
+            "tvlUsd": 22.93,
             "url": null,
             "sharePct": 0.0001
           }
@@ -23936,22 +23937,22 @@
   "network": {
     "tezos": {
       "statistics": {
-        "level": 15441396,
-        "timestamp": "2026-10-19T13:21:46Z",
-        "totalSupplyMutez": 1119174287945812,
-        "circulatingSupplyMutez": 1099204316566996,
-        "totalVotingPowerMutez": 663559984471114,
-        "ownStakedMutez": 132899963968489,
-        "externalStakedMutez": 216115381596174,
-        "delegatedMutez": 314544638906451,
-        "stakingRatioPct": 31.1851,
+        "level": 15446424,
+        "timestamp": "2026-10-19T21:57:49Z",
+        "totalSupplyMutez": 1119232269848641,
+        "circulatingSupplyMutez": 1099262298469825,
+        "totalVotingPowerMutez": 663614194513765,
+        "ownStakedMutez": 132931708034258,
+        "externalStakedMutez": 216508161794003,
+        "delegatedMutez": 314174324685504,
+        "stakingRatioPct": 31.2214,
         "totalBakers": 197,
-        "totalStakers": 3217,
-        "totalDelegators": 139128
+        "totalStakers": 3223,
+        "totalDelegators": 139131
       },
       "accounts": {
-        "total": 5810010,
-        "funded": 3044166,
+        "total": 5813064,
+        "funded": 3047186,
         "definition": "All indexed accounts; funded accounts currently have balance greater than zero."
       },
       "transactions": {
@@ -24121,9 +24122,9 @@
       },
       "fees": {
         "latestBlock": {
-          "level": 15441396,
-          "timestamp": "2026-10-19T13:21:46Z",
-          "totalMutez": 621
+          "level": 15446424,
+          "timestamp": "2026-10-19T21:57:49Z",
+          "totalMutez": 4228
         },
         "latestCompletedDay": {
           "date": "2026-10-18",
@@ -24359,19 +24360,19 @@
     },
     "etherlink": {
       "counters": {
-        "totalAddresses": 1709351,
-        "totalBlocks": 55985980,
-        "totalTransactions": 110663090,
+        "totalAddresses": 1709490,
+        "totalBlocks": 56016654,
+        "totalTransactions": 110763110,
         "transactionsToday": 192823,
-        "averageBlockTimeMs": 1172,
-        "networkUtilizationPct": 2e-7,
+        "averageBlockTimeMs": 1424,
+        "networkUtilizationPct": 3.2e-7,
         "gasUsedToday": "215061932986",
         "gasPricesGwei": {
-          "slow": 1.67,
-          "average": 1.73,
-          "fast": 1.91
+          "slow": 1,
+          "average": 1,
+          "fast": 1
         },
-        "observedAt": "2026-10-19T13:21:18.225667Z"
+        "observedAt": "2026-10-19T21:57:33.588870Z"
       },
       "series": {
         "newTransactions": [
@@ -28027,7 +28028,7 @@
           },
           {
             "date": "2026-10-19",
-            "value": 84243,
+            "value": 190944,
             "approximate": true
           }
         ],
@@ -49964,7 +49965,7 @@
           },
           {
             "date": "2026-10-19",
-            "value": 0.99974535,
+            "value": 0.9997136,
             "approximate": true
           }
         ]
@@ -49982,15 +49983,15 @@
         "id": "tezos",
         "symbol": "xtz",
         "name": "Tezos",
-        "currentPriceUsd": 0.298837,
-        "currentPriceBtc": 0.00000362,
-        "currentPriceEth": 0.00012343,
-        "marketCapUsd": 328504661,
-        "volume24hUsd": 5554897,
-        "change24hPct": -0.33062,
-        "circulatingSupply": 1099203689.852671,
-        "totalSupply": 1119170861.188138,
-        "lastUpdated": "2026-10-19T13:20:54.000Z"
+        "currentPriceUsd": 0.29962,
+        "currentPriceBtc": 0.00000366,
+        "currentPriceEth": 0.0001249,
+        "marketCapUsd": 329393254,
+        "volume24hUsd": 4902876,
+        "change24hPct": 3.53097,
+        "circulatingSupply": 1099261119.731929,
+        "totalSupply": 1119229864.947164,
+        "lastUpdated": "2026-10-19T21:56:56.000Z"
       },
       "priceHistory": {
         "usd": [
@@ -51452,7 +51453,7 @@
           },
           {
             "date": "2026-10-19",
-            "value": 0.29908755
+            "value": 0.2997929
           }
         ],
         "btc": [
@@ -52914,7 +52915,7 @@
           },
           {
             "date": "2026-10-19",
-            "value": 0.000003651873
+            "value": 0.000003656509
           }
         ],
         "eth": [
@@ -54376,7 +54377,7 @@
           },
           {
             "date": "2026-10-19",
-            "value": 0.000124476924
+            "value": 0.000124629938
           }
         ]
       },
@@ -54385,12 +54386,12 @@
           "market": "HTX",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2978,
-          "convertedVolumeUsd": 1484032,
-          "bidAskSpreadPct": 0.33456,
-          "costToMoveUpUsd": 392,
-          "costToMoveDownUsd": 742.64,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "last": 0.2988,
+          "convertedVolumeUsd": 1243824,
+          "bidAskSpreadPct": 1.666111,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:49+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54400,12 +54401,12 @@
           "market": "Binance",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 622744,
-          "bidAskSpreadPct": 0.033234,
-          "costToMoveUpUsd": 104908.45,
-          "costToMoveDownUsd": 127884.64,
-          "lastTradedAt": "2026-10-19T13:19:54+00:00",
+          "last": 0.3008,
+          "convertedVolumeUsd": 478267,
+          "bidAskSpreadPct": 0.066556,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:55:15+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54415,12 +54416,12 @@
           "market": "WEEX",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 499651,
-          "bidAskSpreadPct": 0.066867,
-          "costToMoveUpUsd": 76247.96,
-          "costToMoveDownUsd": 101443.62,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 0.3008,
+          "convertedVolumeUsd": 408366,
+          "bidAskSpreadPct": 0.066467,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:46:50+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54430,12 +54431,12 @@
           "market": "Hotcoin",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 304818,
-          "bidAskSpreadPct": 0.200535,
-          "costToMoveUpUsd": 71931.36,
-          "costToMoveDownUsd": 71068.11,
-          "lastTradedAt": "2026-10-19T13:19:55+00:00",
+          "last": 0.3002,
+          "convertedVolumeUsd": 305256,
+          "bidAskSpreadPct": 0.266046,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54445,132 +54446,147 @@
           "market": "WhiteBIT",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.29965,
-          "convertedVolumeUsd": 288569,
-          "bidAskSpreadPct": 0.150497,
-          "costToMoveUpUsd": 35427.11,
-          "costToMoveDownUsd": 129921.92,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 0.30027,
+          "convertedVolumeUsd": 191980,
+          "bidAskSpreadPct": 0.256197,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://whitebit.com/trade/XTZ_USDT"
         },
         {
-          "market": "Toobit",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2997,
-          "convertedVolumeUsd": 141442,
-          "bidAskSpreadPct": 0.133779,
-          "costToMoveUpUsd": 77894.75,
-          "costToMoveDownUsd": 86610.81,
-          "lastTradedAt": "2026-10-19T13:19:53+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.toobit.com/en-US/spot/XTZ_USDT"
-        },
-        {
-          "market": "XT.COM",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 136307,
-          "bidAskSpreadPct": 0.067069,
-          "costToMoveUpUsd": 24846.78,
-          "costToMoveDownUsd": 24163.54,
-          "lastTradedAt": "2026-10-19T13:19:55+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.xt.com/en/trade/xtz_usdt"
-        },
-        {
-          "market": "Ourbit",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 134499,
-          "bidAskSpreadPct": 0.06689,
-          "costToMoveUpUsd": 99541.21,
-          "costToMoveDownUsd": 119259.64,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.ourbit.com/exchange/XTZ_USDT"
-        },
-        {
           "market": "Paribu",
           "base": "XTZ",
           "target": "TRY",
-          "last": 14.74,
-          "convertedVolumeUsd": 122802,
-          "bidAskSpreadPct": 0.201613,
-          "costToMoveUpUsd": 599.57,
-          "costToMoveDownUsd": 1023.42,
-          "lastTradedAt": "2026-10-19T13:17:45+00:00",
+          "last": 14.83,
+          "convertedVolumeUsd": 137232,
+          "bidAskSpreadPct": 0.33557,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:54:29+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.paribu.com/en/markets/xtz_tl"
         },
         {
+          "market": "Toobit",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3002,
+          "convertedVolumeUsd": 124866,
+          "bidAskSpreadPct": 0.133156,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:52+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.toobit.com/en-US/spot/XTZ_USDT"
+        },
+        {
           "market": "SAFEbit",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2999,
-          "convertedVolumeUsd": 122218,
-          "bidAskSpreadPct": 0.567802,
-          "costToMoveUpUsd": 377.67,
-          "costToMoveDownUsd": 301.97,
-          "lastTradedAt": "2026-10-19T13:19:53+00:00",
+          "last": 0.3005,
+          "convertedVolumeUsd": 119565,
+          "bidAskSpreadPct": 0.496853,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:53+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.safebit.com.tr/en/exchange/advanced/BTC_TRYXTZ_USDT"
         },
         {
-          "market": "Bybit",
+          "market": "XT.COM",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2985,
-          "convertedVolumeUsd": 120859,
-          "bidAskSpreadPct": 0.066934,
-          "costToMoveUpUsd": 44095.95,
-          "costToMoveDownUsd": 53269.98,
-          "lastTradedAt": "2026-10-19T13:19:48+00:00",
+          "last": 0.3008,
+          "convertedVolumeUsd": 115803,
+          "bidAskSpreadPct": 0.166279,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:04+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.bybit.com/trade/spot/XTZ/USDT"
+          "tradeUrl": "https://www.xt.com/en/trade/xtz_usdt"
+        },
+        {
+          "market": "OKX",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3002,
+          "convertedVolumeUsd": 108322,
+          "bidAskSpreadPct": 0.166168,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:51+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.okx.com/trade-spot/xtz-usdt"
         },
         {
           "market": "DigiFinex",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2997,
-          "convertedVolumeUsd": 120604,
-          "bidAskSpreadPct": 0.06689,
-          "costToMoveUpUsd": 214005.67,
-          "costToMoveDownUsd": 182477.21,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "last": 0.301,
+          "convertedVolumeUsd": 105286,
+          "bidAskSpreadPct": 0.033322,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:48+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.digifinex.com/en-ww/trade/usdt/xtz"
         },
         {
+          "market": "Ourbit",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3009,
+          "convertedVolumeUsd": 101922,
+          "bidAskSpreadPct": 0.133156,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:05+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.ourbit.com/exchange/XTZ_USDT"
+        },
+        {
+          "market": "Coinbase Exchange",
+          "base": "XTZ",
+          "target": "USD",
+          "last": 0.3003,
+          "convertedVolumeUsd": 96996,
+          "bidAskSpreadPct": 0.166667,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:55:15+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-USD"
+        },
+        {
           "market": "FMFW.io",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.299692,
-          "convertedVolumeUsd": 99478,
-          "bidAskSpreadPct": 0.441102,
-          "costToMoveUpUsd": 118053.23,
-          "costToMoveDownUsd": 175291.17,
-          "lastTradedAt": "2026-10-19T13:19:48+00:00",
+          "last": 0.300412,
+          "convertedVolumeUsd": 95197,
+          "bidAskSpreadPct": 0.461033,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:50+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54580,12 +54596,12 @@
           "market": "HitBTC",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.299692,
-          "convertedVolumeUsd": 99478,
-          "bidAskSpreadPct": 0.432458,
-          "costToMoveUpUsd": 118053.08,
-          "costToMoveDownUsd": 175291.22,
-          "lastTradedAt": "2026-10-19T13:19:56+00:00",
+          "last": 0.300412,
+          "convertedVolumeUsd": 95197,
+          "bidAskSpreadPct": 0.52264,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:57+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54595,72 +54611,42 @@
           "market": "Paribu",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2994,
-          "convertedVolumeUsd": 92506,
-          "bidAskSpreadPct": 0.499002,
-          "costToMoveUpUsd": 160.11,
-          "costToMoveDownUsd": 386.98,
-          "lastTradedAt": "2026-10-19T13:18:30+00:00",
+          "last": 0.3,
+          "convertedVolumeUsd": 90824,
+          "bidAskSpreadPct": 0.564972,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:52+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.paribu.com/en/markets/xtz_usdt"
         },
         {
-          "market": "Pionex",
+          "market": "Bybit",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 88731,
-          "bidAskSpreadPct": 0.06689,
-          "costToMoveUpUsd": 127035.65,
-          "costToMoveDownUsd": 144856.97,
-          "lastTradedAt": "2026-10-19T13:19:47+00:00",
+          "last": 0.3005,
+          "convertedVolumeUsd": 86654,
+          "bidAskSpreadPct": 0.1,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:53:43+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.pionex.com/en/trade/XTZ_USDT/Bot"
-        },
-        {
-          "market": "OKX",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2984,
-          "convertedVolumeUsd": 85991,
-          "bidAskSpreadPct": 0.066689,
-          "costToMoveUpUsd": 27783.07,
-          "costToMoveDownUsd": 29765.65,
-          "lastTradedAt": "2026-10-19T13:19:48+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.okx.com/trade-spot/xtz-usdt"
-        },
-        {
-          "market": "BYDFi",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.3001,
-          "convertedVolumeUsd": 80134,
-          "bidAskSpreadPct": 0.433767,
-          "costToMoveUpUsd": 6776.34,
-          "costToMoveDownUsd": 5367.35,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.bydfi.com/exchange/XTZ_USDT"
+          "tradeUrl": "https://www.bybit.com/trade/spot/XTZ/USDT"
         },
         {
           "market": "Bitunix",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 76917,
-          "bidAskSpreadPct": 0.033445,
-          "costToMoveUpUsd": 38064.87,
-          "costToMoveDownUsd": 33484.59,
-          "lastTradedAt": "2026-10-19T13:19:52+00:00",
+          "last": 0.3002,
+          "convertedVolumeUsd": 75083,
+          "bidAskSpreadPct": 0.033289,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:48+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54670,72 +54656,87 @@
           "market": "MEXC",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 73022,
-          "bidAskSpreadPct": 0.133245,
-          "costToMoveUpUsd": 11585.03,
-          "costToMoveDownUsd": 11747.79,
-          "lastTradedAt": "2026-10-19T13:19:51+00:00",
+          "last": 0.3004,
+          "convertedVolumeUsd": 73621,
+          "bidAskSpreadPct": 0.199601,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:47+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.mexc.com/exchange/XTZ_USDT"
         },
         {
-          "market": "Coinbase Exchange",
+          "market": "Pionex",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3002,
+          "convertedVolumeUsd": 69427,
+          "bidAskSpreadPct": 0.133111,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.pionex.com/en/trade/XTZ_USDT/Bot"
+        },
+        {
+          "market": "BYDFi",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3003,
+          "convertedVolumeUsd": 66899,
+          "bidAskSpreadPct": 0.464807,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:53+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.bydfi.com/exchange/XTZ_USDT"
+        },
+        {
+          "market": "Kraken",
           "base": "XTZ",
           "target": "USD",
-          "last": 0.2991,
-          "convertedVolumeUsd": 69003,
-          "bidAskSpreadPct": 0.133869,
-          "costToMoveUpUsd": 30032.99,
-          "costToMoveDownUsd": 44705.06,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "last": 0.30036,
+          "convertedVolumeUsd": 49965,
+          "bidAskSpreadPct": 0.116709,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:46:55+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-USD"
+          "tradeUrl": "https://pro.kraken.com/app/trade/XTZ-USD"
         },
         {
-          "market": "Binance",
+          "market": "WhiteBIT",
           "base": "XTZ",
-          "target": "BTC",
-          "last": 0.00000364,
-          "convertedVolumeUsd": 56859,
-          "bidAskSpreadPct": 0.550964,
-          "costToMoveUpUsd": 26422.53,
-          "costToMoveDownUsd": 40005.76,
-          "lastTradedAt": "2026-10-19T12:49:55+00:00",
+          "target": "USDC",
+          "last": 0.30013,
+          "convertedVolumeUsd": 44327,
+          "bidAskSpreadPct": 0.223356,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:55:17+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.binance.com/en/trade/XTZ_BTC?ref=37754157"
-        },
-        {
-          "market": "Bithumb",
-          "base": "XTZ",
-          "target": "KRW",
-          "last": 403,
-          "convertedVolumeUsd": 48622,
-          "bidAskSpreadPct": 0.74813,
-          "costToMoveUpUsd": 12603.39,
-          "costToMoveDownUsd": 7570.75,
-          "lastTradedAt": "2026-10-19T13:05:29+00:00",
-          "isStale": false,
-          "isAnomaly": true,
-          "trustScore": null,
-          "tradeUrl": "https://www.bithumb.com/trade/order/XTZ_KRW"
+          "tradeUrl": "https://whitebit.com/trade/XTZ_USDC"
         },
         {
           "market": "bitcastle",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 45386,
-          "bidAskSpreadPct": 0.06689,
-          "costToMoveUpUsd": 5169.65,
-          "costToMoveDownUsd": 5602.18,
-          "lastTradedAt": "2026-10-19T13:19:52+00:00",
+          "last": 0.3005,
+          "convertedVolumeUsd": 41504,
+          "bidAskSpreadPct": 0.133111,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:49:32+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54745,87 +54746,147 @@
           "market": "Binance",
           "base": "XTZ",
           "target": "USDC",
-          "last": 0.2987,
-          "convertedVolumeUsd": 44923,
-          "bidAskSpreadPct": 0.100234,
-          "costToMoveUpUsd": 16968.99,
-          "costToMoveDownUsd": 12240.77,
-          "lastTradedAt": "2026-10-19T13:09:58+00:00",
+          "last": 0.3009,
+          "convertedVolumeUsd": 40453,
+          "bidAskSpreadPct": 0.265781,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:34:23+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.binance.com/en/trade/XTZ_USDC?ref=37754157"
         },
         {
-          "market": "Kraken",
+          "market": "BtcTurk | Kripto",
           "base": "XTZ",
-          "target": "USD",
-          "last": 0.29911,
-          "convertedVolumeUsd": 44487,
-          "bidAskSpreadPct": 0.053565,
-          "costToMoveUpUsd": 73990.64,
-          "costToMoveDownUsd": 131604.94,
-          "lastTradedAt": "2026-10-19T13:19:51+00:00",
+          "target": "TRY",
+          "last": 14.827,
+          "convertedVolumeUsd": 39329,
+          "bidAskSpreadPct": 0.194997,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:37:03+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://pro.kraken.com/app/trade/XTZ-USD"
+          "tradeUrl": "https://pro.btcturk.com/pro/al-sat/XTZ_TRY"
         },
         {
           "market": "BingX",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2997,
-          "convertedVolumeUsd": 42276,
-          "bidAskSpreadPct": 0.167112,
-          "costToMoveUpUsd": 98776.92,
-          "costToMoveDownUsd": 103902.18,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 0.3001,
+          "convertedVolumeUsd": 38561,
+          "bidAskSpreadPct": 0.199734,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:54:30+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://bingx.com/en/spot/XTZUSDT"
         },
         {
-          "market": "WhiteBIT",
+          "market": "Bitget",
           "base": "XTZ",
-          "target": "USDC",
-          "last": 0.29755,
-          "convertedVolumeUsd": 38952,
-          "bidAskSpreadPct": 0.167218,
-          "costToMoveUpUsd": 17594.91,
-          "costToMoveDownUsd": 35060.54,
-          "lastTradedAt": "2026-10-19T13:17:42+00:00",
+          "target": "USDT",
+          "last": 0.3002,
+          "convertedVolumeUsd": 37539,
+          "bidAskSpreadPct": 0.166279,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:52+00:00",
           "isStale": false,
-          "isAnomaly": true,
+          "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://whitebit.com/trade/XTZ_USDC"
+          "tradeUrl": "https://www.bitget.com/spot/XTZUSDT"
         },
         {
           "market": "WhiteBIT",
           "base": "XTZ",
           "target": "BTC",
-          "last": 0.000003624,
-          "convertedVolumeUsd": 37744,
-          "bidAskSpreadPct": 0.19305,
-          "costToMoveUpUsd": 29563.56,
-          "costToMoveDownUsd": 108282.82,
-          "lastTradedAt": "2026-10-19T13:18:24+00:00",
+          "last": 0.000003664,
+          "convertedVolumeUsd": 37508,
+          "bidAskSpreadPct": 0.245834,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://whitebit.com/trade/XTZ_BTC"
         },
         {
+          "market": "Upbit",
+          "base": "XTZ",
+          "target": "KRW",
+          "last": 404,
+          "convertedVolumeUsd": 34097,
+          "bidAskSpreadPct": 0.493827,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T20:39:10+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://upbit.com/exchange?code=CRIX.UPBIT.KRW-XTZ"
+        },
+        {
+          "market": "Binance",
+          "base": "XTZ",
+          "target": "BTC",
+          "last": 0.00000365,
+          "convertedVolumeUsd": 33162,
+          "bidAskSpreadPct": 0.815217,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:17:40+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.binance.com/en/trade/XTZ_BTC?ref=37754157"
+        },
+        {
+          "market": "BigONE",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3003,
+          "convertedVolumeUsd": 30479,
+          "bidAskSpreadPct": 0.332336,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:50+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://big.one/trade/XTZ-USDT"
+        },
+        {
+          "market": "Bittime",
+          "base": "XTZ",
+          "target": "IDR",
+          "last": 5397,
+          "convertedVolumeUsd": 30355,
+          "bidAskSpreadPct": 0.240652,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:54+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.bittime.com/en/trade/xtz-idr"
+        },
+        {
           "market": "Kraken",
           "base": "XTZ",
           "target": "EUR",
-          "last": 0.26671,
-          "convertedVolumeUsd": 36491,
-          "bidAskSpreadPct": 0.135145,
-          "costToMoveUpUsd": 40391.01,
-          "costToMoveDownUsd": 121735.83,
-          "lastTradedAt": "2026-10-19T13:19:51+00:00",
+          "last": 0.26746,
+          "convertedVolumeUsd": 29972,
+          "bidAskSpreadPct": 0.123378,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:35:45+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54835,102 +54896,27 @@
           "market": "Bit2Me",
           "base": "XTZ",
           "target": "EUR",
-          "last": 0.26671,
-          "convertedVolumeUsd": 35761,
-          "bidAskSpreadPct": 0.123958,
-          "costToMoveUpUsd": 43197.86,
-          "costToMoveDownUsd": 164116.89,
-          "lastTradedAt": "2026-10-19T13:19:52+00:00",
+          "last": 0.26746,
+          "convertedVolumeUsd": 29372,
+          "bidAskSpreadPct": 0.127074,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:35:43+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://pro.bit2me.com/exchange/XTZ-EUR"
         },
         {
-          "market": "Bitget",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2984,
-          "convertedVolumeUsd": 35449,
-          "bidAskSpreadPct": 0.166722,
-          "costToMoveUpUsd": 65554.58,
-          "costToMoveDownUsd": 66335.71,
-          "lastTradedAt": "2026-10-19T13:19:55+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.bitget.com/spot/XTZUSDT"
-        },
-        {
-          "market": "Upbit",
-          "base": "XTZ",
-          "target": "KRW",
-          "last": 401,
-          "convertedVolumeUsd": 35407,
-          "bidAskSpreadPct": 0.248756,
-          "costToMoveUpUsd": 25462.67,
-          "costToMoveDownUsd": 18405.05,
-          "lastTradedAt": "2026-10-19T13:19:48+00:00",
-          "isStale": false,
-          "isAnomaly": true,
-          "trustScore": null,
-          "tradeUrl": "https://upbit.com/exchange?code=CRIX.UPBIT.KRW-XTZ"
-        },
-        {
-          "market": "BigONE",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2992,
-          "convertedVolumeUsd": 31074,
-          "bidAskSpreadPct": 0.200535,
-          "costToMoveUpUsd": 2692.7,
-          "costToMoveDownUsd": 1856.1,
-          "lastTradedAt": "2026-10-19T13:19:55+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://big.one/trade/XTZ-USDT"
-        },
-        {
-          "market": "Bitbaby",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2997,
-          "convertedVolumeUsd": 30655,
-          "bidAskSpreadPct": 0.334448,
-          "costToMoveUpUsd": 169166.52,
-          "costToMoveDownUsd": 126628.16,
-          "lastTradedAt": "2026-10-19T13:19:48+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.bitbaby.com/en-us/spot/XTZ_USDT"
-        },
-        {
-          "market": "Bittime",
-          "base": "XTZ",
-          "target": "IDR",
-          "last": 5393,
-          "convertedVolumeUsd": 30349,
-          "bidAskSpreadPct": 0.130039,
-          "costToMoveUpUsd": 1521.89,
-          "costToMoveDownUsd": 699.46,
-          "lastTradedAt": "2026-10-19T13:19:52+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.bittime.com/en/trade/xtz-idr"
-        },
-        {
           "market": "Icrypex",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.3045,
-          "convertedVolumeUsd": 28387,
-          "bidAskSpreadPct": 2.241266,
-          "costToMoveUpUsd": 181.34,
-          "costToMoveDownUsd": 47.53,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "last": 0.305,
+          "convertedVolumeUsd": 28374,
+          "bidAskSpreadPct": 2.777778,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:05+00:00",
           "isStale": false,
           "isAnomaly": true,
           "trustScore": null,
@@ -54940,12 +54926,12 @@
           "market": "KCEX",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 24612,
-          "bidAskSpreadPct": 0.033289,
-          "costToMoveUpUsd": 42287.57,
-          "costToMoveDownUsd": 42614.5,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 0.3004,
+          "convertedVolumeUsd": 25342,
+          "bidAskSpreadPct": 0.033256,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:52+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -54955,72 +54941,57 @@
           "market": "Bitrue",
           "base": "XTZ",
           "target": "USDC",
-          "last": 0.2993,
-          "convertedVolumeUsd": 23699,
-          "bidAskSpreadPct": 0.800801,
-          "costToMoveUpUsd": 2670.33,
-          "costToMoveDownUsd": 1028.5,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 0.3,
+          "convertedVolumeUsd": 23338,
+          "bidAskSpreadPct": 0.664452,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:50+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.bitrue.com/trade/xtz_usdc"
         },
         {
-          "market": "KuCoin",
+          "market": "Bitbaby",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2991,
-          "convertedVolumeUsd": 21227,
-          "bidAskSpreadPct": 0.100368,
-          "costToMoveUpUsd": 22971.79,
-          "costToMoveDownUsd": 17210.02,
-          "lastTradedAt": "2026-10-19T13:19:53+00:00",
+          "last": 0.3001,
+          "convertedVolumeUsd": 23197,
+          "bidAskSpreadPct": 0.332226,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:49+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.kucoin.com/trade/XTZ-USDT"
+          "tradeUrl": "https://www.bitbaby.com/en-us/spot/XTZ_USDT"
         },
         {
-          "market": "BtcTurk | Kripto",
-          "base": "XTZ",
-          "target": "TRY",
-          "last": 14.823,
-          "convertedVolumeUsd": 15282.03,
-          "bidAskSpreadPct": 0.142017,
-          "costToMoveUpUsd": 4285.77,
-          "costToMoveDownUsd": 8277.3,
-          "lastTradedAt": "2026-10-19T13:19:54+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://pro.btcturk.com/pro/al-sat/XTZ_TRY"
-        },
-        {
-          "market": "Coinone",
+          "market": "Bithumb",
           "base": "XTZ",
           "target": "KRW",
-          "last": 400,
-          "convertedVolumeUsd": 14743.19,
-          "bidAskSpreadPct": 1.234568,
-          "costToMoveUpUsd": 1135.14,
-          "costToMoveDownUsd": 883.56,
-          "lastTradedAt": "2026-10-19T13:13:52+00:00",
+          "last": 404,
+          "convertedVolumeUsd": 19123.36,
+          "bidAskSpreadPct": 0.49505,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:53:44+00:00",
           "isStale": false,
-          "isAnomaly": false,
+          "isAnomaly": true,
           "trustScore": null,
-          "tradeUrl": "https://coinone.co.kr/exchange/trade/xtz/krw"
+          "tradeUrl": "https://www.bithumb.com/trade/order/XTZ_KRW"
         },
         {
           "market": "XBO.com",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.3003,
-          "convertedVolumeUsd": 13846.48,
-          "bidAskSpreadPct": 0.26738,
-          "costToMoveUpUsd": 78732.01,
-          "costToMoveDownUsd": 79888.64,
-          "lastTradedAt": "2026-10-19T13:03:57+00:00",
+          "last": 0.3016,
+          "convertedVolumeUsd": 17162.19,
+          "bidAskSpreadPct": 0.299501,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:25:56+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -55030,117 +55001,147 @@
           "market": "BtcTurk | Kripto",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2992,
-          "convertedVolumeUsd": 13645.59,
-          "bidAskSpreadPct": 0.167168,
-          "costToMoveUpUsd": 3990.64,
-          "costToMoveDownUsd": 10866.17,
-          "lastTradedAt": "2026-10-19T12:48:25+00:00",
+          "last": 0.3003,
+          "convertedVolumeUsd": 16140.24,
+          "bidAskSpreadPct": 0.232945,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T19:43:06+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://pro.btcturk.com/pro/al-sat/XTZ_USDT"
         },
         {
-          "market": "Gate",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2994,
-          "convertedVolumeUsd": 12822.44,
-          "bidAskSpreadPct": 0.100435,
-          "costToMoveUpUsd": 64764.65,
-          "costToMoveDownUsd": 80872.84,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.gate.com/trade/XTZ_USDT"
-        },
-        {
           "market": "Byte Exchange",
           "base": "XTZ",
           "target": "BTC",
-          "last": 0.000003626165,
-          "convertedVolumeUsd": 11642.64,
-          "bidAskSpreadPct": 0.141106,
-          "costToMoveUpUsd": 1557.8,
-          "costToMoveDownUsd": 1443.29,
-          "lastTradedAt": "2026-10-19T13:19:47+00:00",
+          "last": 0.000003657322,
+          "convertedVolumeUsd": 15457.02,
+          "bidAskSpreadPct": 0.13915,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:48+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://bexc.io/exchange/XTZ-BTC"
         },
         {
-          "market": "PointPay",
+          "market": "KuCoin",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2985,
-          "convertedVolumeUsd": 10950.2,
-          "bidAskSpreadPct": 0.300802,
-          "costToMoveUpUsd": 9188.88,
-          "costToMoveDownUsd": 13885.03,
-          "lastTradedAt": "2026-10-19T13:16:18+00:00",
+          "last": 0.2993,
+          "convertedVolumeUsd": 15016.66,
+          "bidAskSpreadPct": 0.2,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:47+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://exchange.pointpay.io/trade-classic/XTZ_USDT"
+          "tradeUrl": "https://www.kucoin.com/trade/XTZ-USDT"
+        },
+        {
+          "market": "Gate",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3008,
+          "convertedVolumeUsd": 11382.2,
+          "bidAskSpreadPct": 0.1332,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:48+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.gate.com/trade/XTZ_USDT"
+        },
+        {
+          "market": "Kraken",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3005,
+          "convertedVolumeUsd": 9842.72,
+          "bidAskSpreadPct": 0.133218,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T20:47:25+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://pro.kraken.com/app/trade/XTZ-USDT"
         },
         {
           "market": "Byte Exchange",
           "base": "XTZ",
-          "target": "USDC",
-          "last": 0.2995,
-          "convertedVolumeUsd": 9560.29,
-          "bidAskSpreadPct": 0.13068,
-          "costToMoveUpUsd": 12182.21,
-          "costToMoveDownUsd": 14928.47,
-          "lastTradedAt": "2026-10-19T13:19:47+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://bexc.io/exchange/XTZ-USDC"
-        },
-        {
-          "market": "Byte Exchange",
-          "base": "XTZ",
           "target": "USDT",
-          "last": 0.2995,
-          "convertedVolumeUsd": 7213.7,
-          "bidAskSpreadPct": 0.080437,
-          "costToMoveUpUsd": 93510.45,
-          "costToMoveDownUsd": 88636.76,
-          "lastTradedAt": "2026-10-19T13:19:47+00:00",
+          "last": 0.29995,
+          "convertedVolumeUsd": 9689.04,
+          "bidAskSpreadPct": 0.139693,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:48+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://bexc.io/exchange/XTZ-USDT"
         },
         {
-          "market": "Bitvavo",
+          "market": "Byte Exchange",
           "base": "XTZ",
-          "target": "EUR",
-          "last": 0.26613,
-          "convertedVolumeUsd": 5506.38,
-          "bidAskSpreadPct": 0.221788,
-          "costToMoveUpUsd": 40889.5,
-          "costToMoveDownUsd": 39711.52,
-          "lastTradedAt": "2026-10-19T12:54:24+00:00",
+          "target": "USDC",
+          "last": 0.29995,
+          "convertedVolumeUsd": 9273.61,
+          "bidAskSpreadPct": 0.046578,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:48+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://account.bitvavo.com/markets/XTZ-EUR"
+          "tradeUrl": "https://bexc.io/exchange/XTZ-USDC"
+        },
+        {
+          "market": "PointPay",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3005,
+          "convertedVolumeUsd": 8627.5,
+          "bidAskSpreadPct": 0.332668,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:47:40+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://exchange.pointpay.io/trade-classic/XTZ_USDT"
+        },
+        {
+          "market": "Coinone",
+          "base": "XTZ",
+          "target": "KRW",
+          "last": 402,
+          "convertedVolumeUsd": 7450.71,
+          "bidAskSpreadPct": 1.587302,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T19:35:39+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://coinone.co.kr/exchange/trade/xtz/krw"
         },
         {
           "market": "Binance",
           "base": "XTZ",
           "target": "TRY",
-          "last": 14.84,
-          "convertedVolumeUsd": 5078.25,
-          "bidAskSpreadPct": 0.270088,
-          "costToMoveUpUsd": 4572.78,
-          "costToMoveDownUsd": 5906.41,
-          "lastTradedAt": "2026-10-19T13:09:58+00:00",
+          "last": 14.83,
+          "convertedVolumeUsd": 7288.85,
+          "bidAskSpreadPct": 0.268998,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T20:38:24+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -55150,121 +55151,76 @@
           "market": "XBO.com",
           "base": "XTZ",
           "target": "USD",
-          "last": 0.30225,
-          "convertedVolumeUsd": 4347.51,
-          "bidAskSpreadPct": 1.022958,
-          "costToMoveUpUsd": 51062.01,
-          "costToMoveDownUsd": 50455.18,
-          "lastTradedAt": "2026-10-19T13:03:57+00:00",
+          "last": 0.29962,
+          "convertedVolumeUsd": 5455.62,
+          "bidAskSpreadPct": 1.058184,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:14:58+00:00",
           "isStale": false,
-          "isAnomaly": true,
+          "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.xbo.com/platform/spot/XTZ-USD"
-        },
-        {
-          "market": "Coinbase Exchange",
-          "base": "XTZ",
-          "target": "BTC",
-          "last": 0.00000365,
-          "convertedVolumeUsd": 4074.62,
-          "bidAskSpreadPct": 0.550964,
-          "costToMoveUpUsd": 15442.96,
-          "costToMoveDownUsd": 16206.07,
-          "lastTradedAt": "2026-10-19T02:20:39+00:00",
-          "isStale": true,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-BTC"
-        },
-        {
-          "market": "Kraken",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.29799,
-          "convertedVolumeUsd": 4008.47,
-          "bidAskSpreadPct": 0.130326,
-          "costToMoveUpUsd": 5325.79,
-          "costToMoveDownUsd": 10232.06,
-          "lastTradedAt": "2026-10-19T13:14:45+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://pro.kraken.com/app/trade/XTZ-USDT"
-        },
-        {
-          "market": "XBO.com",
-          "base": "XTZ",
-          "target": "EUR",
-          "last": 0.26637,
-          "convertedVolumeUsd": 3881.96,
-          "bidAskSpreadPct": 1.024567,
-          "costToMoveUpUsd": 51066.87,
-          "costToMoveDownUsd": 50458.94,
-          "lastTradedAt": "2026-10-19T13:03:57+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.xbo.com/platform/spot/XTZ-EUR"
-        },
-        {
-          "market": "Coinstore",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.299,
-          "convertedVolumeUsd": 3731.94,
-          "bidAskSpreadPct": 0.468227,
-          "costToMoveUpUsd": 3448.66,
-          "costToMoveDownUsd": 10642.73,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.coinstore.com/#/spot/XTZUSDT"
-        },
-        {
-          "market": "Crypto.com Exchange",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2994,
-          "convertedVolumeUsd": 3158.65,
-          "bidAskSpreadPct": 0.066934,
-          "costToMoveUpUsd": 9366.65,
-          "costToMoveDownUsd": 9165.91,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://crypto.com/exchange/trade/spot/XTZ_USDT"
         },
         {
           "market": "Crypto.com Exchange",
           "base": "XTZ",
           "target": "USD",
-          "last": 0.2992,
-          "convertedVolumeUsd": 3121.84,
-          "bidAskSpreadPct": 0.066979,
-          "costToMoveUpUsd": 9914.3,
-          "costToMoveDownUsd": 10111.57,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 0.2999,
+          "convertedVolumeUsd": 5057.75,
+          "bidAskSpreadPct": 0.100033,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:55:15+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://crypto.com/exchange/trade/spot/XTZ_USD"
         },
         {
-          "market": "OKX",
+          "market": "XBO.com",
           "base": "XTZ",
-          "target": "USDC",
-          "last": 0.2984,
-          "convertedVolumeUsd": 2960.55,
-          "bidAskSpreadPct": 0.598205,
-          "costToMoveUpUsd": 19100.57,
-          "costToMoveDownUsd": 16888.57,
-          "lastTradedAt": "2026-10-19T13:12:04+00:00",
+          "target": "EUR",
+          "last": 0.2697,
+          "convertedVolumeUsd": 4815.33,
+          "bidAskSpreadPct": 1.06015,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:25:56+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://www.xbo.com/platform/spot/XTZ-EUR"
+        },
+        {
+          "market": "Crypto.com Exchange",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3002,
+          "convertedVolumeUsd": 4736.96,
+          "bidAskSpreadPct": 0.099933,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:47+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.okx.com/trade-spot/xtz-usdc"
+          "tradeUrl": "https://crypto.com/exchange/trade/spot/XTZ_USDT"
+        },
+        {
+          "market": "Coinbase Exchange",
+          "base": "XTZ",
+          "target": "BTC",
+          "last": 0.0000037,
+          "convertedVolumeUsd": 4024.76,
+          "bidAskSpreadPct": 0.544959,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T15:25:54+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-BTC"
         },
         {
           "market": "Koinpark",
@@ -55273,8 +55229,8 @@
           "last": 0.3213,
           "convertedVolumeUsd": 2913.88,
           "bidAskSpreadPct": 0.025097,
-          "costToMoveUpUsd": 966.07,
-          "costToMoveDownUsd": 987.96,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
           "lastTradedAt": "2026-10-16T11:25:20+00:00",
           "isStale": true,
           "isAnomaly": true,
@@ -55282,154 +55238,184 @@
           "tradeUrl": "https://www.koinpark.com/trade/XTZ-USDT"
         },
         {
+          "market": "Coinstore",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3003,
+          "convertedVolumeUsd": 2819.17,
+          "bidAskSpreadPct": 0.266489,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:06+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.coinstore.com/#/spot/XTZUSDT"
+        },
+        {
+          "market": "Bitvavo",
+          "base": "XTZ",
+          "target": "EUR",
+          "last": 0.26966,
+          "convertedVolumeUsd": 2782.3,
+          "bidAskSpreadPct": 0.186972,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T20:27:00+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://account.bitvavo.com/markets/XTZ-EUR"
+        },
+        {
           "market": "Bitlo",
           "base": "XTZ",
           "target": "TRY",
-          "last": 14.75,
-          "convertedVolumeUsd": 2524.61,
-          "bidAskSpreadPct": 0.945946,
-          "costToMoveUpUsd": 15888.1,
-          "costToMoveDownUsd": 7055.85,
-          "lastTradedAt": "2026-10-19T13:19:49+00:00",
+          "last": 14.76,
+          "convertedVolumeUsd": 2525.73,
+          "bidAskSpreadPct": 0.608108,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.bitlo.com/kolay-alis-satis/XTZ-TRY"
         },
         {
-          "market": "BTSE",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.299580946892,
-          "convertedVolumeUsd": 1414.88,
-          "bidAskSpreadPct": 0.334113,
-          "costToMoveUpUsd": 21957.77,
-          "costToMoveDownUsd": 48366.38,
-          "lastTradedAt": "2026-10-19T13:18:24+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.btse.com/en/trading/XTZ-USDT"
-        },
-        {
-          "market": "Coinbase Exchange",
-          "base": "XTZ",
-          "target": "GBP",
-          "last": 0.2265,
-          "convertedVolumeUsd": 1125.18,
-          "bidAskSpreadPct": 0.178412,
-          "costToMoveUpUsd": 3833.69,
-          "costToMoveDownUsd": 5492.18,
-          "lastTradedAt": "2026-10-19T07:34:38+00:00",
-          "isStale": false,
-          "isAnomaly": true,
-          "trustScore": null,
-          "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-GBP"
-        },
-        {
-          "market": "Kraken",
-          "base": "XTZ",
-          "target": "USDC",
-          "last": 0.30012,
-          "convertedVolumeUsd": 921.4,
-          "bidAskSpreadPct": 0.496634,
-          "costToMoveUpUsd": 6164.37,
-          "costToMoveDownUsd": 15697.69,
-          "lastTradedAt": "2026-10-19T12:22:55+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://pro.kraken.com/app/trade/XTZ-USDC"
-        },
-        {
-          "market": "OKX",
-          "base": "XTZ",
-          "target": "EUR",
-          "last": 0.2656,
-          "convertedVolumeUsd": 825.57,
-          "bidAskSpreadPct": 0.3003,
-          "costToMoveUpUsd": 22091.01,
-          "costToMoveDownUsd": 21297.3,
-          "lastTradedAt": "2026-10-19T13:12:04+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.okx.com/trade-spot/xtz-eur"
-        },
-        {
           "market": "Coinbase Exchange",
           "base": "XTZ",
           "target": "EUR",
-          "last": 0.2657,
-          "convertedVolumeUsd": 706.31,
-          "bidAskSpreadPct": 0.187829,
-          "costToMoveUpUsd": 4703.61,
-          "costToMoveDownUsd": 7803.91,
-          "lastTradedAt": "2026-10-19T11:19:01+00:00",
+          "last": 0.268,
+          "convertedVolumeUsd": 2146.02,
+          "bidAskSpreadPct": 0.186846,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:46:08+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-EUR"
         },
         {
-          "market": "Webot",
+          "market": "Coinbase Exchange",
           "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2997,
-          "convertedVolumeUsd": 595.66,
-          "bidAskSpreadPct": 0.26729,
-          "costToMoveUpUsd": 72389.47,
-          "costToMoveDownUsd": 83459.7,
-          "lastTradedAt": "2026-10-19T13:19:47+00:00",
+          "target": "GBP",
+          "last": 0.2251,
+          "convertedVolumeUsd": 1505.95,
+          "bidAskSpreadPct": 0.177462,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T18:21:32+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://www.webot.com/us/en/trade/XTZ_USDT"
+          "tradeUrl": "https://www.coinbase.com/advanced-trade/spot/XTZ-GBP"
+        },
+        {
+          "market": "BTSE",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3,
+          "convertedVolumeUsd": 1457.7,
+          "bidAskSpreadPct": 0.332668,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.btse.com/en/trading/XTZ-USDT"
+        },
+        {
+          "market": "Kraken",
+          "base": "XTZ",
+          "target": "USDC",
+          "last": 0.30394,
+          "convertedVolumeUsd": 1276.21,
+          "bidAskSpreadPct": 0.180006,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T17:16:01+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://pro.kraken.com/app/trade/XTZ-USDC"
+        },
+        {
+          "market": "OKX",
+          "base": "XTZ",
+          "target": "USDC",
+          "last": 0.2992,
+          "convertedVolumeUsd": 1267.87,
+          "bidAskSpreadPct": 0.664673,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:54:28+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.okx.com/trade-spot/xtz-usdc"
         },
         {
           "market": "Indodax",
           "base": "XTZ",
           "target": "IDR",
-          "last": 5378,
-          "convertedVolumeUsd": 564.06,
+          "last": 5385,
+          "convertedVolumeUsd": 569.45,
           "bidAskSpreadPct": null,
           "costToMoveUpUsd": null,
           "costToMoveDownUsd": null,
-          "lastTradedAt": "2026-10-19T13:06:20+00:00",
+          "lastTradedAt": "2026-10-19T19:33:01+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://indodax.com/market/xtzidr"
         },
         {
+          "market": "OKX",
+          "base": "XTZ",
+          "target": "EUR",
+          "last": 0.2682,
+          "convertedVolumeUsd": 552.67,
+          "bidAskSpreadPct": 0.559076,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:41:31+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.okx.com/trade-spot/xtz-eur"
+        },
+        {
+          "market": "Webot",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3002,
+          "convertedVolumeUsd": 462.85,
+          "bidAskSpreadPct": 0.398804,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:47+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.webot.com/us/en/trade/XTZ_USDT"
+        },
+        {
           "market": "Webot",
           "base": "XTZ",
           "target": "USD",
-          "last": 0.2996,
-          "convertedVolumeUsd": 560.09,
-          "bidAskSpreadPct": 0.26729,
-          "costToMoveUpUsd": 74532,
-          "costToMoveDownUsd": 86106.96,
-          "lastTradedAt": "2026-10-19T13:19:47+00:00",
+          "last": 0.3,
+          "convertedVolumeUsd": 423.24,
+          "bidAskSpreadPct": 0.398804,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:47+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.webot.com/us/en/trade/XTZ_USD"
-        },
-        {
-          "market": "KuCoin",
-          "base": "XTZ",
-          "target": "BTC",
-          "last": 0.00000362,
-          "convertedVolumeUsd": 400.78,
-          "bidAskSpreadPct": 0.276243,
-          "costToMoveUpUsd": 1617.46,
-          "costToMoveDownUsd": 4059.11,
-          "lastTradedAt": "2026-10-19T08:51:10+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.kucoin.com/trade/XTZ-BTC"
         },
         {
           "market": "LATOKEN",
@@ -55437,9 +55423,9 @@
           "target": "USDT",
           "last": 0.3128,
           "convertedVolumeUsd": 255.17,
-          "bidAskSpreadPct": -7.663989,
-          "costToMoveUpUsd": 156.39,
-          "costToMoveDownUsd": 50.37,
+          "bidAskSpreadPct": -7.090546,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
           "lastTradedAt": "2026-10-17T20:39:00+00:00",
           "isStale": true,
           "isAnomaly": true,
@@ -55447,14 +55433,29 @@
           "tradeUrl": "https://latoken.com/exchange/USDT-XTZ"
         },
         {
+          "market": "KuCoin",
+          "base": "XTZ",
+          "target": "BTC",
+          "last": 0.00000368,
+          "convertedVolumeUsd": 246.19,
+          "bidAskSpreadPct": 1.626016,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T20:34:04+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://www.kucoin.com/trade/XTZ-BTC"
+        },
+        {
           "market": "Foxbit",
           "base": "XTZ",
           "target": "BRL",
           "last": 1.538,
           "convertedVolumeUsd": 191.42,
-          "bidAskSpreadPct": 1.079302,
-          "costToMoveUpUsd": 15104.06,
-          "costToMoveDownUsd": 12.5,
+          "bidAskSpreadPct": 1.134873,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
           "lastTradedAt": "2026-10-18T14:46:36+00:00",
           "isStale": true,
           "isAnomaly": true,
@@ -55462,15 +55463,30 @@
           "tradeUrl": "https://foxbit.com.br/grafico-bitcoin/"
         },
         {
+          "market": "CEX.IO",
+          "base": "XTZ",
+          "target": "USD",
+          "last": 0.29988,
+          "convertedVolumeUsd": 168.15,
+          "bidAskSpreadPct": 0.279916,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://trade.cex.io/spot/XTZ-USD"
+        },
+        {
           "market": "Mudrex",
           "base": "XTZ",
           "target": "USDT",
-          "last": 0.2985,
-          "convertedVolumeUsd": 120.82,
+          "last": 0.3005,
+          "convertedVolumeUsd": 108.43,
           "bidAskSpreadPct": null,
           "costToMoveUpUsd": null,
           "costToMoveDownUsd": null,
-          "lastTradedAt": "2026-10-19T13:16:13+00:00",
+          "lastTradedAt": "2026-10-19T21:47:40+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -55480,27 +55496,42 @@
           "market": "Mercado Bitcoin",
           "base": "XTZ",
           "target": "BRL",
-          "last": 1.52,
-          "convertedVolumeUsd": 107.02,
-          "bidAskSpreadPct": 4.910854,
-          "costToMoveUpUsd": 0,
-          "costToMoveDownUsd": 0,
-          "lastTradedAt": "2026-10-19T13:07:54+00:00",
+          "last": 1.5201,
+          "convertedVolumeUsd": 107.98,
+          "bidAskSpreadPct": 6.646639,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T16:10:18+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://www.mercadobitcoin.com.br/criptomoedas/XTZ-BRL"
         },
         {
+          "market": "Binance US",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.2941,
+          "convertedVolumeUsd": 106.49,
+          "bidAskSpreadPct": 2.450331,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T14:26:16+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://www.binance.us/trade/pro/XTZ_USDT"
+        },
+        {
           "market": "Bitkub",
           "base": "XTZ",
           "target": "THB",
           "last": 10.05,
-          "convertedVolumeUsd": 64.26,
-          "bidAskSpreadPct": 7.19697,
-          "costToMoveUpUsd": 0,
-          "costToMoveDownUsd": 0,
-          "lastTradedAt": "2026-10-19T12:03:20+00:00",
+          "convertedVolumeUsd": 45.76,
+          "bidAskSpreadPct": 2.186879,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T19:43:07+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -55509,73 +55540,28 @@
         {
           "market": "CEX.IO",
           "base": "XTZ",
-          "target": "USDT",
-          "last": 0.29962,
-          "convertedVolumeUsd": 28.61,
-          "bidAskSpreadPct": 0.183934,
-          "costToMoveUpUsd": 135685.19,
-          "costToMoveDownUsd": 62481.23,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "target": "EUR",
+          "last": 0.26864,
+          "convertedVolumeUsd": 42.46,
+          "bidAskSpreadPct": 0.752272,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://trade.cex.io/spot/XTZ-USDT"
-        },
-        {
-          "market": "TokoCrypto",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.2996,
-          "convertedVolumeUsd": 28.53,
-          "bidAskSpreadPct": 0.06689,
-          "costToMoveUpUsd": 108710.51,
-          "costToMoveDownUsd": 123797.94,
-          "lastTradedAt": "2026-10-19T13:19:10+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://www.tokocrypto.com/trade/XTZUSDT"
-        },
-        {
-          "market": "Binance US",
-          "base": "XTZ",
-          "target": "USDT",
-          "last": 0.3019,
-          "convertedVolumeUsd": 28.09,
-          "bidAskSpreadPct": 5.195235,
-          "costToMoveUpUsd": 0,
-          "costToMoveDownUsd": 0,
-          "lastTradedAt": "2026-10-19T12:47:52+00:00",
-          "isStale": false,
-          "isAnomaly": true,
-          "trustScore": null,
-          "tradeUrl": "https://www.binance.us/trade/pro/XTZ_USDT"
-        },
-        {
-          "market": "Digital X",
-          "base": "XTZ",
-          "target": "KRW",
-          "last": 391.8,
-          "convertedVolumeUsd": 25.96,
-          "bidAskSpreadPct": 4.390244,
-          "costToMoveUpUsd": 0,
-          "costToMoveDownUsd": 0,
-          "lastTradedAt": "2026-10-19T06:56:07+00:00",
-          "isStale": false,
-          "isAnomaly": true,
-          "trustScore": null,
-          "tradeUrl": "https://lightning.korbit.co.kr/trade/?market=xtz-krw"
+          "tradeUrl": "https://trade.cex.io/spot/XTZ-EUR"
         },
         {
           "market": "CEX.IO",
           "base": "XTZ",
           "target": "GBP",
-          "last": 0.22541,
-          "convertedVolumeUsd": 24.19,
-          "bidAskSpreadPct": 0.875711,
-          "costToMoveUpUsd": 50880.86,
-          "costToMoveDownUsd": 340.62,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "last": 0.22628,
+          "convertedVolumeUsd": 40.93,
+          "bidAskSpreadPct": 0.888712,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
@@ -55584,62 +55570,77 @@
         {
           "market": "CEX.IO",
           "base": "XTZ",
+          "target": "USDT",
+          "last": 0.30028,
+          "convertedVolumeUsd": 28.68,
+          "bidAskSpreadPct": 0.249908,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
+          "isStale": false,
+          "isAnomaly": false,
+          "trustScore": null,
+          "tradeUrl": "https://trade.cex.io/spot/XTZ-USDT"
+        },
+        {
+          "market": "CEX.IO",
+          "base": "XTZ",
           "target": "USDC",
-          "last": 0.29963,
-          "convertedVolumeUsd": 24.1,
-          "bidAskSpreadPct": 0.504629,
-          "costToMoveUpUsd": 139501.05,
-          "costToMoveDownUsd": 31889.22,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "last": 0.30049,
+          "convertedVolumeUsd": 24.16,
+          "bidAskSpreadPct": 0.579459,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:56:46+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
           "tradeUrl": "https://trade.cex.io/spot/XTZ-USDC"
         },
         {
-          "market": "CEX.IO",
-          "base": "XTZ",
-          "target": "EUR",
-          "last": 0.2677,
-          "convertedVolumeUsd": 19.66,
-          "bidAskSpreadPct": 0.823415,
-          "costToMoveUpUsd": 55964.63,
-          "costToMoveDownUsd": 398.25,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
-          "isStale": false,
-          "isAnomaly": false,
-          "trustScore": null,
-          "tradeUrl": "https://trade.cex.io/spot/XTZ-EUR"
-        },
-        {
           "market": "OKJ",
           "base": "XTZ",
           "target": "JPY",
-          "last": 46.32,
-          "convertedVolumeUsd": 18.98,
-          "bidAskSpreadPct": 0.337695,
-          "costToMoveUpUsd": 1264.18,
-          "costToMoveDownUsd": 1323.56,
-          "lastTradedAt": "2026-10-18T22:00:43+00:00",
-          "isStale": true,
+          "last": 48.38,
+          "convertedVolumeUsd": 21.68,
+          "bidAskSpreadPct": 0.440899,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T16:22:23+00:00",
+          "isStale": false,
           "isAnomaly": true,
           "trustScore": null,
           "tradeUrl": "https://www.okj.com/trade-spot/xtz-jpy"
         },
         {
-          "market": "CEX.IO",
+          "market": "Max Maicoin",
           "base": "XTZ",
-          "target": "USD",
-          "last": 0.29966,
-          "convertedVolumeUsd": 15.08,
-          "bidAskSpreadPct": 0.307631,
-          "costToMoveUpUsd": 167448.75,
-          "costToMoveDownUsd": 190206.36,
-          "lastTradedAt": "2026-10-19T13:19:50+00:00",
+          "target": "TWD",
+          "last": 11.131,
+          "convertedVolumeUsd": 19.1,
+          "bidAskSpreadPct": 12.786208,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T15:29:44+00:00",
+          "isStale": false,
+          "isAnomaly": true,
+          "trustScore": null,
+          "tradeUrl": "https://max.maicoin.com/trades/xtztwd"
+        },
+        {
+          "market": "TokoCrypto",
+          "base": "XTZ",
+          "target": "USDT",
+          "last": 0.3008,
+          "convertedVolumeUsd": 14.43,
+          "bidAskSpreadPct": 0.066622,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T21:49:47+00:00",
           "isStale": false,
           "isAnomaly": false,
           "trustScore": null,
-          "tradeUrl": "https://trade.cex.io/spot/XTZ-USD"
+          "tradeUrl": "https://www.tokocrypto.com/trade/XTZUSDT"
         },
         {
           "market": "EXMO",
@@ -55648,8 +55649,8 @@
           "last": 0.284,
           "convertedVolumeUsd": 9.95,
           "bidAskSpreadPct": 18.15562,
-          "costToMoveUpUsd": 0,
-          "costToMoveDownUsd": 0,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
           "lastTradedAt": "2026-10-17T17:33:03+00:00",
           "isStale": true,
           "isAnomaly": true,
@@ -55660,12 +55661,12 @@
           "market": "Gemini",
           "base": "XTZ",
           "target": "USD",
-          "last": 0.2945,
-          "convertedVolumeUsd": 5.37,
-          "bidAskSpreadPct": 2.457655,
-          "costToMoveUpUsd": 1019.08,
-          "costToMoveDownUsd": 1439.01,
-          "lastTradedAt": "2026-10-19T12:08:06+00:00",
+          "last": 0.2766,
+          "convertedVolumeUsd": 2.32,
+          "bidAskSpreadPct": 5.113824,
+          "costToMoveUpUsd": null,
+          "costToMoveDownUsd": null,
+          "lastTradedAt": "2026-10-19T19:39:26+00:00",
           "isStale": false,
           "isAnomaly": true,
           "trustScore": null,
@@ -55674,14 +55675,15 @@
       ],
       "coverage": {
         "historyDays": 365,
-        "tickerDepth": "requested; missing values remain unavailable",
+        "tickerDepth": "unavailable; basic ticker catalog only",
         "tickerPage": 1,
         "tickerHardCap": 100,
         "tickerRows": 86,
         "tickerTruncated": false,
         "tickerNextPageChecked": 2,
         "tickerNextPageRows": 0,
-        "depthDefinition": "CoinGecko-reported USD cost to move the order book by plus or minus 2%.",
+        "tickerDepthError": "https://api.coingecko.com/api/v3/coins/tezos/tickers failed after 4 attempts: https://api.coingecko.com/api/v3/coins/tezos/tickers returned HTTP 429",
+        "depthDefinition": "Order-book depth was unavailable in this refresh. No prior depth values are carried forward.",
         "filtersApplied": "None; stale, anomaly, and trust fields are retained for client-side quality controls."
       }
     }
@@ -55704,24 +55706,24 @@
           "totalSupplyRaw": "1600000000000000000000000",
           "totalSupply": "1600000",
           "holders": 3154,
-          "exchangeRateUsd": 5.64
+          "exchangeRateUsd": 5.63
         },
         "counters": {
           "holders": 3154,
-          "transfers": 86387
+          "transfers": 86402
         },
         "latestTransfer": {
-          "timestamp": "2026-10-19T13:14:32.000000Z",
-          "transactionHash": "0x18e13b4a9eb1f3daddba8c402a840b9b07b50080914684c0359cb1ff24eda589",
-          "amountRaw": "1438060000000000000",
-          "amount": "1.43806",
+          "timestamp": "2026-10-19T21:04:06.000000Z",
+          "transactionHash": "0xe81aafbe24a4ba9e0aa73c9c37f3c378662d9e23c0bdb604319b4ffa4a612ebc",
+          "amountRaw": "6174730000000000000",
+          "amount": "6.17473",
           "from": {
             "address": "0x2b6143bf3fcbE5c4287CA38ee8ADA8370A4f1687",
             "name": null,
             "isContract": false
           },
           "to": {
-            "address": "0xcC282E2004428939ee5149A9e7872F0B4d5d5ec7",
+            "address": "0x504Ce9e51E508C85a161058C12e970a903d482fc",
             "name": null,
             "isContract": false
           }
@@ -55742,9 +55744,9 @@
         "chains": [
           "etherlink"
         ],
-        "tvlUsd": 7582707.7,
+        "tvlUsd": 7609516.69,
         "chainTvlUsd": {
-          "etherlink": 7582707.7
+          "etherlink": 7609516.69
         },
         "url": "https://uranium.io/en"
       }
@@ -55934,7 +55936,7 @@
     "windowDays": 30,
     "range": {
       "from": "2026-09-20T00:00:00.000Z",
-      "to": "2026-10-19T13:21:48.346Z"
+      "to": "2026-10-19T21:57:55.012Z"
     },
     "marketplaces": [
       {
@@ -55947,10 +55949,10 @@
           "KT1WvzYHCNBvDSdwafTHv7nJ1dWmZ8GCYuuC",
           "KT1Xjap1TwmDR1d8yEd8ErkraAj2mbdMrPZY"
         ],
-        "salesCount": 17904,
-        "volumeXtz": 360980.392431,
-        "buyers": 1552,
-        "sellers": 2999
+        "salesCount": 18042,
+        "volumeXtz": 365505.586931,
+        "buyers": 1555,
+        "sellers": 3011
       },
       {
         "id": "teia",
@@ -55958,10 +55960,10 @@
         "contracts": [
           "KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w"
         ],
-        "salesCount": 1044,
-        "volumeXtz": 14503.47661,
-        "buyers": 299,
-        "sellers": 275
+        "salesCount": 1050,
+        "volumeXtz": 14584.37661,
+        "buyers": 301,
+        "sellers": 277
       },
       {
         "id": "fxhash",
@@ -55981,10 +55983,10 @@
         "contracts": [
           "KT1HbQepzV1nVGg8QVznG7z4RcHseD5kwqBn"
         ],
-        "salesCount": 1149,
-        "volumeXtz": 2554.059331,
+        "salesCount": 1153,
+        "volumeXtz": 2555.592331,
         "buyers": 134,
-        "sellers": 372
+        "sellers": 375
       },
       {
         "id": "8bidou",
@@ -56285,10 +56287,10 @@
       },
       {
         "date": "2026-10-19",
-        "salesCount": 191,
-        "volumeXtz": 2635.738444,
-        "buyers": 80,
-        "sellers": 116,
+        "salesCount": 339,
+        "volumeXtz": 7243.365944,
+        "buyers": 142,
+        "sellers": 188,
         "complete": false,
         "coverage": "partial"
       }
@@ -56312,9 +56314,9 @@
       },
       {
         "date": "2026-09-22",
-        "mintOperations": 596,
-        "mints": 30605,
-        "minters": 309,
+        "mintOperations": 231,
+        "mints": 11739,
+        "minters": 136,
         "complete": false,
         "coverage": "partial"
       },
@@ -56528,9 +56530,9 @@
       },
       {
         "date": "2026-10-19",
-        "mintOperations": 310,
-        "mints": 31199,
-        "minters": 166,
+        "mintOperations": 675,
+        "mints": 36886,
+        "minters": 284,
         "complete": false,
         "coverage": "partial"
       }
@@ -56539,18 +56541,18 @@
       {
         "contract": "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton",
         "name": "hic et nunc",
-        "salesCount": 3334,
-        "volumeXtz": 40333.882251,
-        "buyers": 495,
-        "sellers": 1072
+        "salesCount": 3351,
+        "volumeXtz": 40494.315251,
+        "buyers": 498,
+        "sellers": 1077
       },
       {
         "contract": "KT1XaCf6gkjFnKg3QmPfn6gep53moMvjkj1E",
         "name": "open objkt",
-        "salesCount": 1816,
-        "volumeXtz": 21970.144703,
-        "buyers": 420,
-        "sellers": 322
+        "salesCount": 1837,
+        "volumeXtz": 23284.119703,
+        "buyers": 425,
+        "sellers": 324
       },
       {
         "contract": "KT1BNsK7D8WH5AZboq9rckfF1qC6aWe1Lmap",
@@ -56617,6 +56619,14 @@
         "sellers": 1
       },
       {
+        "contract": "KT1FYCpBuouzkRScrs265RsNDJS4PehNm7Bz",
+        "name": "PERMANENT",
+        "salesCount": 9,
+        "volumeXtz": 3279,
+        "buyers": 4,
+        "sellers": 1
+      },
+      {
         "contract": "KT1FoTrsVjDTmLbxmLgGwd9u7xW8itdzYQ8h",
         "name": "ICONÆ",
         "salesCount": 85,
@@ -56635,9 +56645,9 @@
       {
         "contract": "KT1VHoxXoYX9LYEKe1AjPHaRq3zPZ4cZd6my",
         "name": "The Happy Valley",
-        "salesCount": 214,
-        "volumeXtz": 3172.17,
-        "buyers": 94,
+        "salesCount": 215,
+        "volumeXtz": 3176.17,
+        "buyers": 95,
         "sellers": 61
       },
       {
@@ -56647,14 +56657,6 @@
         "volumeXtz": 3132.82,
         "buyers": 28,
         "sellers": 25
-      },
-      {
-        "contract": "KT1FYCpBuouzkRScrs265RsNDJS4PehNm7Bz",
-        "name": "PERMANENT",
-        "salesCount": 8,
-        "volumeXtz": 2835,
-        "buyers": 3,
-        "sellers": 1
       },
       {
         "contract": "KT1UjurJFhKpw7WSmuGfRyUvYXLwTmKWwUDR",
@@ -56689,6 +56691,14 @@
         "sellers": 60
       },
       {
+        "contract": "KT1QqnGEMNz992GZc65nSJHWqYP9RKsjtZtY",
+        "name": "_DATALESS_",
+        "salesCount": 46,
+        "volumeXtz": 2515.89,
+        "buyers": 26,
+        "sellers": 2
+      },
+      {
         "contract": "KT1HSPwFSz2onXdnTnnVWimdaGBroMQqwPHc",
         "name": "Forbidden😈",
         "salesCount": 4,
@@ -56721,14 +56731,6 @@
         "sellers": 4
       },
       {
-        "contract": "KT1QqnGEMNz992GZc65nSJHWqYP9RKsjtZtY",
-        "name": "_DATALESS_",
-        "salesCount": 36,
-        "volumeXtz": 1960.39,
-        "buyers": 23,
-        "sellers": 2
-      },
-      {
         "contract": "KT193mrgeLmdpbkDmYYCJmDyzunTyjLBwMDE",
         "name": "Icebergs",
         "salesCount": 3,
@@ -56747,9 +56749,9 @@
       {
         "contract": "KT1Pq34ERojxf3mHGL68rbLNssFdjXVdh4Z3",
         "name": "The Rumors are True",
-        "salesCount": 113,
-        "volumeXtz": 1660.76,
-        "buyers": 49,
+        "salesCount": 115,
+        "volumeXtz": 1676.3,
+        "buyers": 50,
         "sellers": 25
       },
       {
@@ -56941,17 +56943,17 @@
       {
         "contract": "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton",
         "name": "hic et nunc",
-        "volumeXtz": 25385998.111359,
-        "volume24hXtz": 2401.04,
-        "items": 771687,
-        "owners": 145956,
+        "volumeXtz": 25386224.761859,
+        "volume24hXtz": 418.1005,
+        "items": 771697,
+        "owners": 145958,
         "collectionType": "open"
       },
       {
         "contract": "KT1U6EHmNxJTkvaWJ4ThczG4FSDaHC21ssvi",
         "name": "fx(hash)",
         "volumeXtz": 19630779.62133,
-        "volume24hXtz": 41.5,
+        "volume24hXtz": 0,
         "items": 1020560,
         "owners": 35751,
         "collectionType": "open_generative"
@@ -56960,7 +56962,7 @@
         "contract": "KT1KEa8z6vWXDJrVqtMrAeDVzsvxat3kHaCE",
         "name": "fx(hash): Genesis",
         "volumeXtz": 7281819.187417,
-        "volume24hXtz": 209.7,
+        "volume24hXtz": 0,
         "items": 584734,
         "owners": 20929,
         "collectionType": "open_generative"
@@ -56978,7 +56980,7 @@
         "contract": "KT1LHHLso8zQWQWg1HUukajdxxbkGfNoHjh6",
         "name": "Tezzardz",
         "volumeXtz": 2285571.17781,
-        "volume24hXtz": 289.995,
+        "volume24hXtz": 0,
         "items": 4200,
         "owners": 1816,
         "collectionType": "collectible"
@@ -56987,7 +56989,7 @@
         "contract": "KT1EfsNuqwLAWDd3o4pvfUx1CAh5GMdTrRvr",
         "name": "fx(params)",
         "volumeXtz": 1893782.996084,
-        "volume24hXtz": 23,
+        "volume24hXtz": 7,
         "items": 225364,
         "owners": 12918,
         "collectionType": "open_generative"
@@ -57004,10 +57006,10 @@
       {
         "contract": "KT1XaCf6gkjFnKg3QmPfn6gep53moMvjkj1E",
         "name": "open objkt",
-        "volumeXtz": 702529.627038,
-        "volume24hXtz": 1532.18,
-        "items": 37327,
-        "owners": 10028,
+        "volumeXtz": 704072.102038,
+        "volume24hXtz": 2506.665,
+        "items": 37358,
+        "owners": 10032,
         "collectionType": "open_edition"
       },
       {
@@ -57085,10 +57087,10 @@
       {
         "contract": "KT1JaudHThPvcDq6FxT9uFUCHSYTzGer23cA",
         "name": "Monsters",
-        "volumeXtz": 259450.87074,
-        "volume24hXtz": 0,
+        "volumeXtz": 259650.87074,
+        "volume24hXtz": 200,
         "items": 16,
-        "owners": 480,
+        "owners": 479,
         "collectionType": "artist"
       },
       {
@@ -57274,10 +57276,10 @@
       {
         "contract": "KT1VHoxXoYX9LYEKe1AjPHaRq3zPZ4cZd6my",
         "name": "The Happy Valley",
-        "volumeXtz": 101302.217874,
-        "volume24hXtz": 154.94,
-        "items": 9489,
-        "owners": 2092,
+        "volumeXtz": 101306.217874,
+        "volume24hXtz": 127.94,
+        "items": 9491,
+        "owners": 2093,
         "collectionType": "artist"
       },
       {
@@ -57394,7 +57396,7 @@
         "rank": 1,
         "address": "tz1W7eSvs5f1uZ92e8RYjKanhbJT5wgpwrZM",
         "name": "tz1W7eSvs5f1uZ92e8RYjKanhbJT5wgpwrZM",
-        "volumeXtz": 23764.044794
+        "volumeXtz": 23839.044794
       },
       {
         "rank": 2,
@@ -57404,21 +57406,21 @@
       },
       {
         "rank": 3,
-        "address": "tz1h4RB3X3a85aNyqk2m7PBicZmbVebWdiWu",
-        "name": "DagieDee",
-        "volumeXtz": 15314.11
-      },
-      {
-        "rank": 4,
         "address": "tz2C5fJeav1Q3jobVuN9S7Figr3JPq8m28po",
         "name": "kingtreebear",
         "volumeXtz": 14700.76
       },
       {
-        "rank": 5,
+        "rank": 4,
         "address": "tz1cKfERYdEfRi1MeRk4fSVzRorTkBWGFrVj",
         "name": "𝖲𝗇𝖾𝗄𝖾𝗍𝗈𝗌𝗁𝗂 🐍💗",
-        "volumeXtz": 14650.22
+        "volumeXtz": 14624.22
+      },
+      {
+        "rank": 5,
+        "address": "tz1h4RB3X3a85aNyqk2m7PBicZmbVebWdiWu",
+        "name": "DagieDee",
+        "volumeXtz": 13914.11
       },
       {
         "rank": 6,
@@ -57430,211 +57432,211 @@
         "rank": 7,
         "address": "tz1VwK3ssU8h9ptonjYisQcGYUr2kh1bhue1",
         "name": "MoDA",
-        "volumeXtz": 7066.48
+        "volumeXtz": 6986.48
       },
       {
         "rank": 8,
-        "address": "tz1ewaf9hPE2QCAQNpR3GYiXAqbaDutYYYmU",
-        "name": "GenJPEG",
-        "volumeXtz": 6333
+        "address": "tz1cjHCorsyNqN3cWWKoYpzycBJmpifyoWd6",
+        "name": "yangwong",
+        "volumeXtz": 6304.5
       },
       {
         "rank": 9,
-        "address": "tz1d45L6aaXVU9Ry7oYA2cVePxyBMtcPggt1",
-        "name": "tz1d45L6aaXVU9Ry7oYA2cVePxyBMtcPggt1",
-        "volumeXtz": 6274.99
+        "address": "tz2HVjeefNcwarykgchJcf296DSsUyBCApHD",
+        "name": "Stampfigang",
+        "volumeXtz": 6290.72806
       },
       {
         "rank": 10,
-        "address": "tz2HVjeefNcwarykgchJcf296DSsUyBCApHD",
-        "name": "Stampfigang",
-        "volumeXtz": 6272.99506
+        "address": "tz1X568Wdkb1ZUs8qfVYcsZD31YQ4UV3sdY4",
+        "name": "Absurdeity.tez",
+        "volumeXtz": 6068.45401
       },
       {
         "rank": 11,
-        "address": "tz1cjHCorsyNqN3cWWKoYpzycBJmpifyoWd6",
-        "name": "yangwong",
-        "volumeXtz": 6205
+        "address": "tz1X7nLriHxPAc7en8u4czTkDReJQ756Hb5w",
+        "name": "SecretariYat",
+        "volumeXtz": 6000.54
       },
       {
         "rank": 12,
-        "address": "tz1X568Wdkb1ZUs8qfVYcsZD31YQ4UV3sdY4",
-        "name": "Absurdeity.tez",
-        "volumeXtz": 6113.64401
+        "address": "tz2T6r5FJ3VUsXB4E28hX1SxVe5knKAqVALu",
+        "name": "Christopher ",
+        "volumeXtz": 5627.12
       },
       {
         "rank": 13,
-        "address": "tz2T6r5FJ3VUsXB4E28hX1SxVe5knKAqVALu",
-        "name": "Christopher ",
-        "volumeXtz": 5956.12
-      },
-      {
-        "rank": 14,
-        "address": "tz1X7nLriHxPAc7en8u4czTkDReJQ756Hb5w",
-        "name": "SecretariYat",
-        "volumeXtz": 5792.96
-      },
-      {
-        "rank": 15,
-        "address": "tz1VFZJdgCUBB1YAPELmj1bh5nkp1TAr6RRH",
-        "name": "Halving Fun ",
-        "volumeXtz": 5626.854
-      },
-      {
-        "rank": 16,
         "address": "tz2MYtxnx1bUeMfAioWk61Pm7ZnjadJYVwqe",
         "name": "tz2MYtxnx1bUeMfAioWk61Pm7ZnjadJYVwqe",
         "volumeXtz": 5596.757187
       },
       {
-        "rank": 17,
+        "rank": 14,
         "address": "tz1eYYaVQsf4CgGRSxbfYxCMwrGi9WPMYvLs",
         "name": "@econet.tez",
         "volumeXtz": 5501
       },
       {
-        "rank": 18,
+        "rank": 15,
+        "address": "tz1VFZJdgCUBB1YAPELmj1bh5nkp1TAr6RRH",
+        "name": "Halving Fun ",
+        "volumeXtz": 5387.054
+      },
+      {
+        "rank": 16,
         "address": "tz1Nq3SREQnFLnVi2NauXSYHpfuYkNbGdQEs",
         "name": "MikeLegendOnlyBens",
         "volumeXtz": 5369
       },
       {
-        "rank": 19,
+        "rank": 17,
+        "address": "tz1d45L6aaXVU9Ry7oYA2cVePxyBMtcPggt1",
+        "name": "tz1d45L6aaXVU9Ry7oYA2cVePxyBMtcPggt1",
+        "volumeXtz": 5074.99
+      },
+      {
+        "rank": 18,
         "address": "tz1eGSmk2cPmbENTchKYNARnpVmh5mtcHnPz",
         "name": "fondazione aversano",
         "volumeXtz": 4823.99
       },
       {
-        "rank": 20,
+        "rank": 19,
         "address": "tz1LpGGTVx9yNZx2yJzT26gyKknuKogBUZ4k",
         "name": "The5thForce",
-        "volumeXtz": 4461.889
+        "volumeXtz": 4426.889
       },
       {
-        "rank": 21,
-        "address": "tz1corXrfedU71AZFPudxxYZasSSCGHefw2Y",
-        "name": "famtez",
-        "volumeXtz": 4085.193721
-      },
-      {
-        "rank": 22,
+        "rank": 20,
         "address": "tz1RUTytPwVc3yKrM7v2nBbdk9xCNPWe2TqB",
         "name": "tz1RUTytPwVc3yKrM7v2nBbdk9xCNPWe2TqB",
         "volumeXtz": 4059.495
       },
       {
-        "rank": 23,
+        "rank": 21,
         "address": "tz1M6Kb8eHcTfn8pD64ojnyyBcQCEpUr5Hto",
         "name": "ArtMonochrome2",
-        "volumeXtz": 3896.759
+        "volumeXtz": 3995.459
       },
       {
-        "rank": 24,
+        "rank": 22,
         "address": "tz1iB8Ayco6yPe2nBUJ8kbcF7CitAW8Aid74",
         "name": "shortcut",
-        "volumeXtz": 3774.715
+        "volumeXtz": 3707.215
       },
       {
-        "rank": 25,
-        "address": "tz1QRXxx7R8fAnCESAkDWzShRYkmPJnUztYU",
-        "name": "awHECK",
-        "volumeXtz": 3670.09
-      },
-      {
-        "rank": 26,
+        "rank": 23,
         "address": "tz1fpzcZQ4DNm9ALorTsFtobvAcbBk7LLWx6",
         "name": "Deepfield",
         "volumeXtz": 3644.13
       },
       {
-        "rank": 27,
+        "rank": 24,
+        "address": "tz1QRXxx7R8fAnCESAkDWzShRYkmPJnUztYU",
+        "name": "awHECK",
+        "volumeXtz": 3632.13
+      },
+      {
+        "rank": 25,
         "address": "tz2M9sX1NesKCZVT8xyBFs7DpX4cxEeyyXdJ",
         "name": "Jt3ss",
-        "volumeXtz": 3485.775
+        "volumeXtz": 3495.775
+      },
+      {
+        "rank": 26,
+        "address": "KT19WfBM5NVcD8ZDcabdJYG29v4H9g6gZp3n",
+        "name": "KT19WfBM5NVcD8ZDcabdJYG29v4H9g6gZp3n",
+        "volumeXtz": 3419.246389
+      },
+      {
+        "rank": 27,
+        "address": "tz2GqawNDUxnrtf5Wbd7RXh2ATMTEuuCzqPt",
+        "name": "For Her: Love Unbound",
+        "volumeXtz": 3306.47
       },
       {
         "rank": 28,
         "address": "tz1NL3TJkeL8Tp5wb7ipr8HnusTRQTM5a8Hq",
         "name": "@CemDrin",
-        "volumeXtz": 3278.34
+        "volumeXtz": 3194.34
       },
       {
         "rank": 29,
-        "address": "tz2GqawNDUxnrtf5Wbd7RXh2ATMTEuuCzqPt",
-        "name": "For Her: Love Unbound",
-        "volumeXtz": 3253.82
-      },
-      {
-        "rank": 30,
-        "address": "KT19WfBM5NVcD8ZDcabdJYG29v4H9g6gZp3n",
-        "name": "KT19WfBM5NVcD8ZDcabdJYG29v4H9g6gZp3n",
-        "volumeXtz": 3220.136389
-      },
-      {
-        "rank": 31,
         "address": "tz2HM4HjuSAKNSDbWKLUm98KHmCKMcQSvRxU",
         "name": "durtis",
         "volumeXtz": 3100
       },
       {
-        "rank": 32,
+        "rank": 30,
         "address": "tz1XEuFRAXi3a9V4XKtyyis4L2kdbV3y9eZh",
         "name": "Bret Jolliffe",
-        "volumeXtz": 2904.816907
+        "volumeXtz": 2894.816907
       },
       {
-        "rank": 33,
+        "rank": 31,
         "address": "tz1W3kA8oQ6RdaPAdUaV5os3CuqE6rFw7Qx7",
         "name": "Delronde2",
         "volumeXtz": 2883
       },
       {
+        "rank": 32,
+        "address": "tz1Yze9hTSmMAXyUKdHqt5YkiYfjskUce6ES",
+        "name": "tz1Yze9hTSmMAXyUKdHqt5YkiYfjskUce6ES",
+        "volumeXtz": 2875.46777
+      },
+      {
+        "rank": 33,
+        "address": "tz1Xwa4QkJhg89GWeXP3Z67gDLvYe4DzCK8J",
+        "name": "HANS HEINER BUHR",
+        "volumeXtz": 2834.12
+      },
+      {
         "rank": 34,
+        "address": "tz1corXrfedU71AZFPudxxYZasSSCGHefw2Y",
+        "name": "famtez",
+        "volumeXtz": 2775.193721
+      },
+      {
+        "rank": 35,
         "address": "tz1Wi5BHFA4qqr6cSXoQkpSKU8F1aMdL5cvs",
         "name": "LeslieSpurlock",
         "volumeXtz": 2651.56
       },
       {
-        "rank": 35,
-        "address": "tz1Rz6T7n8CGk1dcLgciRJJ6UnpnbKzXfyAq",
-        "name": "tz1Rz6T7n8CGk1dcLgciRJJ6UnpnbKzXfyAq",
-        "volumeXtz": 2650
-      },
-      {
         "rank": 36,
-        "address": "tz1X95uJRaZkK4VDoPpf2UuSzX4T24E8eCrb",
-        "name": "applied.tez",
-        "volumeXtz": 2593.65
-      },
-      {
-        "rank": 37,
         "address": "tz1N65v4YGwe797e7nuUYrg9Av5vuoBg4NrZ",
         "name": "tz1N65v4YGwe797e7nuUYrg9Av5vuoBg4NrZ",
         "volumeXtz": 2568.88
       },
       {
-        "rank": 38,
+        "rank": 37,
         "address": "tz1bny1VNLm9Kt2Vyeq8Je39K9pCyBPDHREW",
         "name": "wapshop",
         "volumeXtz": 2566
       },
       {
-        "rank": 39,
+        "rank": 38,
         "address": "tz1YY2w5YNv4iBMgohBgPRshhNanerPnad89",
         "name": "Brain_sss",
-        "volumeXtz": 2512.494
+        "volumeXtz": 2489.494
+      },
+      {
+        "rank": 39,
+        "address": "tz1X95uJRaZkK4VDoPpf2UuSzX4T24E8eCrb",
+        "name": "applied.tez",
+        "volumeXtz": 2432.65
       },
       {
         "rank": 40,
-        "address": "tz1Yze9hTSmMAXyUKdHqt5YkiYfjskUce6ES",
-        "name": "tz1Yze9hTSmMAXyUKdHqt5YkiYfjskUce6ES",
-        "volumeXtz": 2475.46777
+        "address": "tz1MtMwpTM5o4uMq2g8EjbVEMprYNRki6AAD",
+        "name": "💎🔥",
+        "volumeXtz": 2431.3139
       },
       {
         "rank": 41,
-        "address": "tz1Xwa4QkJhg89GWeXP3Z67gDLvYe4DzCK8J",
-        "name": "HANS HEINER BUHR",
-        "volumeXtz": 2457.79
+        "address": "tz1WMYYBXeui9n1WL1Qb1GiRFtr6a1J3v4EQ",
+        "name": "buy",
+        "volumeXtz": 2419.69
       },
       {
         "rank": 42,
@@ -57644,117 +57646,117 @@
       },
       {
         "rank": 43,
-        "address": "tz1MtMwpTM5o4uMq2g8EjbVEMprYNRki6AAD",
-        "name": "💎🔥",
-        "volumeXtz": 2391.3139
-      },
-      {
-        "rank": 44,
         "address": "tz1SAwbsUyMLYGtPxWutwsDKi3wBUsyY5uV4",
         "name": "AUGUSTGROUND",
         "volumeXtz": 2341.756167
       },
       {
-        "rank": 45,
+        "rank": 44,
         "address": "tz1ZyYEtoExdQHPb5FmFbxGHfLU7zVAJRm8R",
         "name": "bleedbetter",
         "volumeXtz": 2309.568
       },
       {
-        "rank": 46,
-        "address": "tz1WMYYBXeui9n1WL1Qb1GiRFtr6a1J3v4EQ",
-        "name": "buy",
-        "volumeXtz": 2294.69
-      },
-      {
-        "rank": 47,
+        "rank": 45,
         "address": "tz1PMKbMMUoc9XVrFy5PAWHLFkxqBELXupaH",
         "name": "P1cky",
         "volumeXtz": 2248.53
       },
       {
-        "rank": 48,
+        "rank": 46,
         "address": "tz1dDSuGcw1YeARWpKaXt3Vp4htD8szbPCdY",
         "name": "llai.59",
-        "volumeXtz": 2183.175
+        "volumeXtz": 2098.175
       },
       {
-        "rank": 49,
+        "rank": 47,
+        "address": "tz1N4R7zUKzLN6w342CUtBNMu3eAGjJQSjNR",
+        "name": "Picotech",
+        "volumeXtz": 2045.75
+      },
+      {
+        "rank": 48,
         "address": "tz1QS47MwcZ3Nsog9QvNr726vmL4q5DNZ5zg",
         "name": "Fantastic Planet",
         "volumeXtz": 2000
       },
       {
-        "rank": 50,
+        "rank": 49,
         "address": "tz1QHsVw8wD6MJnRGxvFN9wxzZaUoJht2ESZ",
         "name": "zlaser",
         "volumeXtz": 1907.545
       },
       {
-        "rank": 51,
+        "rank": 50,
         "address": "tz1UoboNM5dHa793H6srtFFBLWFAoQJfeJCU",
         "name": "NeonMonk",
         "volumeXtz": 1900
       },
       {
-        "rank": 52,
-        "address": "tz1N4R7zUKzLN6w342CUtBNMu3eAGjJQSjNR",
-        "name": "Picotech",
-        "volumeXtz": 1854.77
-      },
-      {
-        "rank": 53,
+        "rank": 51,
         "address": "tz1atXxrEfPwhvdixW74bh5qWLxqKmAcxvw8",
         "name": "Meds.tez",
         "volumeXtz": 1851.16
       },
       {
-        "rank": 54,
+        "rank": 52,
         "address": "tz1cUv4ntPrRanKy4qZCWG2vaCG69PHrFGMS",
         "name": "Kyle Flemmer",
         "volumeXtz": 1814.24
       },
       {
-        "rank": 55,
+        "rank": 53,
+        "address": "tz1g9jiDLMcadVEfMxMhToUWNB6hvMcMsFKY",
+        "name": "Greg Nikshumika",
+        "volumeXtz": 1807.04
+      },
+      {
+        "rank": 54,
         "address": "tz1a8PYGc2Z4tQCJHCYr7tWxMwnAAiifGkxr",
         "name": "Neuromech",
         "volumeXtz": 1791.327
       },
       {
-        "rank": 56,
+        "rank": 55,
         "address": "tz1NjsZxbLiehJ4KaiLqGCHmUkPEf2X3ryUN",
         "name": "King Romulus",
         "volumeXtz": 1781.37
       },
       {
-        "rank": 57,
+        "rank": 56,
         "address": "tz2RepZvXzYEw11FeFhpnFEu4bxbAkqPPZ69",
         "name": "tz2RepZvXzYEw11FeFhpnFEu4bxbAkqPPZ69",
         "volumeXtz": 1730.69
       },
       {
+        "rank": 57,
+        "address": "tz1UhgjZ8J5aVGUsvZSqNvhYhtFBpPoJKT5X",
+        "name": "tokioflo",
+        "volumeXtz": 1718.15
+      },
+      {
         "rank": 58,
+        "address": "tz1VsGLcdV7k6eCtEFAHm86oKqsHzq75m1rj",
+        "name": "jayray7",
+        "volumeXtz": 1677.354
+      },
+      {
+        "rank": 59,
         "address": "tz1RcEWSuGbhhegdj9eKTJpAVAzFmGwd4LbF",
         "name": "Yuran Yakon",
         "volumeXtz": 1671.32
       },
       {
-        "rank": 59,
+        "rank": 60,
         "address": "tz1UY3zMR8oY1H4fsS7B2Uu5hKWDpPPHviAj",
         "name": "R-A-M",
         "volumeXtz": 1667.7
       },
       {
-        "rank": 60,
+        "rank": 61,
         "address": "tz2G1Xiuzn98a7rxUvfxVYvMbfKJQcCprN8W",
         "name": "kingmiller685",
         "volumeXtz": 1663.26
-      },
-      {
-        "rank": 61,
-        "address": "tz1VsGLcdV7k6eCtEFAHm86oKqsHzq75m1rj",
-        "name": "jayray7",
-        "volumeXtz": 1661.044
       },
       {
         "rank": 62,
@@ -57764,27 +57766,27 @@
       },
       {
         "rank": 63,
-        "address": "tz1g9jiDLMcadVEfMxMhToUWNB6hvMcMsFKY",
-        "name": "Greg Nikshumika",
-        "volumeXtz": 1606.24
+        "address": "tz1Tw3CjVAPyxRWs2zzoaY4ydKyh4CEY7Qv6",
+        "name": "ECCaro",
+        "volumeXtz": 1654.4345
       },
       {
         "rank": 64,
-        "address": "tz1UhgjZ8J5aVGUsvZSqNvhYhtFBpPoJKT5X",
-        "name": "tokioflo",
-        "volumeXtz": 1585.24
-      },
-      {
-        "rank": 65,
         "address": "tz2AfTUdHH3WDgTowHFdr3c1jv4ZsyLjbCu1",
         "name": "Elham",
         "volumeXtz": 1559.3219
       },
       {
-        "rank": 66,
+        "rank": 65,
         "address": "tz1gmZDfyytdq1wePR6wkTfYjtEpXGTskkyj",
         "name": "joshy",
         "volumeXtz": 1557
+      },
+      {
+        "rank": 66,
+        "address": "tz2MzjCVcKvWcwqauJkZnZsaMf9BYD3bo3oE",
+        "name": "Metalliride",
+        "volumeXtz": 1556.98
       },
       {
         "rank": 67,
@@ -57800,195 +57802,195 @@
       },
       {
         "rank": 69,
-        "address": "tz1gZBtUQYdwbPyNdbyiJ3arzfb9zjpofeES",
-        "name": "chinaski",
-        "volumeXtz": 1520
-      },
-      {
-        "rank": 70,
         "address": "tz1hvH6ZjfzTxQ75pinLwyvdxZL9HfVbrnjy",
         "name": "Greenfield GFX®",
         "volumeXtz": 1518.548144
       },
       {
-        "rank": 71,
+        "rank": 70,
         "address": "tz1XuJ8D5qUowqMFkUicbCyWhUoRtm3r5fFe",
         "name": "DEADSTOCK",
         "volumeXtz": 1500
       },
       {
-        "rank": 72,
+        "rank": 71,
         "address": "tz1NEoQtNNm67ERpaBfiQEwSr3saF8GheAkK",
         "name": "CryptGem",
         "volumeXtz": 1499.07
       },
       {
-        "rank": 73,
-        "address": "tz1Tw3CjVAPyxRWs2zzoaY4ydKyh4CEY7Qv6",
-        "name": "ECCaro",
-        "volumeXtz": 1491.4345
-      },
-      {
-        "rank": 74,
+        "rank": 72,
         "address": "tz1RvrzoXqM7RcvCide9vAopv2ccMjs65zGw",
         "name": "madeyoulook",
         "volumeXtz": 1490.42
       },
       {
-        "rank": 75,
-        "address": "tz2MzjCVcKvWcwqauJkZnZsaMf9BYD3bo3oE",
-        "name": "Metalliride",
-        "volumeXtz": 1483.43
-      },
-      {
-        "rank": 76,
+        "rank": 73,
         "address": "tz2WykJRSx2KkA77WygHw7Ttsjggw284kFvG",
         "name": "MetalheaD",
         "volumeXtz": 1483.223636
       },
       {
-        "rank": 77,
+        "rank": 74,
+        "address": "tz1NkDtLboBk6gYG2jUyLmKcQHxzDDiSU3Kn",
+        "name": "Yuri_jjjj",
+        "volumeXtz": 1482.33
+      },
+      {
+        "rank": 75,
+        "address": "tz1StrHwuLFbQZEerekdUeAg43MyZaBXmgBC",
+        "name": "bobby.floorless",
+        "volumeXtz": 1425
+      },
+      {
+        "rank": 76,
         "address": "tz1NtkUQaLuWCMeLcP2p3kstdpwQJicznRy1",
         "name": "itsnathan",
-        "volumeXtz": 1457.8
+        "volumeXtz": 1406.02
+      },
+      {
+        "rank": 77,
+        "address": "tz2U4jNZmWhitpXsZBNBwt6a519qN84NBE4m",
+        "name": "Lewie",
+        "volumeXtz": 1364.869667
       },
       {
         "rank": 78,
-        "address": "tz1StrHwuLFbQZEerekdUeAg43MyZaBXmgBC",
-        "name": "bobby.floorless",
-        "volumeXtz": 1437
-      },
-      {
-        "rank": 79,
-        "address": "tz2U4jNZmWhitpXsZBNBwt6a519qN84NBE4m",
-        "name": "Lewie",
-        "volumeXtz": 1374.894667
-      },
-      {
-        "rank": 80,
         "address": "tz1bJ2t7a5qYhUuVKkFCuLeXgfp2g2ERpicn",
         "name": "sean",
         "volumeXtz": 1353.74
       },
       {
-        "rank": 81,
+        "rank": 79,
         "address": "tz1cm2Ecx4i8sd3TRJnvMX6FxKGZkVAg7BdE",
         "name": "Kingsley Ayogu",
         "volumeXtz": 1338.575
       },
       {
-        "rank": 82,
-        "address": "tz1NkDtLboBk6gYG2jUyLmKcQHxzDDiSU3Kn",
-        "name": "Yuri_jjjj",
-        "volumeXtz": 1312.33
-      },
-      {
-        "rank": 83,
+        "rank": 80,
         "address": "tz1cM2bB4K87vfF5rYQnj4hwaoDWLwFpL9Bd",
         "name": "moby",
         "volumeXtz": 1308.56
       },
       {
-        "rank": 84,
+        "rank": 81,
         "address": "tz1fHosYpHEkwT7VGtwkvPzWSP2RDNGUuj3L",
         "name": "phrixos.tez",
         "volumeXtz": 1256
       },
       {
-        "rank": 85,
-        "address": "tz1MPCeResg1FXHnv8wt3uuEuKtHU2m8YFBT",
-        "name": "cat soup",
-        "volumeXtz": 1247.97
-      },
-      {
-        "rank": 86,
+        "rank": 82,
         "address": "tz1ekjx92xHHe75daisRCJ52ixnfDWS29FKy",
         "name": "Nova",
         "volumeXtz": 1242.57
       },
       {
-        "rank": 87,
+        "rank": 83,
         "address": "tz1MS8dcDefrpuEtv4maiPuLMJzLxQ59tsAT",
         "name": "Daniel",
         "volumeXtz": 1242.4285
       },
       {
-        "rank": 88,
+        "rank": 84,
         "address": "tz1S7PXAas4uma9tNKyP1w3iQMRDEVz8pXdK",
         "name": "𝓈𝟬𝟬𝓈𝓅𝒾𝒸𝓎",
         "volumeXtz": 1231.1666
       },
       {
-        "rank": 89,
-        "address": "tz1Sqhrj49cW9aTuwQrDa4mycnA7n5dDd7rF",
-        "name": "ABOSCH",
-        "volumeXtz": 1229.65
+        "rank": 85,
+        "address": "tz1MPCeResg1FXHnv8wt3uuEuKtHU2m8YFBT",
+        "name": "cat soup",
+        "volumeXtz": 1167.97
       },
       {
-        "rank": 90,
+        "rank": 86,
         "address": "tz2RnwwamrpthAbPBjdhfa9YiTGyGbaDVkvu",
         "name": "Cosmozoom",
         "volumeXtz": 1140.73
       },
       {
-        "rank": 91,
+        "rank": 87,
         "address": "tz1ihf6JjVXbX8Eoa8JRY9LJYRFAp4FjGKLw",
         "name": "Ignipax",
         "volumeXtz": 1136
       },
       {
-        "rank": 92,
+        "rank": 88,
         "address": "tz1VTAY2QHJhnmVken1piuFD2ZVgupxUf88A",
         "name": "Elias_t",
-        "volumeXtz": 1132.362
+        "volumeXtz": 1114.362
       },
       {
-        "rank": 93,
+        "rank": 89,
         "address": "tz2Dz4kN8HVrkBDrYJEWq4JyZkzBUZUrPN3p",
         "name": "cspok",
         "volumeXtz": 1113.18
       },
       {
-        "rank": 94,
+        "rank": 90,
         "address": "tz1gXv9VdJ93y2ejZXVvXTBTzxBYnNTvwWKc",
         "name": "Accompart's",
         "volumeXtz": 1100
       },
       {
-        "rank": 95,
+        "rank": 91,
         "address": "tz1SphB6vXAyUjVNJ8PUQxM3e5WNjGb4CJWW",
         "name": "Dark Horse Gems",
         "volumeXtz": 1099.04
       },
       {
-        "rank": 96,
+        "rank": 92,
         "address": "tz1NvnUx3BGXhMtAzkcxPx2HhynHRa1yX4rN",
         "name": "adamfuhrer.tez",
         "volumeXtz": 1086.45
       },
       {
-        "rank": 97,
+        "rank": 93,
+        "address": "tz28ndeqZNDReskUAbvtN8ooG9xZKfGmd1MK",
+        "name": "LINE | EXT",
+        "volumeXtz": 1075.46
+      },
+      {
+        "rank": 94,
         "address": "tz1dLE7iQnqNz9EK7Xr8WbNpxZ9MiaHs7dtz",
         "name": "Valeska.tez 🃏",
         "volumeXtz": 1051
       },
       {
+        "rank": 95,
+        "address": "tz1hvfkpf7HbnE1Rroi7JbyegVjZzu97Yqw6",
+        "name": "NftBiker",
+        "volumeXtz": 1037
+      },
+      {
+        "rank": 96,
+        "address": "tz2Par94ss59B1Nsyw3FrAhABYgxbVa5ygAD",
+        "name": "RubisCO",
+        "volumeXtz": 1031.012
+      },
+      {
+        "rank": 97,
+        "address": "tz1c8HvtJEVtfRk6UvP1fXXKTWf1ozrhB4Nq",
+        "name": "Yfi fan",
+        "volumeXtz": 1030.5
+      },
+      {
         "rank": 98,
-        "address": "tz28ndeqZNDReskUAbvtN8ooG9xZKfGmd1MK",
-        "name": "LINE | EXT",
-        "volumeXtz": 1047.09
+        "address": "tz1Sqhrj49cW9aTuwQrDa4mycnA7n5dDd7rF",
+        "name": "ABOSCH",
+        "volumeXtz": 1029.65
       },
       {
         "rank": 99,
-        "address": "tz1c8HvtJEVtfRk6UvP1fXXKTWf1ozrhB4Nq",
-        "name": "Yfi fan",
-        "volumeXtz": 1032.5
+        "address": "tz2Sj1qm1HS4BeB5gMPKt7NncqPubHmBfcmF",
+        "name": "Ilya Bliznets",
+        "volumeXtz": 1027
       },
       {
         "rank": 100,
-        "address": "tz1hvfkpf7HbnE1Rroi7JbyegVjZzu97Yqw6",
-        "name": "NftBiker",
-        "volumeXtz": 1032
+        "address": "tz1frwHr9XUJVHWJyBUj4nZ8tNccs7JuK9n3",
+        "name": "sandytoes2211.tez",
+        "volumeXtz": 1025.68
       }
     ],
     "topArtists30d": [
@@ -58000,15 +58002,15 @@
       },
       {
         "rank": 2,
-        "address": "tz1N1vuWBsDtGMyj3No8NfeJdCBFu8v6gvSX",
-        "name": "Kim Asendorf",
-        "volumeXtz": 12128
-      },
-      {
-        "rank": 3,
         "address": "tz1LS5W4RcNzzxhYiVTRBXddzD6uAosiUq2t",
         "name": "Rhea Myers",
         "volumeXtz": 10992
+      },
+      {
+        "rank": 3,
+        "address": "tz1ZJvqkCy4cVfgk3FP7shjsNcfmwYVpzTRG",
+        "name": "ex_mortal_",
+        "volumeXtz": 9271.67
       },
       {
         "rank": 4,
@@ -58018,15 +58020,15 @@
       },
       {
         "rank": 5,
-        "address": "tz1ZJvqkCy4cVfgk3FP7shjsNcfmwYVpzTRG",
-        "name": "ex_mortal_",
-        "volumeXtz": 8716.17
-      },
-      {
-        "rank": 6,
         "address": "tz1UcXyKMh5CB561T7KVVW5HsSfrRGj1DQmT",
         "name": "Caesuras",
         "volumeXtz": 7168
+      },
+      {
+        "rank": 6,
+        "address": "tz1aN4H7n9AWCcAAZaHeuzHPFRMXRdjgTzD9",
+        "name": "Xu0xo",
+        "volumeXtz": 6551
       },
       {
         "rank": 7,
@@ -58036,9 +58038,9 @@
       },
       {
         "rank": 8,
-        "address": "tz1L2R3Fm7S38dM5Bxvh32GR1jqrWrKYztiZ",
-        "name": "Curio Alt",
-        "volumeXtz": 5870.477
+        "address": "tz1N1vuWBsDtGMyj3No8NfeJdCBFu8v6gvSX",
+        "name": "Kim Asendorf",
+        "volumeXtz": 6128
       },
       {
         "rank": 9,
@@ -58048,15 +58050,15 @@
       },
       {
         "rank": 10,
-        "address": "tz1aN4H7n9AWCcAAZaHeuzHPFRMXRdjgTzD9",
-        "name": "Xu0xo",
-        "volumeXtz": 5476
-      },
-      {
-        "rank": 11,
         "address": "tz1fwUoAY4h331VNWgR3ZwSeJxXtvy9wWzq7",
         "name": "Curio Fringe",
         "volumeXtz": 4718.357
+      },
+      {
+        "rank": 11,
+        "address": "tz1L2R3Fm7S38dM5Bxvh32GR1jqrWrKYztiZ",
+        "name": "Curio Alt",
+        "volumeXtz": 4670.477
       },
       {
         "rank": 12,
@@ -58084,471 +58086,471 @@
       },
       {
         "rank": 16,
-        "address": "tz1hqXAC9Avj3jQtHD1Wh9WL7YF9mRSD3qsq",
-        "name": "Lorna Mills",
-        "volumeXtz": 3474
-      },
-      {
-        "rank": 17,
         "address": "tz1hb9PiWxQEf6J9xevPsUM6dkuCLnhDMvsp",
         "name": "Mario Klingemann",
         "volumeXtz": 3438
       },
       {
-        "rank": 18,
-        "address": "tz1UUBWSfkGmyAdvqYae8Pz1Pk3NvmQ4eH9J",
-        "name": "PEPEPAINT",
-        "volumeXtz": 3395.2
-      },
-      {
-        "rank": 19,
+        "rank": 17,
         "address": "tz1gNKaAfQnxwZbBDfxzC9RaQZT8kDkJUJPE",
         "name": "tz1gNKaAfQnxwZbBDfxzC9RaQZT8kDkJUJPE",
         "volumeXtz": 3334
       },
       {
+        "rank": 18,
+        "address": "tz1UUBWSfkGmyAdvqYae8Pz1Pk3NvmQ4eH9J",
+        "name": "PEPEPAINT",
+        "volumeXtz": 3315.2
+      },
+      {
+        "rank": 19,
+        "address": "tz1hqXAC9Avj3jQtHD1Wh9WL7YF9mRSD3qsq",
+        "name": "Lorna Mills",
+        "volumeXtz": 3304
+      },
+      {
         "rank": 20,
-        "address": "tz1LAULKMnXDUxhyWQSVe6P9UaJzB2w8nAUd",
-        "name": "tz1LAULKMnXDUxhyWQSVe6P9UaJzB2w8nAUd",
-        "volumeXtz": 3330
+        "address": "tz1PiHDketFFHAPYpMZegnKYZf9DptEfvyRA",
+        "name": "Eli shams",
+        "volumeXtz": 3201.98
       },
       {
         "rank": 21,
-        "address": "tz1PiHDketFFHAPYpMZegnKYZf9DptEfvyRA",
-        "name": "Eli shams",
-        "volumeXtz": 3181.68
+        "address": "tz2QrdpoDnE9epLMfGCsDGYH8rfNJ7zyxpjy",
+        "name": "nuv1914",
+        "volumeXtz": 3120.09
       },
       {
         "rank": 22,
-        "address": "tz2QrdpoDnE9epLMfGCsDGYH8rfNJ7zyxpjy",
-        "name": "nuv1914",
-        "volumeXtz": 3137.09
-      },
-      {
-        "rank": 23,
         "address": "tz1MjyPLFxqxrPk6HY1xSj35AAt8kBe51zZE",
         "name": "martnbruc",
         "volumeXtz": 2996.904999
       },
       {
-        "rank": 24,
+        "rank": 23,
         "address": "tz1UhgjZ8J5aVGUsvZSqNvhYhtFBpPoJKT5X",
         "name": "tokioflo",
-        "volumeXtz": 2748.88
+        "volumeXtz": 2774.88
+      },
+      {
+        "rank": 24,
+        "address": "tz1LcquAUksD7L2a985H4zF4roQqWetitQbx",
+        "name": "ama_plaka",
+        "volumeXtz": 2580.87
       },
       {
         "rank": 25,
-        "address": "tz1LcquAUksD7L2a985H4zF4roQqWetitQbx",
-        "name": "ama_plaka",
-        "volumeXtz": 2611.87
-      },
-      {
-        "rank": 26,
         "address": "tz1Qx1r1VrHEN25dzV8zFH5nkDZjGC1RGCNh",
         "name": "OlgaShpakArt",
         "volumeXtz": 2525
       },
       {
-        "rank": 27,
-        "address": "tz1KnV2zdFPtgRNdrDkAPaguDwXmvDpS2yKF",
-        "name": "Elna Frederick",
-        "volumeXtz": 2445.745
-      },
-      {
-        "rank": 28,
+        "rank": 26,
         "address": "tz1S2WeRsyy7LVAGy5xcF36judEzmPkCJz6r",
         "name": "Arty_Anny",
         "volumeXtz": 2428
       },
       {
-        "rank": 29,
+        "rank": 27,
         "address": "tz1Up3Uyj6PR3AkdsaXouhhetS3VdaTkW2Ro",
         "name": "Anna Malina",
         "volumeXtz": 2305.084997
       },
       {
-        "rank": 30,
+        "rank": 28,
+        "address": "tz1KnV2zdFPtgRNdrDkAPaguDwXmvDpS2yKF",
+        "name": "Elna Frederick",
+        "volumeXtz": 2263.745
+      },
+      {
+        "rank": 29,
         "address": "tz1dbtisMzFm9GTqPofzugDLk89u5WgkVCu7",
         "name": "Ozge Gulbakan",
         "volumeXtz": 2208
       },
       {
-        "rank": 31,
+        "rank": 30,
         "address": "tz1SmSqHY1nfy4Wyw9igVow4okezFB4ztXG2",
         "name": "Von Doyle",
         "volumeXtz": 2187.52
       },
       {
-        "rank": 32,
+        "rank": 31,
         "address": "tz1eJF2r9JsfDLAswoo5iCDk6Qv2yWt6fbMX",
         "name": "williamapan",
         "volumeXtz": 2088.305489
       },
       {
+        "rank": 32,
+        "address": "tz1QaY2HyCLHf7UWUzEQyjb6HUwT2V2kXFae",
+        "name": "canvaŝ",
+        "volumeXtz": 2045.319
+      },
+      {
         "rank": 33,
+        "address": "tz1WtnmtS3vzwLasa3mrVjrs6oojnJtMmedR",
+        "name": "Dax Norman",
+        "volumeXtz": 2038.665
+      },
+      {
+        "rank": 34,
         "address": "tz1dRFVAjLLzV1DBccjqKxN8C46gPUeeHsBE",
         "name": "Kazuhiro Tanimoto",
         "volumeXtz": 2037
       },
       {
-        "rank": 34,
-        "address": "tz1i7fDupvRU8AWoQgPtqJvKivXnyvuvTLYN",
-        "name": "Leander Herzog",
-        "volumeXtz": 2022.22
-      },
-      {
         "rank": 35,
-        "address": "tz1QaY2HyCLHf7UWUzEQyjb6HUwT2V2kXFae",
-        "name": "canvaŝ",
-        "volumeXtz": 2013.939
-      },
-      {
-        "rank": 36,
         "address": "tz1XB2NeedDRBRbGQrns32NDiLFXNQzHuJsw",
         "name": "Malpractice",
         "volumeXtz": 2000
       },
       {
-        "rank": 37,
-        "address": "tz1WtnmtS3vzwLasa3mrVjrs6oojnJtMmedR",
-        "name": "Dax Norman",
-        "volumeXtz": 1963.665
+        "rank": 36,
+        "address": "tz1LAULKMnXDUxhyWQSVe6P9UaJzB2w8nAUd",
+        "name": "tz1LAULKMnXDUxhyWQSVe6P9UaJzB2w8nAUd",
+        "volumeXtz": 1950
       },
       {
-        "rank": 38,
+        "rank": 37,
         "address": "tz1imHhTHaXH2RuscovgZp7xjbko3Y4oUjU5",
         "name": "Shojiro Nakaoka",
         "volumeXtz": 1902.95
       },
       {
-        "rank": 39,
+        "rank": 38,
         "address": "tz1ZMAmNYgzPM5fvDCH3yknmFVe46R6zbpzc",
         "name": "Paria Cyrus",
         "volumeXtz": 1858.125068
       },
       {
+        "rank": 39,
+        "address": "tz1cKfERYdEfRi1MeRk4fSVzRorTkBWGFrVj",
+        "name": "𝖲𝗇𝖾𝗄𝖾𝗍𝗈𝗌𝗁𝗂 🐍💗",
+        "volumeXtz": 1824.595
+      },
+      {
         "rank": 40,
-        "address": "tz1SsFxtK4DGPmoqoje6eCWasCS5xW4MAyKf",
-        "name": "Muriel Lherm",
-        "volumeXtz": 1851.61
+        "address": "tz1iTMDW516cQWhQK5wvqirXuJ9u8XUQUUqZ",
+        "name": "pantea.AEW",
+        "volumeXtz": 1822.39
       },
       {
         "rank": 41,
-        "address": "tz1iTMDW516cQWhQK5wvqirXuJ9u8XUQUUqZ",
-        "name": "pantea.AEW",
-        "volumeXtz": 1842.39
-      },
-      {
-        "rank": 42,
         "address": "tz1eAMTJJVxesZuMstPJF3FZac7hCTxZUEdJ",
         "name": "Rojinjpg ",
         "volumeXtz": 1818
       },
       {
-        "rank": 43,
+        "rank": 42,
         "address": "tz1X8NSFk9MdYxPV94M6BnYxzChMuYE2v9Ct",
         "name": "Alireza",
         "volumeXtz": 1767
       },
       {
-        "rank": 44,
+        "rank": 43,
         "address": "tz1Nib4Q1qZ3nPkfdLrcUn6vUw5WRJGX6jTh",
         "name": "Julia ManekiNeko ",
         "volumeXtz": 1764
       },
       {
-        "rank": 45,
-        "address": "tz1biKU3xnysM6WXAYN9Qsp9siv8Ttz5f7UY",
-        "name": "OMGiDRAWEDit",
-        "volumeXtz": 1763.311368
-      },
-      {
-        "rank": 46,
-        "address": "tz1cKfERYdEfRi1MeRk4fSVzRorTkBWGFrVj",
-        "name": "𝖲𝗇𝖾𝗄𝖾𝗍𝗈𝗌𝗁𝗂 🐍💗",
-        "volumeXtz": 1746.895
-      },
-      {
-        "rank": 47,
+        "rank": 44,
         "address": "tz1XEuFRAXi3a9V4XKtyyis4L2kdbV3y9eZh",
         "name": "Bret Jolliffe",
         "volumeXtz": 1746.77
       },
       {
-        "rank": 48,
+        "rank": 45,
+        "address": "tz1biKU3xnysM6WXAYN9Qsp9siv8Ttz5f7UY",
+        "name": "OMGiDRAWEDit",
+        "volumeXtz": 1743.311368
+      },
+      {
+        "rank": 46,
         "address": "tz2XJQUp2BafezwYSfJCHUVpxmMcqZTdRsBu",
         "name": "danctrl",
         "volumeXtz": 1682
       },
       {
-        "rank": 49,
-        "address": "tz1S8Lc2zGSDDVeHqn1BSYDz6tmkuBNSEAY4",
-        "name": "Helio Santos",
-        "volumeXtz": 1656.174999
+        "rank": 47,
+        "address": "tz1X568Wdkb1ZUs8qfVYcsZD31YQ4UV3sdY4",
+        "name": "Absurdeity.tez",
+        "volumeXtz": 1680.195
       },
       {
-        "rank": 50,
+        "rank": 48,
         "address": "tz1PDn3qfJCj5NB7x53c4dwSYc6bAA5DtnA8",
         "name": "minwjr",
         "volumeXtz": 1650
       },
       {
-        "rank": 51,
+        "rank": 49,
         "address": "tz2GLYoq3erGG5ajCxrYjk5aNMeHw4kDtzMV",
         "name": "NeuralBricolage",
         "volumeXtz": 1650
       },
       {
-        "rank": 52,
+        "rank": 50,
+        "address": "tz1S8Lc2zGSDDVeHqn1BSYDz6tmkuBNSEAY4",
+        "name": "Helio Santos",
+        "volumeXtz": 1636.174999
+      },
+      {
+        "rank": 51,
         "address": "tz1apRrybu1ueXQEcHy2gDpT8kfRNUkBusfb",
         "name": "rutger van der tas",
         "volumeXtz": 1627
       },
       {
-        "rank": 53,
+        "rank": 52,
         "address": "tz1g5qdZHShy316exiEaxHhBv3vdqwnPVCNB",
         "name": "Alex May",
-        "volumeXtz": 1584.959971
+        "volumeXtz": 1586.459971
       },
       {
-        "rank": 54,
+        "rank": 53,
         "address": "tz1dfET1SuWoMqkyfiTgaEK4PhFzm4Nq1uG8",
         "name": "Nahid Abedi",
         "volumeXtz": 1584.33
       },
       {
-        "rank": 55,
+        "rank": 54,
         "address": "tz1LLPWMyZ7gKsp3WnLfemyAYW6CoZoozku5",
         "name": "Tezzardz ",
         "volumeXtz": 1574.995
       },
       {
-        "rank": 56,
+        "rank": 55,
         "address": "tz1RsiyaZgGTHJVgxsv42iTLqFzawSjc32UB",
         "name": "Raminaa.eth",
         "volumeXtz": 1548.7219
       },
       {
-        "rank": 57,
-        "address": "tz2MRTzyibSSRnye8rbpcZyDAa9tdHgCCahd",
-        "name": "Ken Matsumura",
-        "volumeXtz": 1538.436
-      },
-      {
-        "rank": 58,
+        "rank": 56,
         "address": "tz1hAPbbZeDqqVESYbP2yPTSF9WEtXDXdwH7",
         "name": "davidvnun",
         "volumeXtz": 1528.438
       },
       {
-        "rank": 59,
+        "rank": 57,
         "address": "tz1Ua3yoh2ogC5G3WGrHvKkd64Y1XUEYzFEB",
         "name": "Kevin Esherick",
         "volumeXtz": 1500
       },
       {
-        "rank": 60,
+        "rank": 58,
+        "address": "tz2MRTzyibSSRnye8rbpcZyDAa9tdHgCCahd",
+        "name": "Ken Matsumura",
+        "volumeXtz": 1480.436
+      },
+      {
+        "rank": 59,
         "address": "tz1S7sxbjVbocFQZwUszfzoE5WxehQJ5oWfH",
         "name": "Ariel Institute",
         "volumeXtz": 1480
       },
       {
-        "rank": 61,
+        "rank": 60,
         "address": "tz1cfSjRH85gcotHhWDnz8EvH3gkHD6bQ9tr",
         "name": "Refraction NFT",
         "volumeXtz": 1480
       },
       {
-        "rank": 62,
+        "rank": 61,
         "address": "tz1aeM9FzmsRhEoojsF4X1xGDPALvK3pW3SX",
         "name": "QuantumSpirit",
-        "volumeXtz": 1472.03
+        "volumeXtz": 1462.34
+      },
+      {
+        "rank": 62,
+        "address": "tz1SsFxtK4DGPmoqoje6eCWasCS5xW4MAyKf",
+        "name": "Muriel Lherm",
+        "volumeXtz": 1451.61
       },
       {
         "rank": 63,
         "address": "tz1afRH7s6BzDpiX41mehudHJZUF4s4T5uV4",
         "name": "Kandro",
-        "volumeXtz": 1460
-      },
-      {
-        "rank": 64,
-        "address": "tz1gBXG9fg8RMDH69KfKqwoTH5sFDmzt5yzm",
-        "name": "zancan",
-        "volumeXtz": 1430.614996
-      },
-      {
-        "rank": 65,
-        "address": "tz1XrutuvkFRG15HmV2gdon86F38NMMGMAXr",
-        "name": "Mark Knol",
-        "volumeXtz": 1410.284
-      },
-      {
-        "rank": 66,
-        "address": "tz1NsgAkyWkiKAuoYmH3CHXQFjGKuQzbxBLj",
-        "name": "Rosaline",
-        "volumeXtz": 1400
-      },
-      {
-        "rank": 67,
-        "address": "tz1ZNcgWiqbQK76nvnXC5W2W6v5LxqtwkLdF",
-        "name": "plastekpet",
         "volumeXtz": 1380
       },
       {
-        "rank": 68,
+        "rank": 64,
         "address": "tz1LBwyJMRkH4tcG19KwYzAW7fLYbjFmWdWy",
         "name": "REAS",
         "volumeXtz": 1377
       },
       {
-        "rank": 69,
+        "rank": 65,
         "address": "tz1SMEhS93oLW6v3Uw154nZ7JqzepqSaYZA4",
         "name": "Shilly Preston",
         "volumeXtz": 1375.28
       },
       {
-        "rank": 70,
+        "rank": 66,
         "address": "tz2W37ZJk9ifRun9vXucb3tunBz3bH9JfSsH",
         "name": "TINYSOUL",
-        "volumeXtz": 1330.789
+        "volumeXtz": 1360.789
       },
       {
-        "rank": 71,
+        "rank": 67,
+        "address": "tz1NsgAkyWkiKAuoYmH3CHXQFjGKuQzbxBLj",
+        "name": "Rosaline",
+        "volumeXtz": 1331
+      },
+      {
+        "rank": 68,
         "address": "tz1ZayuSHjVgHPV7SAsG9UWK5LzbyqA8uLva",
         "name": "moxarra gonzalez",
         "volumeXtz": 1318.26
       },
       {
-        "rank": 72,
-        "address": "tz1gVTGNFvWaXq14erS3qT8Qvmke5FjVB29Z",
-        "name": "YEKTA",
-        "volumeXtz": 1303.99
-      },
-      {
-        "rank": 73,
+        "rank": 69,
         "address": "tz1eZ8amacCvSQsFM8wampwWXJFWsmGVRQFd",
         "name": "Ganbrood",
         "volumeXtz": 1295.05999
       },
       {
-        "rank": 74,
-        "address": "tz1Rq3ppUXcRS2gTF6S6sfwVqXkoSvUiTHVb",
-        "name": "tz1Rq3ppUXcRS2gTF6S6sfwVqXkoSvUiTHVb",
-        "volumeXtz": 1280
-      },
-      {
-        "rank": 75,
+        "rank": 70,
         "address": "tz1R5aLedcRQb9kYyNBS1UXzHR6aQQ3Z5qoq",
         "name": "Sutu",
         "volumeXtz": 1263.509989
       },
       {
-        "rank": 76,
+        "rank": 71,
         "address": "tz1PyPRigi44GaUiF8vxm1tTimvzFiYMFXrg",
         "name": "Mattia Cuttini",
         "volumeXtz": 1258.52
       },
       {
-        "rank": 77,
+        "rank": 72,
         "address": "tz1MpojpfKuqkSsXN5WAJvLkb6HDXhJjgrVe",
         "name": "Emily Edelman",
         "volumeXtz": 1250
       },
       {
-        "rank": 78,
+        "rank": 73,
         "address": "tz1e28nPyjBpdN1998h2s5bwECMbhDy794BJ",
         "name": "SD",
         "volumeXtz": 1247.86
       },
       {
-        "rank": 79,
+        "rank": 74,
         "address": "tz2EZvDfs9xCSC7BWLFAi9JguU4t3pRw8EWx",
         "name": "Nochevnaya",
         "volumeXtz": 1240.52
       },
       {
-        "rank": 80,
+        "rank": 75,
         "address": "tz1PTKnqvq34M8GTaxQ9FEPDjw1CRqHBjmQG",
         "name": "ANASTASIA |DarkArtist| ",
         "volumeXtz": 1239
       },
       {
-        "rank": 81,
+        "rank": 76,
         "address": "tz1YbhP36ABXEJjFmUmwnsCXp2mKfzAiMFGu",
         "name": "Dyanela Arts",
         "volumeXtz": 1228.24
       },
       {
-        "rank": 82,
-        "address": "tz1bNPdp4zhChxZW4Ho1seEeqSb2BeKvAREf",
-        "name": "abetusk",
-        "volumeXtz": 19.9
+        "rank": 77,
+        "address": "tz1iEvkELJMSgfn2WJRR9HPg5U2vppAF1eLS",
+        "name": "casson.tez",
+        "volumeXtz": 20
       },
       {
-        "rank": 83,
+        "rank": 78,
         "address": "tz2VFysrfdwzEa5AqjGsg75UtgmazssCV1aN",
         "name": "ArtYana",
         "volumeXtz": 1208
       },
       {
-        "rank": 84,
+        "rank": 79,
+        "address": "tz1gVTGNFvWaXq14erS3qT8Qvmke5FjVB29Z",
+        "name": "YEKTA",
+        "volumeXtz": 1205.99
+      },
+      {
+        "rank": 80,
+        "address": "tz1VTAY2QHJhnmVken1piuFD2ZVgupxUf88A",
+        "name": "Elias_t",
+        "volumeXtz": 1202.96
+      },
+      {
+        "rank": 81,
         "address": "tz1WCw2GYDA9isikFnyaiKdLvtbF9M5WbLp3",
         "name": "tz1WCw2GYDA9isikFnyaiKdLvtbF9M5WbLp3",
         "volumeXtz": 1199.323721
       },
       {
-        "rank": 85,
-        "address": "tz1MermyAbqB3DCo3d1PFC8X9TMinVaZj1aG",
-        "name": "Seendollf",
-        "volumeXtz": 1194.6
-      },
-      {
-        "rank": 86,
+        "rank": 82,
         "address": "tz1bMw3zua89f7Vv7ooX2r1NGxgv38HJM5gQ",
         "name": "Sine",
         "volumeXtz": 1186.32
       },
       {
-        "rank": 87,
-        "address": "tz1VTAY2QHJhnmVken1piuFD2ZVgupxUf88A",
-        "name": "Elias_t",
-        "volumeXtz": 1178.06
+        "rank": 83,
+        "address": "tz1MermyAbqB3DCo3d1PFC8X9TMinVaZj1aG",
+        "name": "Seendollf",
+        "volumeXtz": 1179.6
       },
       {
-        "rank": 88,
+        "rank": 84,
         "address": "tz1gaEX29TWxQfZ2HtHEo1yxrxbGes8BkzdM",
         "name": "Mahfa",
         "volumeXtz": 1176
       },
       {
-        "rank": 89,
+        "rank": 85,
         "address": "tz2Lb3RiEyXrrT277PGQwdEG84UEkrxd4F4q",
         "name": "Dr. Version",
         "volumeXtz": 1172.899
       },
       {
-        "rank": 90,
+        "rank": 86,
+        "address": "tz1fxnQzANFYRLWyzsmU8ua45sJa5G2JmPjP",
+        "name": "mchx",
+        "volumeXtz": 1170
+      },
+      {
+        "rank": 87,
         "address": "tz1YBQZqkrgGmXGXeQCej5obgHub562e8RVs",
         "name": "Regan.photography",
         "volumeXtz": 1170
       },
       {
-        "rank": 91,
+        "rank": 88,
         "address": "tz1byixeFtb4niqBwzHaPbkGqtCKFhW6h6rK",
         "name": "KristinaArt",
         "volumeXtz": 1164
       },
       {
+        "rank": 89,
+        "address": "tz1XrutuvkFRG15HmV2gdon86F38NMMGMAXr",
+        "name": "Mark Knol",
+        "volumeXtz": 1157.284
+      },
+      {
+        "rank": 90,
+        "address": "tz1cmorCw9xzeLt5JKaQJvwFV7Dvf1vG2V4g",
+        "name": "Chris Follows",
+        "volumeXtz": 1148.88
+      },
+      {
+        "rank": 91,
+        "address": "tz1RNDoqLh5VCqBUXrgmzhwxqcR7ptAfvfNh",
+        "name": "Lucréce",
+        "volumeXtz": 1139.74
+      },
+      {
         "rank": 92,
-        "address": "tz1Uo8Cg3E2byapurY5FA6Pov4gGoTyTyrRN",
-        "name": "Abbas Rahmani",
-        "volumeXtz": 1148
+        "address": "tz1QXGY9z6RWC6Toy88ixFfsXFKwEN9q5khd",
+        "name": "Tamas Antal",
+        "volumeXtz": 1132.4125
       },
       {
         "rank": 93,
-        "address": "tz1fxnQzANFYRLWyzsmU8ua45sJa5G2JmPjP",
-        "name": "mchx",
-        "volumeXtz": 1145
+        "address": "tz1gBXG9fg8RMDH69KfKqwoTH5sFDmzt5yzm",
+        "name": "zancan",
+        "volumeXtz": 1130.614996
       },
       {
         "rank": 94,
@@ -58558,15 +58560,15 @@
       },
       {
         "rank": 95,
-        "address": "tz1XFLR9FHBLa8iW4iVkZKYs4s2cH4N9Rk7g",
-        "name": "Veche Sveta",
-        "volumeXtz": 1120.08
+        "address": "tz1Uo8Cg3E2byapurY5FA6Pov4gGoTyTyrRN",
+        "name": "Abbas Rahmani",
+        "volumeXtz": 1128
       },
       {
         "rank": 96,
-        "address": "tz1X568Wdkb1ZUs8qfVYcsZD31YQ4UV3sdY4",
-        "name": "Absurdeity.tez",
-        "volumeXtz": 1114.595
+        "address": "tz1XFLR9FHBLa8iW4iVkZKYs4s2cH4N9Rk7g",
+        "name": "Veche Sveta",
+        "volumeXtz": 1120.08
       },
       {
         "rank": 97,
@@ -58576,15 +58578,15 @@
       },
       {
         "rank": 98,
-        "address": "tz1WM3EP96SYmubkkkVi5SyaUD9GjyaVQFHk",
-        "name": "tugkan",
-        "volumeXtz": 1106.7
+        "address": "tz1LTd9oQKEkQzJzL3xJHj8Sr7ESPw21dFo2",
+        "name": "OGD",
+        "volumeXtz": 1110.28
       },
       {
         "rank": 99,
-        "address": "tz1cmorCw9xzeLt5JKaQJvwFV7Dvf1vG2V4g",
-        "name": "Chris Follows",
-        "volumeXtz": 1101.88
+        "address": "tz1WM3EP96SYmubkkkVi5SyaUD9GjyaVQFHk",
+        "name": "tugkan",
+        "volumeXtz": 1106.7
       },
       {
         "rank": 100,
@@ -58600,8 +58602,8 @@
       "mintDefinition": "Minted editions are the sum of event amount; mint operations and unique creator addresses are retained separately.",
       "queries": {
         "listingSales": {
-          "rows": 20461,
-          "pages": 41,
+          "rows": 20609,
+          "pages": 42,
           "pageSize": 500,
           "maxPages": 60,
           "truncated": false,
@@ -58650,8 +58652,8 @@
       "repository": "https://gitlab.com/tezos/tezos",
       "windowDays": 28,
       "range": {
-        "from": "2026-09-21T13:21:48.346Z",
-        "to": "2026-10-19T13:21:48.346Z"
+        "from": "2026-09-21T21:57:55.012Z",
+        "to": "2026-10-19T21:57:55.012Z"
       },
       "daily": [
         {
@@ -58748,10 +58750,15 @@
           "date": "2026-10-17",
           "commits": 2,
           "authors": 2
+        },
+        {
+          "date": "2026-10-19",
+          "commits": 6,
+          "authors": 3
         }
       ],
       "totals": {
-        "commits": 315,
+        "commits": 321,
         "authors": 19
       },
       "coverage": {
