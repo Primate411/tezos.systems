@@ -25,8 +25,37 @@ const minutePlan = planBakerMaintenance(build([row(1100), row(1300)], { head: { 
 assert.equal(minutePlan.earliest.start, now + 13 * 60_000, 'Displayed start rounds up to preserve the full buffer');
 assert.equal(minutePlan.earliest.end, now + 28 * 60_000, 'Displayed return deadline rounds down');
 assert.equal(planBakerMaintenance(schedule, { durationMinutes: 60, now }).earliest, null);
-assert.equal(planBakerMaintenance(schedule, { durationMinutes: 5, now }).earliest.afterLevel, head.level);
-assert.equal(planBakerMaintenance(build([row(1030)]), { durationMinutes: 5, now }).longest, null, 'Buffers consume a three-minute opening');
+const currentGap = planBakerMaintenance(schedule, { durationMinutes: 5, now }).earliest;
+assert.equal(currentGap.start, now, 'An already-open gap is available immediately');
+assert.equal(currentGap.afterLevel, null, 'The chain head must not be presented as this baker’s preceding assignment');
+const shortOpening = planBakerMaintenance(build([row(1030)]), { durationMinutes: 5, now });
+assert.equal(shortOpening.earliest, null, 'A three-minute opening cannot fit five minutes plus the return buffer');
+assert.equal(shortOpening.longest.durationMs, 60_000, 'The current opening reserves its buffer before the next right');
+
+// Reproduce the 1h47m-to-next-block screenshot, including refreshes that used
+// to keep moving an artificial three-minute start into the future.
+const screenshotNow = Date.parse('2026-10-20T11:17:10-04:00');
+for (const elapsedMinutes of [0, 1, 3, 10]) {
+    const refreshedNow = screenshotNow + elapsedMinutes * 60_000;
+    const refreshed = build([row(15457683), row(15457709), row(15457982)], {
+        head: { level: 15456612 + elapsedMinutes * 10, timestamp: new Date(refreshedNow).toISOString() },
+        observedAt: refreshedNow
+    });
+    const fit = planBakerMaintenance(refreshed, { durationMinutes: 60, now: refreshedNow }).earliest;
+    assert.equal(fit.start, refreshedNow, 'Each fresh head keeps the current gap available now');
+    assert.equal(fit.outageEnd, refreshedNow + 60 * 60_000);
+    assert.equal(fit.afterLevel, null);
+    assert.equal(fit.beforeLevel, 15457683);
+    assert(fit.outageEnd <= fit.end, 'The complete outage fits before the buffered return deadline');
+    assert(fit.end <= refreshed.assignments[0].at - 120_000);
+    assert.equal(planBakerMaintenance(refreshed, { durationMinutes: 60, now: refreshedNow + 15_000 }).earliest.start,
+        refreshedNow + 15_000, 'Re-rendering the same fresh receipt also adds no wait');
+}
+const exactHour = build([row(1620)]);
+assert.equal(planBakerMaintenance(exactHour, { durationMinutes: 60, now }).earliest.start, now,
+    'A full hour plus the two-minute return buffer fits exactly');
+assert.equal(planBakerMaintenance(exactHour, { durationMinutes: 60, now: now + 1 }).earliest, null,
+    'Never round a current start backwards to fit an outage that is now too long');
 assert.equal(planBakerMaintenance(build([]), { now }).longest, null, 'An empty published schedule does not mean unlimited downtime');
 assert.equal(planBakerMaintenance(build([row(1100)]), { durationMinutes: 15, now }).earliest, null, 'Short scan remains bounded');
 assert.equal(build(Array.from({ length: 100 }, (_, index) => row(1100 + index * 100))).assignments.length, 100);

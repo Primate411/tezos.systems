@@ -279,7 +279,7 @@ export function createMyTezosBakingSmokeSuites({
           assert(query.get('level.gt') === '12345678', 'Schedule must start beyond the confirmed head');
           if (scheduleMode === 'unavailable') return fulfillJson(route, null);
           return fulfillJson(route, Array.from({ length: scheduleMode === 'short' ? 2 : scheduleMode === 'empty' ? 0 : 100 }, (_, index) => ({
-            level: 12345858 + index * 600, round: 0, status: 'future', type: 'baking'
+            level: (scheduleMode === 'open' ? 12346749 : 12345858) + index * 600, round: 0, status: 'future', type: 'baking'
           })));
         }
         if (query.get('type') !== 'attestation') return route.fallback();
@@ -533,7 +533,7 @@ export function createMyTezosBakingSmokeSuites({
       assert(nextStyle.every(tile => tile.height - tile.contentHeight < 85), 'Upcoming rights must not stretch into tall empty boxes');
       const rewardNotice = await page.locator('.drawer-schedule-reward-note').innerText();
       assert(rewardNotice.includes('2/3') && rewardNotice.includes('64%') && rewardNotice.toLowerCase().includes('cycle rewards'), 'Reward notice must use the separate current consensus and DAL thresholds');
-      assert((await page.locator('.drawer-maintenance-result').innerText()).includes('After level 12,345,858'), 'Earliest 15-minute fit is after the first assignment, with buffers');
+      assert((await page.locator('.drawer-maintenance-result').innerText()).includes('Available now'), 'The current 18-minute opening fits 15 minutes and the two-minute return buffer');
       await page.locator('#baker-maintenance-duration').selectOption('30');
       await page.locator('[data-quiet-key="schedule-method"] summary').click();
       const scheduleBefore = await page.evaluate(() => {
@@ -549,6 +549,7 @@ export function createMyTezosBakingSmokeSuites({
         window.__scheduleNode = document.querySelector('.drawer-baker-schedule');
         return { top: body.scrollTop, pageY: window.scrollY, selection: document.getSelection().toString() };
       });
+      let selectedDuration = '30';
       const checkScheduleReader = async () => {
         const current = await page.evaluate(() => ({
           top: document.getElementById('drawer-body').scrollTop, pageY: window.scrollY,
@@ -560,7 +561,7 @@ export function createMyTezosBakingSmokeSuites({
           visible: getComputedStyle(window.__scheduleNode).opacity === '1' && getComputedStyle(window.__scheduleNode).transform === 'none',
           overflow: document.getElementById('drawer-body').scrollWidth - document.getElementById('drawer-body').clientWidth
         }));
-        assert(current.same && current.focused && current.open && current.visible && current.value === '30' && current.overflow <= 1,
+        assert(current.same && current.focused && current.open && current.visible && current.value === selectedDuration && current.overflow <= 1,
           `Baker schedule ${label}: lost reader state ${JSON.stringify(current)}`);
         assert(current.top === scheduleBefore.top && current.pageY === scheduleBefore.pageY && current.selection === scheduleBefore.selection,
           `Baker schedule ${label}: moved the reading position or selection ${JSON.stringify({ current, scheduleBefore })}`);
@@ -587,6 +588,24 @@ export function createMyTezosBakingSmokeSuites({
       scheduleMode = 'complete';
       await page.waitForFunction(() => document.querySelector('.drawer-schedule-freshness')?.textContent.includes('100 rights checked'));
       await checkScheduleReader();
+      // A 60-minute outage fits before a right 1h47m away, immediately and
+      // across repeated fresh receipts. Keep the same reader-state assertions.
+      scheduleMode = 'open';
+      selectedDuration = '60';
+      await page.locator('#baker-maintenance-duration').selectOption(selectedDuration);
+      await page.waitForFunction(() => document.querySelector('.drawer-maintenance-result strong')?.textContent === 'Available now');
+      for (let refresh = 0; refresh < 2; refresh++) {
+        const checked = await page.locator('.drawer-baker-schedule').getAttribute('data-schedule-checked');
+        await page.waitForFunction(before => document.querySelector('.drawer-baker-schedule')?.dataset.scheduleChecked !== before, checked);
+        const currentGap = await page.locator('.drawer-maintenance-result').innerText();
+        assert(currentGap.includes('Available now') && currentGap.includes('Now –') && currentGap.includes('Current gap · back before 12,346,749')
+          && !currentGap.includes('After level'), `Baker schedule ${label}: current gap restarted a wait or claimed a head assignment: ${currentGap}`);
+        await checkScheduleReader();
+      }
+      if (ARTIFACTS_DIR) {
+        await page.locator('.drawer-maintenance').scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(ARTIFACTS_DIR, `baker-maintenance-now-${label}.png`) });
+      }
       await page.locator('[data-quiet-key="schedule-method"] summary').click();
       await page.evaluate(() => { window.__operatorVisibility = 'hidden'; document.dispatchEvent(new Event('visibilitychange')); });
       await waitForIntentionalRealTime(page, 'my-tezos-hidden-refresh-window');

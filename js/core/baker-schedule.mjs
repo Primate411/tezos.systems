@@ -55,11 +55,12 @@ export function planBakerMaintenance(schedule, { durationMinutes = 15, now = Dat
     const gaps = [];
     let previous = null;
     for (const assignment of schedule.assignments) {
-        // The UI displays whole minutes: round inward so its clock labels never
-        // invite starting before, or returning after, the reserved buffers.
-        const start = Math.ceil((Math.max(now, previous?.at ?? schedule.headTime) + bufferMs) / 60_000) * 60_000;
+        // The first gap is already open. The network head is not this baker's
+        // preceding assignment, and refreshing must not add a new wait from now.
+        // Future gaps round inward around their actual scheduled assignments.
+        const start = previous ? Math.ceil((previous.at + bufferMs) / 60_000) * 60_000 : now;
         const end = Math.floor((assignment.at - bufferMs) / 60_000) * 60_000;
-        if (end > start) gaps.push({ start, end, durationMs: end - start, afterLevel: previous?.level ?? schedule.headLevel, beforeLevel: assignment.level });
+        if (end > start) gaps.push({ start, end, durationMs: end - start, afterLevel: previous?.level ?? null, beforeLevel: assignment.level });
         previous = assignment;
     }
     // Deliberately stop at the final returned assignment. An exhausted/short

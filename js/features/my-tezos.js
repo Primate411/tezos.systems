@@ -1078,7 +1078,10 @@ function renderBakerSchedule(receipt) {
         : (snapshot ? 'Last confirmed schedule · refresh or chain timing unavailable. Recheck before maintenance.' : 'Waiting for a confirmed head, block timing, and baking schedule.');
     const earliest = plan?.earliest;
     const longest = plan?.longest;
-    const windowText = earliest ? formatScheduleWindow(earliest.start, earliest.outageEnd) : '';
+    const availableNow = earliest?.start === now;
+    const windowText = earliest ? (availableNow
+        ? `Now – ${formatScheduleTime(Math.ceil(earliest.outageEnd / 60_000) * 60_000)}`
+        : formatScheduleWindow(earliest.start, earliest.outageEnd)) : '';
     const longestMinutes = longest ? Math.floor(longest.durationMs / 60_000) : 0;
     const thresholds = snapshot?.rewardThresholds;
     const rewardNotice = thresholds
@@ -1089,11 +1092,11 @@ function renderBakerSchedule(receipt) {
         <div class="drawer-maintenance" data-quiet-key="maintenance">
             <h4 class="drawer-operator-label">MAINTENANCE GAP</h4>
             <div class="drawer-maintenance-result" data-quiet-key="maintenance-result">
-                <strong${pending}>${earliest ? `In ≈${formatDuration(earliest.start - now)}` : (fresh ? 'No fitting gap' : 'Waiting for a fresh schedule')}</strong>
+                <strong${pending}>${earliest ? (availableNow ? 'Available now' : `In ≈${formatDuration(earliest.start - now)}`) : (fresh ? 'No fitting gap' : 'Waiting for a fresh schedule')}</strong>
                 <span class="drawer-maintenance-window"${pending}>${escapeHtml(windowText || (fresh ? 'Try a shorter outage or check the schedule again later.' : 'Awaiting confirmed timing.'))}</span>
-                <span class="drawer-maintenance-between"${pending}>${earliest ? `After level ${formatLevel(earliest.afterLevel)} · back before ${formatLevel(earliest.beforeLevel)}` : 'No confirmed outage window'}</span>
+                <span class="drawer-maintenance-between"${pending}>${earliest ? `${earliest.afterLevel == null ? 'Current gap' : `After level ${formatLevel(earliest.afterLevel)}`} · back before ${formatLevel(earliest.beforeLevel)}` : 'No confirmed outage window'}</span>
             </div>
-            <span class="drawer-maintenance-buffer">Earliest fit · ${MAINTENANCE_BUFFER_MINUTES}m buffers each side</span>
+            <span class="drawer-maintenance-buffer">Earliest fit · ${MAINTENANCE_BUFFER_MINUTES}m buffers around scheduled rights</span>
         </div>
         <div class="drawer-schedule-notes">
             <p class="drawer-maintenance-longest"${pending}>${longest ? `Longest buffered gap: ${longestMinutes < 1 ? '<1' : longestMinutes}m · ${escapeHtml(formatScheduleWindow(longest.start, longest.end))}` : 'Longest buffered gap: awaiting a confirmed schedule.'}</p>
@@ -1101,7 +1104,7 @@ function renderBakerSchedule(receipt) {
             <details data-chamber-disclosure data-quiet-key="schedule-method"><summary>Schedule coverage &amp; timing</summary>
                 <p>${escapeHtml(coverage)}. No gap is inferred after the last returned right.</p>
                 <p>${escapeHtml(status)}</p>
-                <p>Windows leave ${MAINTENANCE_BUFFER_MINUTES} minutes after the head or preceding assignment and before the next. Allow additional time for your node to catch up.</p>
+                <p>The current gap starts now when the selected outage fits. Future gaps leave ${MAINTENANCE_BUFFER_MINUTES} minutes after the preceding scheduled assignment; all gaps end at least ${MAINTENANCE_BUFFER_MINUTES} minutes before the next. Allow additional time for your node to catch up.</p>
                 <p>Attestation and DAL duties continue; later-round baking is possible. This planner does not forecast your end-of-cycle participation. Consensus reward eligibility also requires nonce revelations; DAL rewards require consensus rewards and no DAL denunciation.</p>
                 <p><a href="https://octez.tezos.com/docs/active/consensus.html#rewards" target="_blank" rel="noopener noreferrer">Consensus reward rules</a> · <a href="https://octez.tezos.com/docs/active/dal_support.html#minimal-participation" target="_blank" rel="noopener noreferrer">DAL reward rules</a></p>
                 <a href="https://tzkt.io/${escapeHtml(receipt?.bakerAddr || '')}/schedule" target="_blank" rel="noopener noreferrer">Verify baker schedule on TzKT ↗</a>

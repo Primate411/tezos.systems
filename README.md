@@ -1398,9 +1398,12 @@ inline modal styles in `js/core/app.js`.
   first collection read shows unavailable holdings instead of zero.
 - Baker Signal displays the next three round-0 rights and scans up to 100 published
   assignments for the earliest 5/15/30/60-minute outage fit and longest baking gap,
-  reserving two-minute buffers on each side. Estimates use a confirmed head timestamp
-  and the current protocol block delay. Missing, stale, malformed, or slipped timing
-  withholds maintenance suggestions while retaining the last confirmed schedule.
+  reserving two minutes before each right and after the preceding assignment in
+  future gaps. A fitting current gap is available now; refreshes never restart a
+  buffer from the current time or treat the network head as this baker's last right.
+  Estimates use a confirmed head timestamp and the current protocol block delay.
+  Missing, stale, malformed, or slipped timing withholds maintenance suggestions
+  while retaining the last confirmed schedule.
   Short schedules disclose their returned count; no gap is inferred after the last
   assignment. These are round-0 baking gaps only: attestation, DAL, and later-round
   duties can still occur. The selector, open methodology, and reader state survive

@@ -9,7 +9,8 @@ export const CHANGELOG = [
         entries: [
             { type: '🔧', text: 'Etherlink governance history now recovers temporary source outages with bounded retries while preserving complete last-good receipts and launcher previews' },
             { type: '🔧', text: 'Release Radar records the published Octez 25.3 release and a fresh source review; the broader Tezos X launch remains unconfirmed' },
-            { type: '🔧', text: 'The header uptime metric shows years, months, and days again, using calendar month lengths and leap years' }
+            { type: '🔧', text: 'The header uptime metric shows years, months, and days again, using calendar month lengths and leap years' },
+            { type: '🔧', text: 'Baker Signal recognizes an already-open maintenance gap immediately instead of restarting a two-to-three-minute wait on every refresh' }
         ]
     },
     {
