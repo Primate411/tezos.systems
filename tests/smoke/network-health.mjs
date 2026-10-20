@@ -1267,7 +1267,7 @@ export function createNetworkHealthSmokeSuites({
       })}`
     );
     assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
-    assert(/[\d,]+ days/.test(healthState.topProofHistoryText) && /Zero outages/.test(healthState.topProofHistoryText), `network health chamber: header should show completed mainnet days and its outage caption: ${healthState.topProofHistoryText}`);
+    assert(/\d+y \d+mo \d+d/.test(healthState.topProofHistoryText) && /Zero outages/.test(healthState.topProofHistoryText), `network health chamber: header should show calendar years, months and days with its outage caption: ${healthState.topProofHistoryText}`);
     assert(healthState.topProofPairUnderTitle && healthState.topProofPairLeftAligned, `network health chamber: milestone/year pair should sit directly under Tezos Systems title: ${JSON.stringify({ under: healthState.topProofPairUnderTitle, aligned: healthState.topProofPairLeftAligned })}`);
     assert(healthState.topProofRuntimeVisualFontSize >= 18, `network health chamber: uptime numerals should remain legible without a detached event control: ${healthState.topProofRuntimeVisualFontSize}`);
     assert(healthState.topProofBadgeHeight > 0 && healthState.topProofPillHeight > 0 && healthState.topProofBadgeHeight <= healthState.topProofPillHeight * 1.5, `network health chamber: larger uptime proof should stay compact beside the right metric pills: ${healthState.topProofBadgeHeight}/${healthState.topProofPillHeight}`);
