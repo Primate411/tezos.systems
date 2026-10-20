@@ -737,9 +737,10 @@ inline modal styles in `js/core/app.js`.
   navigation-button styling and the corner gift launcher are unchanged. HEN stays
   tucked inside the corner gift tray instead of appearing as a separate header
   action. My Tezos stays expanded with its emoji and label at narrow widths.
-  The header presents completed mainnet days as a two-line statement:
-  `2,992 days` above `Zero outages`, with the launch origin in its hover and
-  accessible description. The day count uses the exact Block 1 timestamp and
+  The header presents mainnet age as a two-line statement:
+  `8y 3mo 19d` above `Zero outages`, with the full years, months, days and launch
+  origin in its hover and accessible description. The calendar age uses the
+  exact Block 1 timestamp, accounts for month lengths and leap years, and
   quietly updates at each completed day; the caption is editorial copy, not a
   value calculated from an availability percentage or incident ledger. The
   anniversary caption and milestone/history interactions remain available. Active baker

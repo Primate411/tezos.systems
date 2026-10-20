@@ -36,6 +36,8 @@ function emptyElapsedTime() {
     return {
         valid: false,
         years: 0,
+        months: 0,
+        daysAfterMonths: 0,
         days: 0,
         hours: 0,
         minutes: 0,
@@ -62,6 +64,22 @@ export function getCalendarElapsedTime(now = Date.now(), launchIso = MAINNET_LAU
     }
 
     const remainder = nowMs - anniversaryAt;
+    // Anchor each month to the anniversary date, clamping short months without
+    // carrying February's shorter day into March. Keep `days` below as the
+    // full remainder after years for the Network Health seconds clock.
+    const anniversary = new Date(anniversaryAt);
+    const monthAt = (offset) => {
+        const date = new Date(anniversaryAt);
+        date.setUTCDate(1);
+        date.setUTCMonth(anniversary.getUTCMonth() + offset);
+        const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+        date.setUTCDate(Math.min(anniversary.getUTCDate(), lastDay));
+        return date.getTime();
+    };
+    let months = (current.getUTCFullYear() - anniversary.getUTCFullYear()) * 12
+        + current.getUTCMonth() - anniversary.getUTCMonth();
+    if (nowMs < monthAt(months)) months -= 1;
+    const daysAfterMonths = Math.floor((nowMs - monthAt(months)) / DAY_MS);
     const days = Math.floor(remainder / DAY_MS);
     const hours = Math.floor((remainder % DAY_MS) / (60 * 60 * 1000));
     const minutes = Math.floor((remainder % (60 * 60 * 1000)) / (60 * 1000));
@@ -70,6 +88,8 @@ export function getCalendarElapsedTime(now = Date.now(), launchIso = MAINNET_LAU
     return {
         valid: true,
         years,
+        months,
+        daysAfterMonths,
         days,
         hours,
         minutes,

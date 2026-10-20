@@ -3839,32 +3839,39 @@ function initUptimeClock() {
         setTopContinuityText(valueId, pending);
     }
 
-    function renderTopContinuityRuntime(totalDays) {
-        return `<span class="top-continuity-time-segment"><span class="top-continuity-time-number">${totalDays.toLocaleString('en-US')}</span><span class="top-continuity-time-unit"> days</span></span>`;
+    function topContinuityRuntimeParts(elapsed) {
+        return [[elapsed.years, 'y'], [elapsed.months, 'mo'], [elapsed.daysAfterMonths, 'd']];
     }
 
-    function setTopContinuityRuntime(totalDays) {
+    function renderTopContinuityRuntime(elapsed) {
+        return topContinuityRuntimeParts(elapsed).map(([value, unit]) =>
+            `<span class="top-continuity-time-segment"><span class="top-continuity-time-number">${value}</span><span class="top-continuity-time-unit">${unit}</span></span>`
+        ).join(' ');
+    }
+
+    function setTopContinuityRuntime(elapsed) {
         const el = document.getElementById('hero-chain-uptime-counter');
         if (!el) {
             settleHeroArrival();
             return;
         }
 
-        const nextText = `${totalDays.toLocaleString('en-US')} days`;
+        const parts = topContinuityRuntimeParts(elapsed);
+        const nextText = parts.map(([value, unit]) => `${value}${unit}`).join(' ');
         if (el.dataset.finalText === nextText) return;
 
         el.dataset.finalText = nextText;
-        const finalHtml = renderTopContinuityRuntime(totalDays);
+        const finalHtml = renderTopContinuityRuntime(elapsed);
 
         if (!topContinuityArrivalStarted) {
             topContinuityArrivalStarted = true;
             topContinuityPanel?.classList.add('hero-arrival-pending');
             if (!prefersReducedMotion()) {
-                tweenNumber(el, 0, totalDays, {
+                tweenNumber(el, 0, 1, {
                     duration: 1200,
-                    formatter: (value) => {
-                        return `${Math.max(0, Math.floor(value)).toLocaleString('en-US')} days`;
-                    },
+                    formatter: (progress) => parts.map(([value, unit]) =>
+                        `${Math.max(0, Math.floor(value * progress))}${unit}`
+                    ).join(' '),
                     onDone: () => {
                         el.innerHTML = finalHtml;
                         revealTopContinuityPills();
@@ -4864,7 +4871,7 @@ function initUptimeClock() {
         setChainText('chain-uptime-issuance', chainIssuanceText);
     }
 
-    function applyUptimeAnniversaryState(anniversary, totalDays, upgradeCount) {
+    function applyUptimeAnniversaryState(anniversary, elapsed, upgradeCount) {
         const active = Boolean(anniversary?.isAnniversary);
         const activeMilestone = getUnseenUptimeMilestoneSignal();
         syncUptimeMilestoneCelebration(activeMilestone);
@@ -4880,9 +4887,11 @@ function initUptimeClock() {
         }
         if (!topContinuityHistory) return;
 
+        const calendarAge = [[elapsed.years, 'year'], [elapsed.months, 'month'], [elapsed.daysAfterMonths, 'day']]
+            .map(([value, unit]) => `${value} ${unit}${value === 1 ? '' : 's'}`).join(', ');
         const myth = active
             ? `${anniversary.message} ${upgradeCount} protocol upgrades adopted on-chain.`
-            : `${totalDays.toLocaleString('en-US')} days of Tezos mainnet history since 2018. Zero outages. ${upgradeCount} protocol upgrades adopted on-chain.`;
+            : `${calendarAge} of Tezos mainnet history since 2018. Zero outages. ${upgradeCount} protocol upgrades adopted on-chain.`;
         const milestoneLead = activeMilestone
             ? `${uptimeMilestoneStatus(activeMilestone) === 'crossed' ? 'Network milestone confirmed' : 'Network milestone approaching'}: ${describeUptimeMilestone(activeMilestone)}. `
             : '';
@@ -4893,14 +4902,14 @@ function initUptimeClock() {
         topContinuityHistory.setAttribute('aria-label', `${milestoneLead}${myth} ${action}`);
     }
 
-    // Keep the visible day count, anniversary and milestone state current.
+    // Keep the visible calendar age, anniversary and milestone state current.
     // Network Health owns its visible seconds clock; no hidden clock is painted.
     function tickUptime() {
         const now = Date.now();
-        const { totalDays } = getCalendarElapsedTime(now);
-        setTopContinuityRuntime(totalDays);
+        const elapsed = getCalendarElapsedTime(now);
+        setTopContinuityRuntime(elapsed);
         const upgradeCount = state.currentStats?.protocolCount || countProtocolUpgrades(state.protocols || []);
-        applyUptimeAnniversaryState(getTezosUptimeAnniversary(now), totalDays, upgradeCount);
+        applyUptimeAnniversaryState(getTezosUptimeAnniversary(now), elapsed, upgradeCount);
     }
 
     tickUptime();

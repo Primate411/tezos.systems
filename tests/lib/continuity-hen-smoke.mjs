@@ -32,6 +32,34 @@ export async function smokeChainContinuity(browser, baseUrl, { installFeatureMoc
     try {
       await page.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(() => window.__continuityTicks.home && /^\d/.test(document.getElementById('hero-chain-uptime-bakers')?.textContent || ''));
+      const calendar = await page.evaluate(() => {
+        const clock = document.getElementById('hero-chain-uptime-counter');
+        const now = Date.now;
+        try {
+          Date.now = () => Date.parse('2026-10-30T17:39:56Z');
+          window.__continuityTicks.home();
+          const before = clock.textContent;
+          const nodes = [...clock.querySelectorAll('.top-continuity-time-number')];
+          Date.now = () => Date.parse('2026-10-30T17:39:57Z');
+          window.__continuityTicks.home();
+          return {
+            before,
+            after: clock.textContent,
+            sameNodes: nodes.length === 3 && nodes.every((node, i) => node === clock.querySelectorAll('.top-continuity-time-number')[i]),
+            label: clock.closest('button').getAttribute('aria-label'),
+            fits: clock.getBoundingClientRect().left >= 0 && clock.getBoundingClientRect().right <= innerWidth
+          };
+        } finally { Date.now = now; window.__continuityTicks.home(); }
+      });
+      assert.equal(calendar.before, '8y 3mo 29d');
+      assert.equal(calendar.after, '8y 4mo 0d');
+      assert(calendar.sameNodes && calendar.fits, 'Calendar rollover preserves the existing numerals and fits the viewport');
+      assert.match(calendar.label, /8 years, 4 months, 0 days/);
+      if (artifactsDir) {
+        await page.screenshot({ path: path.join(artifactsDir, `uptime-clean-${width}.png`) });
+        await page.evaluate(async () => (await import('/js/ui/theme.js')).setTheme('dark'));
+        await page.screenshot({ path: path.join(artifactsDir, `uptime-dark-${width}.png`) });
+      }
       const idle = await page.evaluate(async () => {
         const { readDashboardContinuity } = await import('/js/core/chain-continuity.js');
         const snapshot = readDashboardContinuity();

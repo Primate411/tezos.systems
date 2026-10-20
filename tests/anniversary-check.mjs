@@ -42,6 +42,31 @@ assert.deepEqual(
     'pre-launch values must fail closed at zero'
 );
 
+for (const [now, expected] of [
+    ['2026-10-20T17:39:56Z', [8, 3, 19]],
+    ['2026-10-20T17:39:57Z', [8, 3, 20]],
+    ['2026-10-30T17:39:56Z', [8, 3, 29]],
+    ['2026-10-30T17:39:57Z', [8, 4, 0]],
+    ['2027-02-28T17:39:56Z', [8, 7, 28]],
+    ['2027-02-28T17:39:57Z', [8, 8, 0]],
+    ['2027-03-30T17:39:57Z', [8, 9, 0]],
+    ['2024-02-29T17:39:56Z', [5, 7, 29]],
+    ['2024-02-29T17:39:57Z', [5, 8, 0]],
+    ['2024-03-30T17:39:57Z', [5, 9, 0]],
+    ['2026-06-30T17:39:56Z', [7, 11, 30]],
+    ['2026-06-30T17:39:57Z', [8, 0, 0]],
+    ['2026-10-20T13:39:57-04:00', [8, 3, 20]],
+    ['2018-06-30T17:39:56Z', [0, 0, 0]],
+    ['not-a-timestamp', [0, 0, 0]]
+]) {
+    const age = getCalendarElapsedTime(now);
+    assert.deepEqual(
+        [age.years, age.months, age.daysAfterMonths],
+        expected,
+        `calendar age must respect UTC day, month and anniversary boundaries at ${now}`
+    );
+}
+
 const yearNine = getTezosUptimeAnniversary('2027-06-30T17:39:57Z');
 assert.equal(yearNine.isAnniversary, true, 'the year-nine pulse must activate at the exact anniversary');
 assert.equal(yearNine.years, 9);
