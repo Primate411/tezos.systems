@@ -5,6 +5,25 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-20',
+        entries: [
+            { type: '🔧', text: 'Etherlink governance history now recovers temporary source outages with bounded retries while preserving complete last-good receipts and launcher previews' },
+            { type: '🔧', text: 'Release Radar records the published Octez 25.3 release and a fresh source review; the broader Tezos X launch remains unconfirmed' }
+        ]
+    },
+    {
+        date: '2026-10-19',
+        entries: [
+            { type: '🔧', text: 'Community Funding retries temporary source outages within bounded limits and retains the original snapshot and preview clocks when recovery fails' }
+        ]
+    },
+    {
+        date: '2026-10-18',
+        entries: [
+            { type: '🔧', text: 'Milestones recover exact historical block timestamps through validated fallback sources and refresh before their freshness deadline' }
+        ]
+    },
+    {
         date: '2026-10-14',
         entries: [
             { type: '🔧', text: 'Block and cycle milestones wait for exact on-chain timestamps, recover late receipts quietly, and preserve the New marker when receipt validity changes' },

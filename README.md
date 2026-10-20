@@ -829,9 +829,10 @@ inline modal styles in `js/core/app.js`.
   may also show one score-58 Curio per UTC day from a protocol anniversary,
   fresh 30-day baker-address comparison, or mainnet-age fact.
 
-  Release Radar's October 10 review reconfirms EVM node 0.67
-  and Octez 25.2 using canonical publication receipts, unchanged
-  FAST periods 693/694 and the current launch-documentation notice. The Q3
+  Release Radar's October 20 review confirms Octez 25.3 from its canonical
+  binaries, protected tag and October 20 publication. It reconfirms EVM node 0.67,
+  complete governance histories with unchanged FAST periods 693/694, and
+  the current launch-documentation notice. The Q3
   mainnet target has elapsed; the unchanged Planned roadmap supplies no new date.
   September 24 Ganesha-r2 maintenance is explicitly
   scoped to Shadownet. October 6 RPC and October 8 Previewnet hardware maintenance
@@ -1737,6 +1738,11 @@ full source artifact.
 all-time-active crown from official canonical period ledgers plus complete TzKT
 big-map receipts; `npm run check:maxis-l2-governance` validates its coverage,
 reconstructed standings, and stable content hash without a network scan.
+L2 governance source reads have a 30-second deadline and four bounded attempts
+for temporary HTTP/network failures, respecting short Retry-After values. An
+exhausted temporary outage qualifies for one deferred lane retry and the existing
+bounded recovery supervisor. Invalid or incomplete receipts remain hard failures;
+failed refreshes retain the exact last-good career and matching launcher preview.
 Normal pre-commit runs
 validate committed Maxis artifacts without rescanning chain activity, while
 scheduled/full generated runs refresh the L2 career before the remaining Maxis

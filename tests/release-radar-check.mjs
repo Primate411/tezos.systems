@@ -41,7 +41,10 @@ for (const url of [
 assert(tezosX.history.some(row => /Retracted the earlier FAST-null inference/.test(row.reason)), 'the prior mistaken inference is explicitly corrected in history');
 assert.equal(octez.confidence, 'high', 'published binaries and a canonical release support confirmed release confidence');
 assert.equal(octez.lifecycle, 'released');
-assert.equal(octez.releasedAt, '2026-09-02T14:22:03.407Z', 'Octez publication must use released_at, not the August 24 source commit date');
+assert.equal(octez.label, 'Octez 25.3');
+assert.equal(octez.releasedAt, '2026-10-20T08:19:14.336Z', 'Octez publication must use released_at, not the October 15 source commit date');
+assert(octez.evidence.some(receipt => receipt.url.endsWith('/releases/octez-v25.2')), 'the superseded publication receipt remains inspectable');
+assert(octez.history.some(row => /confirm Octez 25.3, superseding 25.2/.test(row.reason)), 'a material release change appends history');
 assert(octez.evidence.some((receipt) => receipt.url === 'https://octez.tezos.com/releases/'), 'the Octez lane checks the canonical public release page');
 assert.equal(evmNode.lifecycle, 'released', 'the direct 0.67 publication is a confirmed release');
 assert.equal(evmNode.label, 'EVM Node 0.67');

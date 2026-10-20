@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
+import { fetchL2GovernanceJson as fetchJson } from './lib/maxis-l2-governance-fetch.mjs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
@@ -48,20 +49,6 @@ async function writeJsonAtomic(file, value) {
   await fs.rename(temporary, file);
 }
 
-async function fetchJson(url, attempts = 4) {
-  let lastError = null;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      const response = await fetch(url, { headers: { accept: 'application/json' } });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
-    } catch (error) {
-      lastError = error;
-      if (attempt + 1 < attempts) await new Promise((resolve) => setTimeout(resolve, 300 * (2 ** attempt)));
-    }
-  }
-  throw new Error(`${url} failed after ${attempts} attempts: ${lastError?.message || lastError}`);
-}
 
 function tzktUrl(pathname, params = {}) {
   const url = new URL(`${TZKT}${pathname}`);
@@ -365,6 +352,6 @@ export {
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   main().catch((error) => {
     console.error(error);
-    process.exit(1);
+    process.exit(error.exitCode === 75 ? 75 : 1);
   });
 }

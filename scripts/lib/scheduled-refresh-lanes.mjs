@@ -22,6 +22,7 @@ export const SCHEDULED_REFRESH_LANES = Object.freeze([
   },
   {
     id: 'maxis-l2-governance',
+    retryTransient: true,
     label: 'Maxis L2 governance career',
     targets: ['data/maxis-l2-governance.json', 'data/maxis/entry-summary.json'],
     sharedTargets: ['data/maxis/entry-summary.json'],
