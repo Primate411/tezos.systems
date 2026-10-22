@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-22',
+        entries: [
+            { type: '🔧', text: 'Baker maintenance release checks now handle minute boundaries reliably while preserving strict return buffers and freshness limits' }
+        ]
+    },
+    {
         date: '2026-10-20',
         entries: [
             { type: '🔧', text: 'Etherlink governance history now recovers temporary source outages with bounded retries while preserving complete last-good receipts and launcher previews' },

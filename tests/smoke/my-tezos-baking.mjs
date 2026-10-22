@@ -269,6 +269,9 @@ export function createMyTezosBakingSmokeSuites({
       }));
       let attestationStatuses = Array(10).fill('missed');
       let attestationHead = 12345670;
+      // A 20-minute head-relative opening fits 15 minutes plus the return
+      // buffer even with a fresh-but-aged head and inward minute rounding.
+      // Exact cutoff cases live in baker-schedule-check with a fixed clock.
       let scheduleMode = 'complete';
       await context.route('**/v1/rights?**', (route) => {
         const query = new URL(route.request().url()).searchParams;
@@ -279,7 +282,7 @@ export function createMyTezosBakingSmokeSuites({
           assert(query.get('level.gt') === '12345678', 'Schedule must start beyond the confirmed head');
           if (scheduleMode === 'unavailable') return fulfillJson(route, null);
           return fulfillJson(route, Array.from({ length: scheduleMode === 'short' ? 2 : scheduleMode === 'empty' ? 0 : 100 }, (_, index) => ({
-            level: (scheduleMode === 'open' ? 12346749 : 12345858) + index * 600, round: 0, status: 'future', type: 'baking'
+            level: (scheduleMode === 'open' ? 12346749 : 12345878) + index * 600, round: 0, status: 'future', type: 'baking'
           })));
         }
         if (query.get('type') !== 'attestation') return route.fallback();
@@ -533,7 +536,7 @@ export function createMyTezosBakingSmokeSuites({
       assert(nextStyle.every(tile => tile.height - tile.contentHeight < 85), 'Upcoming rights must not stretch into tall empty boxes');
       const rewardNotice = await page.locator('.drawer-schedule-reward-note').innerText();
       assert(rewardNotice.includes('2/3') && rewardNotice.includes('64%') && rewardNotice.toLowerCase().includes('cycle rewards'), 'Reward notice must use the separate current consensus and DAL thresholds');
-      assert((await page.locator('.drawer-maintenance-result').innerText()).includes('Available now'), 'The current 18-minute opening fits 15 minutes and the two-minute return buffer');
+      assert((await page.locator('.drawer-maintenance-result').innerText()).includes('Available now'), 'The current 20-minute opening fits 15 minutes and the two-minute return buffer');
       await page.locator('#baker-maintenance-duration').selectOption('30');
       await page.locator('[data-quiet-key="schedule-method"] summary').click();
       const scheduleBefore = await page.evaluate(() => {
@@ -567,7 +570,7 @@ export function createMyTezosBakingSmokeSuites({
           `Baker schedule ${label}: moved the reading position or selection ${JSON.stringify({ current, scheduleBefore })}`);
       };
       const beforeRefresh = await page.locator('.drawer-baker-schedule').getAttribute('data-schedule-checked');
-      await page.waitForFunction(() => document.querySelector('.drawer-maintenance-result')?.textContent.includes('After level 12,345,858'));
+      await page.waitForFunction(() => document.querySelector('.drawer-maintenance-result')?.textContent.includes('After level 12,345,878'));
       await page.waitForFunction(before => document.querySelector('.drawer-baker-schedule')?.dataset.scheduleChecked !== before, beforeRefresh);
       await checkScheduleReader();
       const levelsBeforeFailure = await page.locator('.drawer-schedule-right .drawer-operator-detail').allTextContents();

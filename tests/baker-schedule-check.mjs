@@ -32,6 +32,33 @@ const shortOpening = planBakerMaintenance(build([row(1030)]), { durationMinutes:
 assert.equal(shortOpening.earliest, null, 'A three-minute opening cannot fit five minutes plus the return buffer');
 assert.equal(shortOpening.longest.durationMs, 60_000, 'The current opening reserves its buffer before the next right');
 
+// Hosted canary 39617317776 crossed a minute boundary with a 1.875s-old
+// head. An 18-minute head-relative ETA rounded down to a 14m58.706s gap.
+// Preserve that conservative rejection instead of making the planner looser.
+const canaryNow = Date.parse('2026-10-21T14:49:01.294Z');
+const canarySchedule = build([row(12345858), row(12346458)], {
+    head: { level: 12345678, timestamp: '2026-10-21T14:48:59.419Z' },
+    observedAt: canaryNow
+});
+assert.equal(planBakerMaintenance(canarySchedule, { now: canaryNow }).earliest.afterLevel, 12345858,
+    'A rounded current gap shorter than 15 minutes must defer to the next real gap');
+
+// The live reader-state fixture must fit for every minute phase and throughout
+// the entire permitted head-age range, independent of hosted scheduling speed.
+for (const phaseMs of [0, 1, 30_000, 59_999]) {
+    for (const headAgeMs of [0, 1_875, 60_000, 90_000]) {
+        const readAt = now + phaseMs;
+        const safeFixture = build([row(1200), row(1800)], {
+            head: { ...head, timestamp: new Date(readAt - headAgeMs).toISOString() },
+            observedAt: readAt
+        });
+        const fit = planBakerMaintenance(safeFixture, { now: readAt }).earliest;
+        assert.equal(fit.start, readAt, 'The 20-minute fixture always fits while its head is fresh');
+        assert.equal(fit.afterLevel, null);
+        assert(fit.outageEnd <= fit.end && fit.end <= safeFixture.assignments[0].at - 120_000);
+    }
+}
+
 // Reproduce the 1h47m-to-next-block screenshot, including refreshes that used
 // to keep moving an artificial three-minute start into the future.
 const screenshotNow = Date.parse('2026-10-20T11:17:10-04:00');

@@ -1404,6 +1404,9 @@ inline modal styles in `js/core/app.js`.
   Estimates use a confirmed head timestamp and the current protocol block delay.
   Missing, stale, malformed, or slipped timing withholds maintenance suggestions
   while retaining the last confirmed schedule.
+  Browser checks use a 20-minute fixture opening that remains valid across fresh
+  head ages and minute boundaries; fixed-clock regressions verify exact cutoffs
+  and preserve the two-minute return buffer.
   Short schedules disclose their returned count; no gap is inferred after the last
   assignment. These are round-0 baking gaps only: attestation, DAL, and later-round
   duties can still occur. The selector, open methodology, and reader state survive
