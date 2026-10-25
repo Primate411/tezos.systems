@@ -12,6 +12,9 @@ import {
   MINERALS,
   TOKEN_PRODUCTS,
   WORLD_BANK_SERIES,
+  attemptSource,
+  buildTokenChain,
+  contentHash,
   buildProjection,
   validateProjection,
   validateSnapshot
@@ -62,16 +65,22 @@ const EXPECTED_MARKET_UNITS = {
 
 const EXPECTED_TOKENS = {
   xCo: {
+    responseSymbols: ['xCo', 'XCO'],
+    decimals: 18,
     address: '0x21a92d78F18268AdadA1227E1F1134C6C32DbD67',
     commodities: ['cobalt'],
     implementation: '0x45F8110Bc03C9396ccfBB07A16D58785bFd67F22'
   },
   xNi: {
+    responseSymbols: ['xNi', 'XNI'],
+    decimals: 18,
     address: '0x8190b536B30F519D10891eCBd96AbC52E2e70638',
     commodities: ['nickel'],
     implementation: '0x45F8110Bc03C9396ccfBB07A16D58785bFd67F22'
   },
   RARE: {
+    responseSymbols: ['RARE'],
+    decimals: 4,
     address: '0x6Ce393fF9Ed5465CC4DEf456B8401e03cEF64d5e',
     commodities: ['hafnium', 'rhenium', 'indium', 'neodymium', 'praseodymium'],
     implementation: '0x56b2C0579b609a995e481fEB089f7861C8554829'
@@ -397,6 +406,65 @@ assert.equal(entry.marketPulse.seriesId, 'copper');
 assert.equal(entry.marketPulse.rows.length, 36);
 assert.deepEqual(entry.marketPulse.rows, snapshot.markets.series.copper.rows.slice(-36));
 
+// Explorer metadata is a source label, not the product or contract identity.
+// Exercise the actual collection and last-good paths without external I/O.
+for (const [key, expected] of Object.entries(EXPECTED_TOKENS)) {
+  const product = TOKEN_PRODUCTS[key];
+  const token = { address_hash: expected.address, name: key, symbol: key,
+    type: 'ERC-20', decimals: String(expected.decimals), total_supply: '100000' };
+  const readJson = async url => {
+    if (url.includes('/smart-contracts/')) return { is_verified: true, proxy_type: 'eip1967',
+      implementations: [{ address_hash: expected.implementation, name: 'ERC20PoolToken' }] };
+    if (url.endsWith('/counters')) return { token_holders_count: '2', transfers_count: '3' };
+    if (url.endsWith('/holders') || url.endsWith('/transfers')) return { items: [], next_page_params: null };
+    return token;
+  };
+  for (const symbol of expected.responseSymbols) {
+    token.symbol = symbol;
+    const result = await buildTokenChain(product, readJson);
+    assert.equal(result.data.token.symbol, symbol, 'raw explorer symbol is retained');
+    assert.equal(result.receipt.responseSymbol, symbol);
+    assert.equal(result.data.token.address, expected.address);
+    const candidate = structuredClone(snapshot);
+    candidate.tokenized.products[key].chain.token.symbol = symbol;
+    candidate.sources[product.sourceKey].receipt.responseSymbol = symbol;
+    candidate.contentHash = contentHash(candidate);
+    assert.equal(validateSnapshot(candidate), true);
+  }
+  const previousData = snapshot.tokenized.products[key].chain;
+  const previousSource = snapshot.sources[product.sourceKey];
+  for (const [field, value, message] of [
+    ['symbol', key.toLowerCase(), /symbol changed/],
+    ['symbol', key === 'xCo' ? 'XNI' : 'XCO', /symbol changed/],
+    ['symbol', 'UNKNOWN', /symbol changed/],
+    ['address_hash', '0x0000000000000000000000000000000000000001', /address changed/],
+    ['type', 'ERC-721', /not ERC-20/],
+    ['decimals', '0', /decimals are invalid/]
+  ]) {
+    const original = token[field]; token[field] = value;
+    await assert.rejects(() => buildTokenChain(product, readJson), message);
+    const retained = await attemptSource(product.sourceKey,
+      () => buildTokenChain(product, readJson), previousData, previousSource);
+    assert.strictEqual(retained.data, previousData);
+    assert.equal(retained.source.status, 'stale');
+    assert.equal(retained.source.observedAt, previousSource.observedAt);
+    assert.equal(retained.source.retrievedAt, previousSource.retrievedAt);
+    assert.deepEqual(retained.source.receipt, previousSource.receipt);
+    assert.match(retained.source.error, message);
+    token[field] = original;
+  }
+  for (const [field, value, message] of [
+    ['symbol', 'UNKNOWN', /symbol changed/],
+    ['address', '0x0000000000000000000000000000000000000001', /address changed/],
+    ['type', 'ERC-721', /type changed/], ['decimals', 0, /decimals changed/]
+  ]) {
+    const candidate = structuredClone(snapshot);
+    candidate.tokenized.products[key].chain.token[field] = value;
+    candidate.contentHash = contentHash(candidate);
+    assert.throws(() => validateSnapshot(candidate), message);
+  }
+}
+
 // xCo, xNi, and RARE remain bounded chain observations, separate from issuer claims and market evidence.
 assert.deepEqual(Object.keys(snapshot.tokenized.products), ['xCo', 'xNi', 'RARE']);
 assert.deepEqual(Object.keys(TOKEN_PRODUCTS), ['xCo', 'xNi', 'RARE']);
@@ -407,7 +475,9 @@ for (const [key, expected] of Object.entries(EXPECTED_TOKENS)) {
   assert.deepEqual(product.commodityIds, expected.commodities);
   assert.equal(product.chain.token.address, expected.address);
   assert.equal(product.chain.token.address, TOKEN_PRODUCTS[key].address);
-  assert.equal(product.chain.token.symbol, key);
+  assert.ok(expected.responseSymbols.includes(product.chain.token.symbol));
+  assert.equal(product.chain.token.decimals, expected.decimals);
+  assert.deepEqual(TOKEN_PRODUCTS[key].responseSymbols, expected.responseSymbols);
   assert.equal(product.chain.token.type, 'ERC-20');
   assert.ok(['ok', 'stale', 'unavailable'].includes(product.chain.status));
   assert.equal(product.chain.controls.proxyType, 'eip1967');
@@ -468,7 +538,8 @@ for (const key of ['usgsCriticalList', 'metalsIoCatalog', 'metalsIoProducts']) {
 for (const [key, symbol] of [['blockscoutXco', 'xCo'], ['blockscoutXni', 'xNi'], ['blockscoutRare', 'RARE']]) {
   const receipt = snapshot.sources[key].receipt;
   assert.equal(receipt.address, EXPECTED_TOKENS[symbol].address);
-  assert.equal(receipt.responseSymbol, symbol);
+  assert.equal(receipt.responseSymbol, snapshot.tokenized.products[symbol].chain.token.symbol);
+  assert.ok(EXPECTED_TOKENS[symbol].responseSymbols.includes(receipt.responseSymbol));
   assert.equal(receipt.transferRowsReturned, 50);
   assert.equal(receipt.transferPageComplete, false);
   assert.equal(receipt.implementationAddress, EXPECTED_TOKENS[symbol].implementation);

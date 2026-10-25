@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-25',
+        entries: [
+            { type: '🔧', text: 'Critical Minerals refreshes xCo and xNi after Blockscout changed their metadata labels, preserving exact contract identities, raw source receipts, and last-good data on unexpected changes' }
+        ]
+    },
+    {
         date: '2026-10-24',
         entries: [
             { type: '🔧', text: 'The header uptime metric spells out years, months, and days, with singular labels when needed' }

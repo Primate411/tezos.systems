@@ -909,7 +909,10 @@ inline modal styles in `js/core/app.js`.
   metallurgical coal, and absent USGS chapters remain explicitly unavailable.
   **Etherlink** keeps Metals.io-attributed xCo, xNi, and RARE product statements
   separate from Blockscout token metadata, counters, bounded holder-address and
-  latest-transfer pages, and verified proxy lineage. Issuer claims and RARE
+  latest-transfer pages, and verified proxy lineage. The reviewed Blockscout
+  labels `XCO` and `XNI` are accepted only for their pinned xCo/xNi addresses
+  and decimals; raw source symbols stay in the receipts, while unexpected
+  identities retain last-good data. Issuer claims and RARE
   basket composition are not independent backing, custody, entitlement, or
   reserve proof; chain supply, addresses, and transfers do not prove people,
   ownership, liquidity, price, reserves, redemption, or execution. xU3O8 and

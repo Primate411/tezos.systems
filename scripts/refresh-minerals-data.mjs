@@ -28,10 +28,15 @@ const BLOCKSCOUT = 'https://explorer.etherlink.com';
 const REVIEWED_AT = '2026-08-01T00:00:00.000Z';
 const REVIEW_EXPIRES_AT = '2026-08-31T23:59:59.999Z';
 
+// Reviewed 2026-10-25: Blockscout metadata uses XCO/XNI, while the pinned
+// contracts' symbol() and Metals.io product pages still use xCo/xNi. Keep the
+// exact observed label; only these source-specific aliases are accepted.
 const TOKEN_PRODUCTS = Object.freeze({
   xCo: {
     name: 'xCo',
     symbol: 'xCo',
+    responseSymbols: Object.freeze(['xCo', 'XCO']),
+    decimals: 18,
     address: '0x21a92d78F18268AdadA1227E1F1134C6C32DbD67',
     commodityIds: ['cobalt'],
     sourceKey: 'blockscoutXco'
@@ -39,6 +44,8 @@ const TOKEN_PRODUCTS = Object.freeze({
   xNi: {
     name: 'xNi',
     symbol: 'xNi',
+    responseSymbols: Object.freeze(['xNi', 'XNI']),
+    decimals: 18,
     address: '0x8190b536B30F519D10891eCBd96AbC52E2e70638',
     commodityIds: ['nickel'],
     sourceKey: 'blockscoutXni'
@@ -46,6 +53,8 @@ const TOKEN_PRODUCTS = Object.freeze({
   RARE: {
     name: 'Strategic Metals Basket',
     symbol: 'RARE',
+    responseSymbols: Object.freeze(['RARE']),
+    decimals: 4,
     address: '0x6Ce393fF9Ed5465CC4DEf456B8401e03cEF64d5e',
     commodityIds: ['hafnium', 'rhenium', 'indium', 'neodymium', 'praseodymium'],
     sourceKey: 'blockscoutRare'
@@ -934,20 +943,20 @@ function tokenValue(raw, decimals) {
   return Number.isFinite(numeric) ? round(numeric, 8) : decimal;
 }
 
-async function buildTokenChain(product) {
+async function buildTokenChain(product, readJson = requestJson) {
   const base = `${BLOCKSCOUT}/api/v2/tokens/${product.address}`;
   const [token, counters, holders, transfers, contract] = await Promise.all([
-    requestJson(base),
-    requestJson(`${base}/counters`),
-    requestJson(`${base}/holders`),
-    requestJson(`${base}/transfers`),
-    requestJson(`${BLOCKSCOUT}/api/v2/smart-contracts/${product.address}`)
+    readJson(base),
+    readJson(`${base}/counters`),
+    readJson(`${base}/holders`),
+    readJson(`${base}/transfers`),
+    readJson(`${BLOCKSCOUT}/api/v2/smart-contracts/${product.address}`)
   ]);
   assert(String(token.address_hash).toLowerCase() === product.address.toLowerCase(), `${product.symbol} token address changed`);
-  assert(token.symbol === product.symbol, `${product.symbol} response symbol changed`);
+  assert(product.responseSymbols.includes(token.symbol), `${product.symbol} response symbol changed`);
   assert(token.type === 'ERC-20', `${product.symbol} response is not ERC-20`);
   const decimals = integer(token.decimals);
-  assert(decimals !== null && decimals >= 0 && decimals <= 36, `${product.symbol} decimals are invalid`);
+  assert(decimals === product.decimals, `${product.symbol} decimals are invalid`);
   const observedAt = new Date().toISOString();
   const topHolders = (holders.items || []).slice(0, 50).map((entry) => ({
     address: entry.address?.hash || null,
@@ -1360,7 +1369,10 @@ function validateSnapshot(snapshot, bytes = null) {
     const product = snapshot.tokenized?.products?.[key];
     assert(product?.catalogStatus === 'live', `${key} reviewed catalog status changed`);
     assert(product.chain?.token?.address?.toLowerCase() === expected.address.toLowerCase(), `${key} token address changed`);
-    assert(product.chain?.token?.symbol === expected.symbol, `${key} token symbol changed`);
+    assert(expected.responseSymbols.includes(product.chain?.token?.symbol), `${key} token symbol changed`);
+    assert(product.chain.token.type === 'ERC-20', `${key} token type changed`);
+    assert(product.chain.token.decimals === expected.decimals, `${key} token decimals changed`);
+    assert(snapshot.sources?.[expected.sourceKey]?.receipt?.responseSymbol === product.chain.token.symbol, `${key} response symbol receipt mismatch`);
     assert(['ok', 'stale', 'unavailable'].includes(product.chain.status), `${key} chain status is invalid`);
   }
   assert(snapshot.tokenized?.rareBasket?.composition?.length === 5, 'RARE composition must retain five explicit rows');
@@ -1473,6 +1485,8 @@ export {
   MINERALS,
   TOKEN_PRODUCTS,
   WORLD_BANK_SERIES,
+  attemptSource,
+  buildTokenChain,
   buildProjection,
   checkCommittedPair,
   contentHash,
