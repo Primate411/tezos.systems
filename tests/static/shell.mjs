@@ -1510,7 +1510,7 @@ export function createShellStaticChecks({
       ['top continuity hero settled promise', 'window.tezosSystemsHeroSettled = heroSettled', app],
       ['top continuity toast gate waits for hero', 'setToastGate(heroSettled)', app],
       ['toast queue waits for hero gate', 'await waitForGate();', toastQueue],
-      ['top continuity counter tween', 'tweenNumber(el, 0, 1,', app],
+      ['top continuity counter tween', 'tweenNumber(number, 0, parts[index][0],', app],
       ['top continuity pill stagger', '}, index * 80);', app],
       ['top continuity arrival pending class', 'hero-arrival-pending', app],
       ['top continuity arrival completion class', 'hero-arrived', app],

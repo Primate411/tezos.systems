@@ -738,7 +738,7 @@ inline modal styles in `js/core/app.js`.
   tucked inside the corner gift tray instead of appearing as a separate header
   action. My Tezos stays expanded with its emoji and label at narrow widths.
   The header presents mainnet age as a two-line statement:
-  `8y 3mo 19d` above `Zero outages`, with the full years, months, days and launch
+  `8 years 3 months 19 days` above `Zero outages`, with the full years, months, days and launch
   origin in its hover and accessible description. The calendar age uses the
   exact Block 1 timestamp, accounts for month lengths and leap years, and
   quietly updates at each completed day; the caption is editorial copy, not a

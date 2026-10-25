@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-24',
+        entries: [
+            { type: '🔧', text: 'The header uptime metric spells out years, months, and days, with singular labels when needed' }
+        ]
+    },
+    {
         date: '2026-10-22',
         entries: [
             { type: '🔧', text: 'Baker maintenance release checks now handle minute boundaries reliably while preserving strict return buffers and freshness limits' }

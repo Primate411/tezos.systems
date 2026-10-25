@@ -51,8 +51,8 @@ export async function smokeChainContinuity(browser, baseUrl, { installFeatureMoc
           };
         } finally { Date.now = now; window.__continuityTicks.home(); }
       });
-      assert.equal(calendar.before, '8y 3mo 29d');
-      assert.equal(calendar.after, '8y 4mo 0d');
+      assert.equal(calendar.before, '8 years 3 months 29 days');
+      assert.equal(calendar.after, '8 years 4 months 0 days');
       assert(calendar.sameNodes && calendar.fits, 'Calendar rollover preserves the existing numerals and fits the viewport');
       assert.match(calendar.label, /8 years, 4 months, 0 days/);
       if (artifactsDir) {

@@ -1267,13 +1267,13 @@ export function createNetworkHealthSmokeSuites({
       })}`
     );
     assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
-    assert(/\d+y \d+mo \d+d/.test(healthState.topProofHistoryText) && /Zero outages/.test(healthState.topProofHistoryText), `network health chamber: header should show calendar years, months and days with its outage caption: ${healthState.topProofHistoryText}`);
+    assert(/\d+ years? \d+ months? \d+ days?/.test(healthState.topProofHistoryText) && /Zero outages/.test(healthState.topProofHistoryText), `network health chamber: header should show calendar years, months and days with its outage caption: ${healthState.topProofHistoryText}`);
     assert(healthState.topProofPairUnderTitle && healthState.topProofPairLeftAligned, `network health chamber: milestone/year pair should sit directly under Tezos Systems title: ${JSON.stringify({ under: healthState.topProofPairUnderTitle, aligned: healthState.topProofPairLeftAligned })}`);
     assert(healthState.topProofRuntimeVisualFontSize >= 18, `network health chamber: uptime numerals should remain legible without a detached event control: ${healthState.topProofRuntimeVisualFontSize}`);
     assert(healthState.topProofBadgeHeight > 0 && healthState.topProofPillHeight > 0 && healthState.topProofBadgeHeight <= healthState.topProofPillHeight * 1.5, `network health chamber: larger uptime proof should stay compact beside the right metric pills: ${healthState.topProofBadgeHeight}/${healthState.topProofPillHeight}`);
     assert(healthState.topProofBadgeRadius > 0 && healthState.topProofBadgeRadius < healthState.topProofPillRadius, `network health chamber: uptime badge should be squarer than right pills: ${healthState.topProofBadgeRadius}/${healthState.topProofPillRadius}`);
     assert(!/\|/.test(healthState.topProofHistoryText), `network health chamber: top uptime badge should not add a pipe: ${healthState.topProofHistoryText}`);
-    assert(/^\d+y \d+mo \d+d$/.test(healthState.topProofCounter), `network health chamber: top proof runtime should show calendar years, months and days: ${healthState.topProofCounter}`);
+    assert(/^\d+ years? \d+ months? \d+ days?$/.test(healthState.topProofCounter), `network health chamber: top proof runtime should show calendar years, months and days: ${healthState.topProofCounter}`);
     assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
     assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
     assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofStaked), `network health chamber: top proof staked ratio mismatch: ${healthState.topProofStaked}`);

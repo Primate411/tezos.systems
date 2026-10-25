@@ -3840,12 +3840,13 @@ function initUptimeClock() {
     }
 
     function topContinuityRuntimeParts(elapsed) {
-        return [[elapsed.years, 'y'], [elapsed.months, 'mo'], [elapsed.daysAfterMonths, 'd']];
+        return [[elapsed.years, 'year'], [elapsed.months, 'month'], [elapsed.daysAfterMonths, 'day']]
+            .map(([value, unit]) => [value, `${unit}${value === 1 ? '' : 's'}`]);
     }
 
     function renderTopContinuityRuntime(elapsed) {
         return topContinuityRuntimeParts(elapsed).map(([value, unit]) =>
-            `<span class="top-continuity-time-segment"><span class="top-continuity-time-number">${value}</span><span class="top-continuity-time-unit">${unit}</span></span>`
+            `<span class="top-continuity-time-segment"><span class="top-continuity-time-number">${value}</span><span class="top-continuity-time-unit"> ${unit}</span></span>`
         ).join(' ');
     }
 
@@ -3857,7 +3858,7 @@ function initUptimeClock() {
         }
 
         const parts = topContinuityRuntimeParts(elapsed);
-        const nextText = parts.map(([value, unit]) => `${value}${unit}`).join(' ');
+        const nextText = parts.map(([value, unit]) => `${value} ${unit}`).join(' ');
         if (el.dataset.finalText === nextText) return;
 
         el.dataset.finalText = nextText;
@@ -3867,15 +3868,17 @@ function initUptimeClock() {
             topContinuityArrivalStarted = true;
             topContinuityPanel?.classList.add('hero-arrival-pending');
             if (!prefersReducedMotion()) {
-                tweenNumber(el, 0, 1, {
-                    duration: 1200,
-                    formatter: (progress) => parts.map(([value, unit]) =>
-                        `${Math.max(0, Math.floor(value * progress))}${unit}`
-                    ).join(' '),
-                    onDone: () => {
-                        el.innerHTML = finalHtml;
-                        revealTopContinuityPills();
-                    }
+                el.innerHTML = finalHtml;
+                const numbers = el.querySelectorAll('.top-continuity-time-number');
+                numbers.forEach((number, index) => {
+                    number.textContent = '0';
+                    tweenNumber(number, 0, parts[index][0], {
+                        duration: 1200,
+                        formatter: (value) => String(Math.max(0, Math.floor(value))),
+                        onDone: () => {
+                            if (index === numbers.length - 1) revealTopContinuityPills();
+                        }
+                    });
                 });
                 return;
             }
