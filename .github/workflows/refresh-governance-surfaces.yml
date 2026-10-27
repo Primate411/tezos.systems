@@ -72,9 +72,11 @@ jobs:
         run: npm run test:static
 
       - name: Commit successful lane changes
+        id: publish
         if: always() && steps.cadence.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GENERATED_REFRESH_LANES: ${{ inputs.lanes }}
         run: |
           if [ "${{ steps.site_contracts.outcome }}" != "success" ]; then
             echo "Complete site contracts failed; refusing to publish"
@@ -84,19 +86,15 @@ jobs:
             echo "Scheduled refresh did not produce a complete report; refusing to publish"
             exit 1
           fi
-          mapfile -t targets < <(node scripts/refresh-scheduled-data.mjs --print-targets)
-          if [ -z "$(git status --porcelain -- "${targets[@]}")" ]; then
-            echo "No successful generated-data changes"
-            exit 0
-          fi
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          ./scripts/stamp-version.sh
-          git add -- "${targets[@]}" version.json
-          git commit -m "Refresh generated data lanes"
-          git push
-          gh workflow run ci.yml --ref main
+          node scripts/publish-scheduled-data.mjs --report "$RUNNER_TEMP/generated-refresh-report.json" --publication-report "$RUNNER_TEMP/generated-publication-report.json"
+
+      - name: Validate and deploy the published data
+        if: steps.publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref main
 
       - name: Report failed lanes and contract audits
         if: always() && steps.cadence.outputs.skip != 'true'
@@ -116,6 +114,8 @@ jobs:
         uses: ./.github/actions/upload-artifact
         with:
           name: generated-refresh-report
-          path: ${{ runner.temp }}/generated-refresh-report.json
+          path: |
+            ${{ runner.temp }}/generated-refresh-report.json
+            ${{ runner.temp }}/generated-publication-report.json
           if-no-files-found: error
           retention-days: 14

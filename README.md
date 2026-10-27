@@ -1899,7 +1899,14 @@ evidence always perform the requested scan. Each source family
 runs and validates in an isolated temporary Git worktree. A failed family is
 restored to its exact last-good files while later, unrelated families continue;
 the workflow commits the successful lanes and then remains red with the failed
-lane named in its report. Temporary OBJKT failures in Maxis use paced requests
+lane named in its report. Publication uses a separate temporary worktree and
+checks current `main` before pushing. If `main` advanced during collection or
+before the push was accepted, it recollects the requested lanes using the new
+source tree, reruns the complete static gate, and restamps version metadata.
+It allows three publication attempts, never forces a push or overlays old
+snapshots onto new source, and preserves every attempt in
+`generated-publication-report.json` alongside the terminal lane report.
+Temporary OBJKT failures in Maxis use paced requests
 and smaller physical keyset pages that reconstruct the unchanged 500-row
 logical response. A shared 650ms interval after each completed request stays
 below the provider's [120 requests/minute limit](https://data.objkt.com/docs/),

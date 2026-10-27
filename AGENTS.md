@@ -37,6 +37,11 @@ the highest-risk gotchas.
   lanes in an isolated temporary Git worktree, restores a failed lane to its
   exact last-good files, continues unrelated lanes, publishes successful lanes,
   and leaves the Action red with a machine-readable failure report.
+- `scripts/publish-scheduled-data.mjs` publishes scheduled data in a separate
+  worktree. A moving `main` triggers fresh collection and full static validation
+  against its new tree, with three bounded publication attempts. Never replace
+  this with forced pushes or an unchecked generated-data rebase. Keep each
+  publication attempt and the terminal lane report in the uploaded artifact.
 - `.github/workflows/audit-generated-freshness.yml` is a separate read-only
   six-hour alarm. It enforces an 18-hour generated-data ceiling, the completed
   Monday-to-Monday Ecosystem rollover after an 18-hour grace period, and the

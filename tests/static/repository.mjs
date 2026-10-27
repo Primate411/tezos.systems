@@ -315,7 +315,7 @@ export function createRepositoryStaticChecks({
       'refresh:nakamoto': 'node scripts/refresh-nakamoto-sources.mjs',
       test: 'npm run test:static && npm run test:smoke:ci',
       'test:static': 'node tests/run-static.mjs',
-      'test:scheduled-refresh': 'node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs',
+      'test:scheduled-refresh': 'node tests/scheduled-refresh-check.mjs && node tests/scheduled-publication-check.mjs && node tests/generated-freshness-check.mjs',
       'test:smoke': 'node tests/smoke.mjs',
       'test:smoke:ci': 'node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic',
       'test:affected': 'npm run test:static && node tests/smoke.mjs --affected-since origin/main --affected-high-risk-repeat 3 --continue-on-failure --retry-infrastructure 1 --isolate-suites --hermetic',

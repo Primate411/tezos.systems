@@ -170,7 +170,7 @@ export function createDataStaticChecks({
       || !freshnessContracts.includes("GENERATED_PROOFBOOK_SCHEDULE_LABEL = '6h schedule'")) {
       fail('generated proofbook schedule disclosure must match the six-hour workflow cadence');
     }
-    for (const snippet of ['--report "$RUNNER_TEMP/generated-refresh-report.json"', 'continue-on-error: true', '--check-report', 'refresh-scheduled-data.mjs --print-targets']) {
+    for (const snippet of ['--report "$RUNNER_TEMP/generated-refresh-report.json"', 'continue-on-error: true', '--check-report', 'publish-scheduled-data.mjs']) {
       if (!generatedWorkflow.includes(snippet)) fail(`scheduled generated-data workflow must preserve partial success through ${snippet}`);
     }
     for (const snippet of ['git', 'worktree', 'runRefreshLanes', 'requires a clean checkout']) {
