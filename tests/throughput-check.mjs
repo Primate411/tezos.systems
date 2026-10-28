@@ -140,3 +140,125 @@ assert.equal(throughputBand(null), 'unknown');
 }
 
 console.log('ok - measured throughput window, derived capacity ceiling and refusal boundaries');
+
+/* ---------------------------------------------------------------------------
+ * Surface contracts for the home Live Head throughput rail.
+ *
+ * The two regression blocks below each reproduce a defect found during
+ * rendered browser QA that nothing in the harness had caught.
+ * ------------------------------------------------------------------------ */
+import { readFileSync } from 'node:fs';
+
+const read = name => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
+const index = read('index.html');
+const health = read('js/features/network-health.js');
+const heroCss = read('css/hero-search.css');
+const styles = read('css/styles.css');
+const cleanTheme = read('css/themes/clean.css');
+
+// The rail is a real control with its own receipt, not decoration.
+assert(index.includes('id="chain-throughput"'), 'index.html must carry the throughput control');
+assert(index.includes('aria-describedby="chain-throughput-legend"'), 'the rail must point at its legend');
+assert(index.includes('id="chain-throughput-legend"'), 'the legend must exist');
+assert(
+    /derived estimate, not a measurement/.test(index),
+    'the legend must say the ceiling is derived rather than observed'
+);
+assert(
+    index.indexOf('id="chain-throughput"') < index.indexOf('id="chain-health"'),
+    'the throughput rail leads the chain health readout in the controls row'
+);
+
+// No new clock and no new fetch: it rides the one heartbeat render path, which
+// is already visibility-gated, and reconciles in place.
+{
+    const updater = health.match(/function updateThroughputRail[\s\S]*?\n\}/)?.[0] || '';
+    assert(updater, 'the throughput updater must exist');
+    assert(updater.includes('quietlySyncHtml('), 'the rail must reconcile through quiet refresh');
+    assert(
+        updater.includes('rail.dataset.throughputSignature === signature'),
+        'the rail must dedupe on its measured signature'
+    );
+    for (const banned of ['setInterval', 'setTimeout', 'fetch(', 'scrollIntoView', 'scrollTo']) {
+        assert(!updater.includes(banned), `the rail must not ${banned} on a background update`);
+    }
+    const ticker = health.match(/function updateBlockTicker[\s\S]*?\n\}/)?.[0] || '';
+    assert(
+        ticker.includes("document.visibilityState !== 'visible'") && ticker.includes('updateThroughputRail(data'),
+        'the rail must render only from the visibility-gated heartbeat path'
+    );
+    assert(
+        !/fetchJson\([^)]*\)/.test(health.match(/function liveHeadThroughput[\s\S]*?\n\}/)?.[0] || ''),
+        'the throughput window must be read from the existing activity cache, never fetched'
+    );
+}
+
+// Regression: the heat ramp was first declared on .chain-throughput itself, so
+// the element-level custom property outranked the inherited per-theme value and
+// the light Clean theme kept the dark-theme amber, illegible on white.
+{
+    const bands = ['open', 'active', 'busy', 'hot', 'peak'];
+    // Anchor on the multi-line declaration block, not the one-line media-query
+    // placement rules that share the selector.
+    const component = heroCss.match(/\.chain-throughput \{\n[\s\S]*?\n\}/)?.[0] || '';
+    assert(component, 'the throughput component rule must exist');
+    assert(component.includes('--throughput-fill'), 'the component block must be the one carrying the rail geometry');
+    const rootBlocks = heroCss.match(/:root \{\n[\s\S]*?\n\}/g) || [];
+    assert(rootBlocks.length, 'a :root block must hold the overridable ramp');
+    for (const band of bands) {
+        assert(
+            !component.includes(`--throughput-${band}:`),
+            `--throughput-${band} must not be declared on .chain-throughput, where it would outrank the theme`
+        );
+        assert(
+            rootBlocks.some(block => block.includes(`--throughput-${band}:`)),
+            `--throughput-${band} must default at :root so a theme can override it`
+        );
+        assert(
+            new RegExp(`--throughput-${band}:\\s*#[0-9A-Fa-f]{6}`).test(cleanTheme),
+            `the light Clean theme must override --throughput-${band}`
+        );
+        assert(
+            heroCss.includes(`[data-throughput-band="${band}"] { --throughput-heat: var(--throughput-${band}); }`),
+            `band ${band} must resolve its heat through the overridable token`
+        );
+    }
+    assert(
+        styles.includes('--throughput-busy: #B45309;'),
+        'the Clean override must live in the stylesheet the theme bundle is generated from'
+    );
+}
+
+// Regression: adding the rail pushed Chain health, then the hide button, onto
+// extra rows of the narrow controls grid because placement was left to
+// auto-flow. Every control in that band is placed explicitly.
+{
+    const narrow = heroCss.match(/@media \(max-width: 900px\) \{[\s\S]*?\n\}\n\n/)?.[0] || '';
+    assert(narrow.includes('grid-template-columns: max-content minmax(0, 1fr) 30px 30px;'),
+        'the narrow controls grid must reserve a column for every control');
+    for (const [selector, placement] of [
+        ['.chain-throughput', 'grid-column: 1; grid-row: 2;'],
+        ['.chain-health', 'grid-column: 2; grid-row: 2;'],
+        ['.live-head-filter', 'grid-column: 3; grid-row: 2;'],
+        ['.live-head-hide', 'grid-column: 4; grid-row: 2;']
+    ]) {
+        assert(
+            new RegExp(`${selector.replace('.', '\\.')} \\{ ${placement.replace(/[()]/g, '\\$&')}`).test(narrow),
+            `${selector} must be placed explicitly in the narrow controls grid`
+        );
+    }
+}
+
+// Heat is never carried by colour alone, and the one moving part stops for a
+// reader who asked for less motion.
+assert(heroCss.includes('.chain-throughput-ember'), 'the top bands must add a non-colour hatch');
+{
+    const reduced = heroCss.match(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?chain-throughput[\s\S]*?\n\}/)?.[0] || '';
+    assert(reduced.includes('animation: none'), 'the peak-band animation must stop under reduced motion');
+}
+assert(
+    /@media \(forced-colors: active\) \{[^}]*\.chain-throughput/.test(heroCss),
+    'the rail must have a forced-colors fallback'
+);
+
+console.log('ok - throughput rail markup, quiet-refresh wiring, theme ramp and narrow-grid placement');

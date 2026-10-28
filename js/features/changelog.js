@@ -20,7 +20,9 @@ export const CHANGELOG = [
         date: '2026-10-28',
         entries: [
             { type: '🔧', text: 'Theme changes safely discard delayed animation callbacks after their transition ends' },
-            { type: '🔧', text: 'My Tezos keeps the correct Etherlink account status when an older saved read finishes after you change account scope or inclusion' }
+            { type: '🔧', text: 'My Tezos keeps the correct Etherlink account status when an older saved read finishes after you change account scope or inclusion' },
+            { type: '✨', text: 'Live blocks gains a throughput rail: measured transactions per second beside a heat bar showing how much of the block gas limit those same blocks used, and the transactions per second that the current transaction mix would reach if blocks filled' },
+            { type: '✨', text: 'The throughput ceiling is labelled as an estimate from the live transaction mix rather than a protocol maximum, and the reading refuses to appear until every block in its window has its own transaction, gas and timing receipt' }
         ]
     },
     {

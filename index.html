@@ -747,6 +747,18 @@
                         </span>
                     </span>
                 </button>
+                <button class="chain-throughput" id="chain-throughput" type="button" aria-label="Network throughput. Measuring recent blocks." aria-describedby="chain-throughput-legend" aria-busy="true" data-throughput-state="loading" data-throughput-band="unknown">
+                    <span class="chain-throughput-heading">
+                        <span class="chain-throughput-label">TPS</span>
+                        <span class="chain-throughput-value" data-text-pending="true" data-quiet-key="throughput-value">--</span>
+                    </span>
+                    <span class="chain-throughput-rail" aria-hidden="true">
+                        <span class="chain-throughput-fill"></span>
+                        <span class="chain-throughput-ember"></span>
+                    </span>
+                    <span class="chain-throughput-ceiling" data-quiet-key="throughput-ceiling" aria-hidden="true">--</span>
+                </button>
+                <span class="sr-only" id="chain-throughput-legend">Applied Tezos transactions per second, measured over the newest fully-received blocks and divided by the real elapsed time between their timestamps. The rail shows how much of the protocol block gas limit those same blocks consumed, so the filled part is throughput in use and the remaining part is unused block space. The ceiling after the slash is a derived estimate, not a measurement: it is the transactions per second that the exact transaction mix being processed right now would reach if it filled the gas limit. A cheaper or more expensive mix moves that ceiling. Five shared bands match the per-block gas pill: open below 25 percent, active from 25, busy from 60, hot from 85, and peak from 97 percent of the gas limit. Select to open the Network Health Chamber.</span>
                 <button class="chain-health" id="chain-health" type="button" aria-label="Chain health. Loading the last 25 blocks." aria-describedby="chain-health-legend" aria-busy="true">
                     <span class="chain-health-heading">
                         <span class="chain-health-label">Chain health</span>
