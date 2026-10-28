@@ -9,8 +9,11 @@ import {
     summarizeThroughput,
     throughputBand,
     THROUGHPUT_WINDOW_BLOCKS,
-    THROUGHPUT_TX_PAGE_LIMIT
+    THROUGHPUT_TX_PAGE_LIMIT,
+    THROUGHPUT_MAX_LEADING_SKIP
 } from '../js/core/throughput.mjs';
+
+assert.equal(THROUGHPUT_MAX_LEADING_SKIP, 3, 'the head-skip bound is part of the contract');
 
 const near = (actual, expected, tolerance = 1e-9) =>
     assert(Math.abs(actual - expected) <= tolerance, `${actual} is not within ${tolerance} of ${expected}`);
@@ -71,6 +74,31 @@ for (const broken of [
     assert.equal(summary.blocks, 2, 'the window stops at the first unmeasured block');
     assert.equal(summary.transactions, 366);
     near(summary.seconds, 12);
+}
+
+// Regression: enrichment trails the head by a few seconds, so the newest row
+// is routinely still bare. Anchoring the window on the head made the whole
+// reading blank once per block. Bare leading rows are stepped over, bounded,
+// and a gap inside a started run still stops it.
+{
+    const bare = { intervalSeconds: 6, activity: null };
+    for (const [lead, expected] of [[0, 6], [1, 6], [2, 6], [3, 6]]) {
+        const { blocks, lookup } = window([...Array.from({ length: lead }, () => bare), ...steady(6)]);
+        const summary = summarizeThroughput(blocks, lookup);
+        assert.equal(summary.state, 'resolved', `${lead} bare leading blocks must still measure`);
+        assert.equal(summary.blocks, expected);
+        assert.equal(summary.skippedLeadingBlocks, lead);
+        near(summary.tps, 30.5);
+    }
+    // Past the bound the reading refuses rather than drifting away from the head.
+    const tooFar = window([bare, bare, bare, bare, ...steady(6)]);
+    assert.equal(summarizeThroughput(tooFar.blocks, tooFar.lookup).state, 'loading');
+    assert.equal(summarizeThroughput(tooFar.blocks, tooFar.lookup, { maxLeadingSkip: 4 }).blocks, 6);
+    // A gap after the run has started is still fatal to the rest of the window.
+    const inner = window([bare, ...steady(2), bare, ...steady(4)]);
+    const innerSummary = summarizeThroughput(inner.blocks, inner.lookup);
+    assert.equal(innerSummary.blocks, 2, 'a gap inside a started run stops it');
+    assert.equal(innerSummary.skippedLeadingBlocks, 1);
 }
 
 // Nothing enriched yet is loading, not a zero reading.
@@ -182,6 +210,16 @@ assert(
     for (const banned of ['setInterval', 'setTimeout', 'fetch(', 'scrollIntoView', 'scrollTo']) {
         assert(!updater.includes(banned), `the rail must not ${banned} on a background update`);
     }
+    // Regression: a window that cannot measure yet must keep the last good
+    // figures instead of blanking them, which happened once per block.
+    assert(
+        updater.includes("rail.dataset.throughputResolved === 'true'"),
+        'the rail must remember that it has resolved before'
+    );
+    assert(
+        /const retaining = summary\.state !== 'resolved' && rail\.dataset\.throughputResolved === 'true';[\s\S]*?if \(retaining\) \{[\s\S]*?rail\.dataset\.feedState = 'stale';[\s\S]*?return;/.test(updater),
+        'a pending window must retain the last good reading and mark the surface stale'
+    );
     const ticker = health.match(/function updateBlockTicker[\s\S]*?\n\}/)?.[0] || '';
     assert(
         ticker.includes("document.visibilityState !== 'visible'") && ticker.includes('updateThroughputRail(data'),

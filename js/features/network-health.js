@@ -2618,12 +2618,27 @@ function updateThroughputRail(data, { error = false } = {}) {
     }
 
     const summary = liveHeadThroughput(data);
+    // Keep the last good reading on the surface. Enrichment trails the head, so
+    // a window that cannot measure yet is a pending receipt, not a new zero,
+    // and blanking the figures once per block would be the flicker the quiet
+    // refresh contract exists to prevent.
+    const retaining = summary.state !== 'resolved' && rail.dataset.throughputResolved === 'true';
+    if (retaining) {
+        const pendingSignature = `${summary.signature}:pending`;
+        if (rail.dataset.throughputSignature === pendingSignature) return;
+        rail.dataset.throughputSignature = pendingSignature;
+        rail.dataset.feedState = 'stale';
+        rail.setAttribute('aria-busy', 'false');
+        return;
+    }
+
     const receipt = throughputReceipt(summary);
     const signature = `${summary.signature}:${error ? 'stale' : 'live'}`;
     if (rail.dataset.throughputSignature === signature) return;
     rail.dataset.throughputSignature = signature;
 
     const resolved = summary.state === 'resolved';
+    if (resolved) rail.dataset.throughputResolved = 'true';
     rail.dataset.throughputState = summary.state;
     rail.dataset.throughputBand = resolved ? summary.band : 'unknown';
     rail.dataset.feedState = error ? 'stale' : 'live';
