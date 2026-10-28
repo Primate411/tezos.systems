@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-28',
+        entries: [
+            { type: '🔧', text: 'Theme changes safely discard delayed animation callbacks after their transition ends' },
+            { type: '🔧', text: 'My Tezos keeps the correct Etherlink account status when an older saved read finishes after you change account scope or inclusion' }
+        ]
+    },
+    {
         date: '2026-10-27',
         entries: [
             { type: '🔧', text: 'Scheduled data updates rebuild and revalidate when the site changes during collection, preventing conflicting pushes while preserving newer work and last-good data' }

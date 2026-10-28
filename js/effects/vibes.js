@@ -115,31 +115,34 @@ function doThemeTransition(oldTheme) {
         Math.max(y, window.innerHeight - y) ** 2
     );
 
-    transitionOverlay = document.createElement('div');
-    transitionOverlay.className = 'theme-transition-overlay';
-    transitionOverlay.style.setProperty('--tx', x + 'px');
-    transitionOverlay.style.setProperty('--ty', y + 'px');
-    transitionOverlay.style.setProperty('--tr', maxR + 'px');
+    var overlay = document.createElement('div');
+    transitionOverlay = overlay;
+    overlay.className = 'theme-transition-overlay';
+    overlay.style.setProperty('--tx', x + 'px');
+    overlay.style.setProperty('--ty', y + 'px');
+    overlay.style.setProperty('--tr', maxR + 'px');
 
     // Flash the old theme's accent color
     var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00d4ff';
-    transitionOverlay.style.background = accent;
+    overlay.style.background = accent;
 
-    document.body.appendChild(transitionOverlay);
+    document.body.appendChild(overlay);
 
+    // Frames can resume after the cleanup timer, or after another transition.
+    // Each callback owns only the overlay created by this invocation.
     requestAnimationFrame(function() {
-        transitionOverlay.classList.add('wipe-in');
+        if (transitionOverlay !== overlay || !overlay.isConnected) return;
+        overlay.classList.add('wipe-in');
     });
 
     setTimeout(function() {
-        transitionOverlay.classList.add('wipe-out');
+        if (transitionOverlay !== overlay || !overlay.isConnected) return;
+        overlay.classList.add('wipe-out');
     }, 250);
 
     setTimeout(function() {
-        if (transitionOverlay) {
-            transitionOverlay.remove();
-            transitionOverlay = null;
-        }
+        overlay.remove();
+        if (transitionOverlay === overlay) transitionOverlay = null;
     }, 600);
 }
 

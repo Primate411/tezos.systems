@@ -475,6 +475,8 @@ export async function refreshMyTezosTezosX({ force = false, loadMore = false, ba
                     updatedAt: Date.now()
                 })
             ]).catch(() => {});
+            // Persistence can finish after exclusion, a scope change or a newer read.
+            if (requestGeneration !== generation || !isVisible()) return null;
             renderSummary();
             renderDetails();
             const partial = Boolean(overviewError) || details.receipt.coverage.state !== 'complete';

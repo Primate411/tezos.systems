@@ -68,3 +68,77 @@ replaced.finish();
 assert.equal(await obsolete, null);
 assert.equal(replaced.calls.length, 0);
 console.log('ok - Tezos X retains pagination intent across background reads, coalesces clicks, and discards obsolete work');
+
+// IndexedDB completion can arrive after inclusion, scope or visibility changes.
+function persistenceRace() {
+    let finishWrite, rejectWrite, startedWrite;
+    const writing = new Promise(resolve => { startedWrite = resolve; });
+    const disk = new Promise((resolve, reject) => { finishWrite = resolve; rejectWrite = reject; });
+    let paused = true;
+    const statuses = [], renders = [];
+    const context = vm.createContext({
+        AbortController,
+        refreshInFlight: null, refreshController: null, queuedLoadMore: null,
+        generation: 0, selectedAddress: 'account-a', currentDetails: null,
+        accountRows: [], paginationBusy: false, visible: true,
+        entries: [{ address: 'account-a', included: true }],
+        MY_TEZOS_SCOPE_ALL: 'all', readMyTezosScope: () => 'all',
+        scopedLinkedAccounts: entries => entries,
+        renderLinkedAccounts() {},
+        renderSummary: () => renders.push('summary'),
+        renderDetails: () => renders.push('details'),
+        setStatus: (text, state) => statuses.push({ text, state }),
+        getMyTezosMeta: async () => null,
+        fetchEtherlinkNativeBalances: async addresses => addresses.map(address => ({ address, nativeXtz: 2.5 })),
+        fetchEtherlinkAccountOverview: async () => ({ transactions: 42 }),
+        fetchEtherlinkAccountDetails: async () => ({
+            transactions: [], tokens: [], nfts: [], nextPageParams: null,
+            receipt: { coverage: { state: 'complete' }, warnings: [] }
+        }),
+        mergeById: (prior = [], next = []) => [...prior, ...next],
+        myTezosAccountKey: (layer, address) => `${layer}:${address}`,
+        putMyTezosRecords: persist, replaceMyTezosAccountRecords: persist, setMyTezosMeta: persist,
+        formatFreshnessStamp: () => 'Etherlink · just now',
+        document: { getElementById: () => null }
+    });
+    function persist() { startedWrite(); return paused ? disk : Promise.resolve(); }
+    const invoke = vm.runInContext(`${refresh}
+        function isVisible() { return visible; }
+        function readLinkedAccounts() { return entries; }
+        refreshMyTezosTezosX;
+    `, context);
+    return { context, invoke, writing, statuses, renders, finishWrite, rejectWrite, resume() { paused = false; } };
+}
+
+for (const scenario of ['excluded', 'excluded-write-error', 'new-account', 'hidden']) {
+    const race = persistenceRace();
+    const oldRead = race.invoke();
+    await race.writing;
+    if (scenario.startsWith('excluded')) {
+        race.context.entries[0].included = false;
+        await race.invoke({ force: true });
+        assert.equal(race.statuses.at(-1).state, 'empty');
+    } else if (scenario === 'new-account') {
+        race.context.entries = [{ address: 'account-b', included: true }];
+        race.context.selectedAddress = 'account-b';
+        race.resume();
+        await race.invoke({ force: true });
+        assert.equal(race.context.currentDetails.address, 'account-b');
+    } else {
+        race.context.visible = false;
+    }
+    const statusCount = race.statuses.length;
+    const renderCount = race.renders.length;
+    if (scenario === 'excluded-write-error') race.rejectWrite(new Error('storage unavailable'));
+    else race.finishWrite();
+    assert.equal(await oldRead, null, `${scenario}: obsolete persistence must discard its completion`);
+    assert.equal(race.statuses.length, statusCount, `${scenario}: old completion cannot overwrite current status`);
+    assert.equal(race.renders.length, renderCount, `${scenario}: old completion cannot repaint the current view`);
+}
+const current = persistenceRace();
+const successfulRead = current.invoke();
+await current.writing;
+current.finishWrite();
+assert(await successfulRead, 'the current generation still completes after persistence');
+assert.equal(current.statuses.at(-1).state, 'complete');
+console.log('ok - Tezos X discards obsolete or hidden persistence completions without losing current reads');
