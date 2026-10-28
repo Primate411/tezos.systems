@@ -1847,7 +1847,10 @@
 .chain-health[data-feed-state="stale"] { border-style: dashed; }
 .chain-health[data-feed-state="stale"] .chain-health-readout { color: var(--text-secondary); }
 
-@media (max-width: 1100px) {
+/* The controls row takes a line of its own once it can no longer sit beside
+   the heading. The throughput rail made it a fourth control, so it reaches
+   that point about thirty pixels earlier than it used to. */
+@media (max-width: 1130px) {
     .live-head-topline .live-head-controls { grid-column: 1 / -1; }
 }
 
@@ -3146,6 +3149,11 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     --throughput-heat: var(--text-secondary);
     position: relative;
     display: grid;
+    /* The row is laid out from its right edge, and the activity card is the
+       only control in it that gives ground, so width the rail took by
+       shrinking would be paid for in clipped TX/Moved/NFT figures. It holds
+       its own width; where the row cannot spare it, the rail takes its own
+       line instead. */
     flex: 0 0 auto;
     grid-template-columns: max-content 56px max-content;
     grid-template-rows: 22px;
@@ -3280,6 +3288,22 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 .chain-throughput[data-feed-state="stale"] { border-style: dashed; }
 .chain-throughput:is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--throughput-heat) 60%, var(--glass-border)); }
 .chain-throughput:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+
+/* Above 900px the activity card has to sit beside Chain health, and even with
+   the controls row to itself there is no width for a fourth control below
+   about 1010px: the rail measures 164px and the row is short by 111px at
+   901px. Rather than crowd the metrics or vanish, it takes the next line whole
+   and spends the width on its bar. Row one keeps the exact geometry it has
+   without the rail. */
+@media (min-width: 901px) and (max-width: 1010px) {
+    .live-head-topline .live-head-controls { flex-wrap: wrap; }
+    .chain-throughput {
+        order: 1;
+        flex-basis: 100%;
+        width: 100%;
+        grid-template-columns: max-content minmax(0, 1fr) max-content;
+    }
+}
 
 @media (prefers-reduced-motion: reduce) {
     .chain-throughput-fill,

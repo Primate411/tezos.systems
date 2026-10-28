@@ -313,6 +313,64 @@ assert(
     assert(!/grid-template-columns:\s*max-content 56px/.test(phone), 'no fixed desktop track on phones');
 }
 
+// Regression: the rail is a fourth control in a row laid out from its right
+// edge, where the activity card is the only item that gives ground, so a rail
+// standing in a row too narrow for it pushed TX/Moved/NFT past the activity
+// card's own edge (95px at 901, 22px at 1101). Letting the rail shrink was not
+// enough on its own: even with its bar down to a 24px floor the row was still
+// 65px short at 901. Two separate squeezes caused it. Below about 1010px the
+// row is short of width outright, and the rail takes its own line there. Just
+// above the point where the row stops spanning the grid it loses ~125px at a
+// stroke, which is why that breakpoint moved up rather than growing a second
+// band. Everywhere else the rail keeps its inline width.
+{
+    // Anchor on the multi-line declaration block, not the one-line media-query
+    // placement rules that share the selector.
+    const component = heroCss.match(/\.chain-throughput \{\n[\s\S]*?\n\}/)?.[0] || '';
+    assert(component.includes('--throughput-fill'), 'the component block must be the one carrying the rail geometry');
+    assert(
+        /flex:\s*0 0 auto/.test(component),
+        'the rail must not shrink: width it gives up is paid for in clipped activity figures'
+    );
+    assert(
+        /grid-template-columns:\s*max-content 56px max-content/.test(component),
+        'the inline rail keeps a fixed bar track'
+    );
+
+    const activity = heroCss.match(/\.live-head-controls \.header-activity-button \{[\s\S]*?\n\}/)?.[0] || '';
+    assert(
+        !/flex-shrink/.test(activity),
+        'the activity card keeps the flex behaviour it has without the rail'
+    );
+
+    // The controls row needs its own line sooner now that it carries a fourth
+    // control, which is what closes the short gap above the old 1100px edge.
+    const ownRow = heroCss.match(/@media \(max-width: (\d+)px\) \{\n    \.live-head-topline \.live-head-controls \{ grid-column: 1 \/ -1; \}/);
+    assert(ownRow, 'the controls row must still claim the full grid row when it cannot sit beside the heading');
+    assert(
+        Number(ownRow[1]) >= 1110,
+        `the row must claim its own line before the rail runs out of space at 1101px, not at ${ownRow[1]}px`
+    );
+
+    const band = heroCss.match(/@media \(min-width: 901px\) and \(max-width: (\d+)px\) \{[\s\S]*?\n\}\n\n/);
+    assert(band, 'the band where the rail cannot stand beside the others must be handled');
+    assert(
+        Number(band[1]) >= 1010,
+        `the rail needs its own line up to about 1010px, not ${band[1]}px`
+    );
+    assert(
+        Number(band[1]) < 1024,
+        `the rail must stay inline at common laptop widths; a band to ${band[1]}px swallows 1024px`
+    );
+    assert(band[0].includes('flex-wrap: wrap'), 'the controls row must be allowed to take a second line there');
+    assert(/\.chain-throughput \{[\s\S]*?flex-basis: 100%/.test(band[0]), 'the rail takes that line whole');
+    assert(/\.chain-throughput \{[\s\S]*?order: 1/.test(band[0]), 'the rail goes below the row, never above it');
+    assert(
+        /grid-template-columns:\s*max-content minmax\(0, 1fr\) max-content/.test(band[0]),
+        'on its own line the rail spends the width on its bar'
+    );
+}
+
 // Heat is never carried by colour alone, and the one moving part stops for a
 // reader who asked for less motion.
 assert(heroCss.includes('.chain-throughput-ember'), 'the top bands must add a non-colour hatch');
