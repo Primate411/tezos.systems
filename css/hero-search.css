@@ -3218,24 +3218,30 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-secondary) 18%, transparent);
 }
 
+/* Scaled, not resized: animating width would re-run the fill transition on
+   every container reflow, which reads as the bar sliding for no reason. */
 .chain-throughput-fill {
     position: absolute;
     inset: 0 auto 0 0;
-    width: calc(var(--throughput-fill) * 100%);
+    width: 100%;
+    transform: scaleX(var(--throughput-fill));
+    transform-origin: left center;
     border-radius: inherit;
     background: linear-gradient(90deg, color-mix(in srgb, var(--throughput-heat) 55%, transparent), var(--throughput-heat));
-    transition: width 520ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 420ms ease;
+    transition: transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 420ms ease;
 }
 
 .chain-throughput-ember {
     position: absolute;
     inset: 0 auto 0 0;
-    width: calc(var(--throughput-fill) * 100%);
+    width: 100%;
+    transform: scaleX(var(--throughput-fill));
+    transform-origin: left center;
     border-radius: inherit;
     opacity: 0;
     /* A hatch, not a hue: the top bands stay distinguishable without colour. */
     background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.34) 0 1px, transparent 1px 5px);
-    transition: width 520ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 420ms ease;
+    transition: transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 420ms ease;
 }
 
 .chain-throughput-ceiling {
