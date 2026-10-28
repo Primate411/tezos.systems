@@ -1866,13 +1866,6 @@
     .live-head-panel .live-head-alert { top: 80px; }
 }
 
-@media (max-width: 640px) {
-    .live-head-topline .live-head-controls { grid-template-columns: minmax(0, 1fr) 30px; }
-    .chain-throughput { grid-column: 1; grid-row: 2; }
-    .chain-health { grid-column: 1; grid-row: 3; }
-    .live-head-controls .live-head-filter { grid-column: 2; grid-row: 2; }
-}
-
 @media (max-width: 719px) {
     .live-head-topline .live-head-controls { position: static; }
     .live-head-topline .live-head-hide.home-block-hide {
@@ -1896,7 +1889,6 @@
 
 @media (max-width: 359px) {
     .chain-health { grid-template-columns: max-content 75px; padding-inline: 3px; }
-    .chain-throughput { grid-template-columns: max-content 34px max-content; column-gap: 5px; padding-inline: 4px; }
     .chain-health-heading { gap: 2px; }
 }
 
@@ -6813,6 +6805,33 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
     .chain-health-status { width: auto; }
     .chain-health-readout { font-size: 8px; }
     .chain-health-window { --chain-health-count: 10; }
+    /* The phone row above is full: Activity and Chain health already use both
+       columns. The rail takes the next row whole rather than sitting in half
+       of it, and splits into a kicker line plus figures so it reads as a
+       sibling card instead of a stray chip. */
+    .chain-throughput {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: 100%;
+        height: var(--live-head-control-height);
+        grid-template-columns: max-content minmax(0, 1fr) max-content;
+        grid-template-rows: auto auto;
+        align-content: center;
+        column-gap: 9px;
+        row-gap: 3px;
+        padding-inline: 9px;
+    }
+    .chain-throughput-heading { display: contents; }
+    .chain-throughput-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        font-size: 9px;
+        line-height: 1;
+    }
+    .chain-throughput-value { grid-column: 1; grid-row: 2; font-size: 0.82rem; }
+    .chain-throughput-rail { grid-column: 2; grid-row: 2; height: 10px; }
+    .chain-throughput-ceiling { grid-column: 3; grid-row: 2; font-size: 0.62rem; }
+
     .live-head-controls .live-head-filter {
         position: absolute;
         grid-area: auto;

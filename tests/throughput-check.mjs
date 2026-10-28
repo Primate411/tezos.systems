@@ -287,6 +287,32 @@ assert(
     }
 }
 
+// Regression: the phone layout is owned by a dedicated media block that puts
+// Activity and Chain health on one row and floats the filter and hide buttons.
+// The rail had no placement there, so it auto-flowed into half of a second row
+// and sat next to a dead gap instead of reading as a sibling card.
+{
+    // The authoritative phone block is the one that sizes the two control cards.
+    const phone = heroCss
+        .match(/@media \(max-width: 719px\) \{[\s\S]*?\n\}\n/g)
+        ?.find(block => block.includes('clamp(110px, 29vw, 140px)')) || '';
+    assert(phone, 'the phone controls block must still exist');
+    const rail = phone.match(/\.chain-throughput \{[\s\S]*?\n    \}/)?.[0] || '';
+    assert(rail, 'the rail must be placed in the phone controls block, not left to auto-flow');
+    assert(rail.includes('grid-column: 1 / -1'), 'the rail must take the phone row whole');
+    assert(rail.includes('width: 100%'), 'the rail must fill that row rather than leave a gap');
+    assert(
+        /grid-template-columns:\s*max-content minmax\(0, 1fr\) max-content/.test(rail),
+        'the phone rail track must flex to the row width instead of staying at its desktop size'
+    );
+    assert(
+        phone.includes('.chain-throughput-heading { display: contents; }'),
+        'the phone card splits into a kicker line and a figures line through display: contents'
+    );
+    // The desktop fixed track must not leak into the phone block.
+    assert(!/grid-template-columns:\s*max-content 56px/.test(phone), 'no fixed desktop track on phones');
+}
+
 // Heat is never carried by colour alone, and the one moving part stops for a
 // reader who asked for less motion.
 assert(heroCss.includes('.chain-throughput-ember'), 'the top bands must add a non-colour hatch');
