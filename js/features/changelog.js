@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-29',
+        entries: [
+            { type: '🔒', text: 'Build and audit tools receive compatible security patches; the public dashboard stays framework-free' }
+        ]
+    },
+    {
         date: '2026-10-28',
         entries: [
             { type: '🔧', text: 'Theme changes safely discard delayed animation callbacks after their transition ends' },

@@ -2089,7 +2089,7 @@ For a LAN preview, run `npm run serve -- 9998 --bind 0.0.0.0` and open
 servers share a larger connection queue so parallel browser module requests
 do not reset on Python versions with a small default queue.
 
-The lockfile is tracked so fresh clones can use `npm ci`. Repo Playwright
+The lockfile is tracked so fresh clones can use `npm ci`. Compatible security patches for image generation and audit-tool parsers are retained in that lockfile and checked with `npm audit`. Repo Playwright
 callers use `scripts/lib/playwright-browser.cjs`, which tries Playwright's
 bundled Chromium first and falls back to a local Chrome/Chromium-family browser.
 Set `BROWSER_EXECUTABLE_PATH` only when you need to force a specific executable.
