@@ -1847,19 +1847,25 @@
 .chain-health[data-feed-state="stale"] { border-style: dashed; }
 .chain-health[data-feed-state="stale"] .chain-health-readout { color: var(--text-secondary); }
 
-@media (max-width: 1100px) {
+/* The controls row takes a line of its own once it can no longer sit beside
+   the heading. The throughput rail made it a fourth control, so it reaches
+   that point about thirty pixels earlier than it used to. */
+@media (max-width: 1130px) {
     .live-head-topline .live-head-controls { grid-column: 1 / -1; }
 }
 
 @media (max-width: 900px) {
     .live-head-topline .live-head-controls {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 30px;
+        grid-template-columns: max-content minmax(0, 1fr) 30px 30px;
         gap: 6px;
     }
     .live-head-controls .header-activity-button { grid-column: 1 / -1; width: 100%; }
-    .chain-health { justify-self: end; }
-    .live-head-controls .live-head-filter { grid-column: 2; grid-row: 2; }
+    .chain-throughput { grid-column: 1; grid-row: 2; justify-self: start; }
+    .chain-health { grid-column: 2; grid-row: 2; justify-self: end; }
+    .live-head-controls .live-head-filter { grid-column: 3; grid-row: 2; }
+    /* Placed explicitly so the row never grows a third line for one button. */
+    .live-head-controls .live-head-hide { grid-column: 4; grid-row: 2; }
     .live-head-panel .live-head-alert { top: 80px; }
 }
 
@@ -3120,6 +3126,195 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 
 .live-head-margin-compact {
     display: none;
+}
+
+/* Thermal rail: measured throughput against the block gas limit.
+   The filled length is capacity in use and the remainder is unused block
+   space, so the same geometry reads as "how fast" and "how full". Heat is
+   never carried by colour alone: the fill length, the numeric readout, the
+   ceiling figure and a hatch texture at the top bands all move with it. */
+/* Declared at the document root, never on the element: a custom property set
+   on .chain-throughput itself would outrank the inherited per-theme value and
+   silently strand the light Clean ramp. */
+:root {
+    --throughput-open: #67dcff;
+    --throughput-active: #8db7ff;
+    --throughput-busy: #ffd071;
+    --throughput-hot: #ff8797;
+    --throughput-peak: #ff5e72;
+}
+
+.chain-throughput {
+    --throughput-fill: 0;
+    --throughput-heat: var(--text-secondary);
+    position: relative;
+    display: grid;
+    /* The row is laid out from its right edge, and the activity card is the
+       only control in it that gives ground, so width the rail took by
+       shrinking would be paid for in clipped TX/Moved/NFT figures. It holds
+       its own width; where the row cannot spare it, the rail takes its own
+       line instead. */
+    flex: 0 0 auto;
+    grid-template-columns: max-content 56px max-content;
+    grid-template-rows: 22px;
+    align-content: center;
+    align-items: center;
+    column-gap: 7px;
+    width: max-content;
+    min-width: 0;
+    height: var(--live-head-control-height);
+    padding: 3px 9px;
+    border: 1px solid color-mix(in srgb, var(--throughput-heat) 30%, var(--glass-border));
+    border-radius: 7px;
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--throughput-heat) 8%, transparent), color-mix(in srgb, var(--accent-purple) 5%, transparent)),
+        color-mix(in srgb, var(--bg-primary) 48%, transparent);
+    color: var(--text-secondary);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 420ms ease, box-shadow 420ms ease;
+}
+
+.chain-throughput-heading {
+    grid-column: 1;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.chain-throughput-label {
+    font-size: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.chain-throughput-value {
+    /* Widest reading the formatter emits keeps the rail from shuffling. */
+    min-width: 4ch;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--throughput-heat);
+    transition: color 420ms ease;
+}
+
+.chain-throughput-rail {
+    position: relative;
+    grid-column: 2;
+    display: block;
+    width: 100%;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    /* Unused block space reads as open track, not as absence. */
+    background:
+        repeating-linear-gradient(90deg, color-mix(in srgb, var(--text-secondary) 26%, transparent) 0 1px, transparent 1px 4px),
+        color-mix(in srgb, var(--bg-primary) 70%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-secondary) 18%, transparent);
+}
+
+/* Scaled, not resized: animating width would re-run the fill transition on
+   every container reflow, which reads as the bar sliding for no reason. */
+.chain-throughput-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 100%;
+    transform: scaleX(var(--throughput-fill));
+    transform-origin: left center;
+    border-radius: inherit;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--throughput-heat) 55%, transparent), var(--throughput-heat));
+    transition: transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 420ms ease;
+}
+
+.chain-throughput-ember {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 100%;
+    transform: scaleX(var(--throughput-fill));
+    transform-origin: left center;
+    border-radius: inherit;
+    opacity: 0;
+    /* A hatch, not a hue: the top bands stay distinguishable without colour. */
+    background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.34) 0 1px, transparent 1px 5px);
+    transition: transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 420ms ease;
+}
+
+.chain-throughput-ceiling {
+    grid-column: 3;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    opacity: 0.85;
+}
+
+.chain-throughput[data-throughput-band="open"] { --throughput-heat: var(--throughput-open); }
+.chain-throughput[data-throughput-band="active"] { --throughput-heat: var(--throughput-active); }
+.chain-throughput[data-throughput-band="busy"] { --throughput-heat: var(--throughput-busy); }
+.chain-throughput[data-throughput-band="hot"] { --throughput-heat: var(--throughput-hot); }
+.chain-throughput[data-throughput-band="peak"] { --throughput-heat: var(--throughput-peak); }
+
+.chain-throughput[data-throughput-band="hot"] .chain-throughput-ember,
+.chain-throughput[data-throughput-band="peak"] .chain-throughput-ember { opacity: 1; }
+
+.chain-throughput[data-throughput-band="hot"],
+.chain-throughput[data-throughput-band="peak"] {
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent),
+        0 0 10px color-mix(in srgb, var(--throughput-heat) 22%, transparent);
+}
+
+/* The one moving part, and only while the chain is actually against its
+   ceiling. It is decoration over a settled value, never a data update. */
+.chain-throughput[data-throughput-band="peak"] .chain-throughput-fill {
+    animation: throughput-forge 1.9s ease-in-out infinite;
+}
+
+@keyframes throughput-forge {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.28); }
+}
+
+.chain-throughput[data-throughput-state="loading"] .chain-throughput-value,
+.chain-throughput[data-throughput-state="unavailable"] .chain-throughput-value { color: var(--text-secondary); }
+.chain-throughput[data-throughput-state="unavailable"] { border-style: dashed; }
+.chain-throughput[data-feed-state="stale"] { border-style: dashed; }
+.chain-throughput:is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--throughput-heat) 60%, var(--glass-border)); }
+.chain-throughput:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+
+/* Above 900px the activity card has to sit beside Chain health, and even with
+   the controls row to itself there is no width for a fourth control below
+   about 1010px: the rail measures 164px and the row is short by 111px at
+   901px. Rather than crowd the metrics or vanish, it takes the next line whole
+   and spends the width on its bar. Row one keeps the exact geometry it has
+   without the rail. */
+@media (min-width: 901px) and (max-width: 1010px) {
+    .live-head-topline .live-head-controls { flex-wrap: wrap; }
+    .chain-throughput {
+        order: 1;
+        flex-basis: 100%;
+        width: 100%;
+        grid-template-columns: max-content minmax(0, 1fr) max-content;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chain-throughput-fill,
+    .chain-throughput-ember { transition: none; }
+    .chain-throughput[data-throughput-band="peak"] .chain-throughput-fill { animation: none; }
+}
+
+@media (forced-colors: active) {
+    .chain-throughput { border-color: ButtonText; }
+    .chain-throughput-fill { background: ButtonText; }
+    .chain-throughput-ember { opacity: 0; }
 }
 
 .live-head-quiet,
@@ -6634,6 +6829,33 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
     .chain-health-status { width: auto; }
     .chain-health-readout { font-size: 8px; }
     .chain-health-window { --chain-health-count: 10; }
+    /* The phone row above is full: Activity and Chain health already use both
+       columns. The rail takes the next row whole rather than sitting in half
+       of it, and splits into a kicker line plus figures so it reads as a
+       sibling card instead of a stray chip. */
+    .chain-throughput {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: 100%;
+        height: var(--live-head-control-height);
+        grid-template-columns: max-content minmax(0, 1fr) max-content;
+        grid-template-rows: auto auto;
+        align-content: center;
+        column-gap: 9px;
+        row-gap: 3px;
+        padding-inline: 9px;
+    }
+    .chain-throughput-heading { display: contents; }
+    .chain-throughput-label {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        font-size: 9px;
+        line-height: 1;
+    }
+    .chain-throughput-value { grid-column: 1; grid-row: 2; font-size: 0.82rem; }
+    .chain-throughput-rail { grid-column: 2; grid-row: 2; height: 10px; }
+    .chain-throughput-ceiling { grid-column: 3; grid-row: 2; font-size: 0.62rem; }
+
     .live-head-controls .live-head-filter {
         position: absolute;
         grid-area: auto;

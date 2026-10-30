@@ -16,6 +16,7 @@ import { readSavedMyTezosEntries } from '../core/wallet.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
+import { summarizeThroughput, THROUGHPUT_WINDOW_BLOCKS } from '../core/throughput.mjs';
 import { loadDataAsset } from '../core/data-assets.js';
 import { BLOCK_STORY_FILTER_TYPES, classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
 import { ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS } from '../core/etherlink-governance-contracts.mjs';
@@ -2567,6 +2568,101 @@ function updateLiveHeadNext(latest, nextRight) {
     quietlySyncHtml(next, html);
 }
 
+/**
+ * Measured throughput for the Live Head topline.
+ *
+ * The window is whatever the heartbeat has already enriched, newest first, so
+ * it widens on its own as the reader stays on the page and widens immediately
+ * when they raise the Live blocks depth. Nothing here fetches.
+ */
+function liveHeadThroughput(data) {
+    return summarizeThroughput(
+        Array.isArray(data?.blocks) ? data.blocks : [],
+        (level) => heartbeatActivityCache.get(level) || null,
+        { maxBlocks: THROUGHPUT_WINDOW_BLOCKS, txPageLimit: HEARTBEAT_ACTIVITY_LIMIT }
+    );
+}
+
+function formatThroughputRate(value) {
+    if (!Number.isFinite(value)) return '--';
+    if (value >= 100) return Math.round(value).toLocaleString('en-US');
+    if (value >= 10) return value.toFixed(1);
+    return value.toFixed(2);
+}
+
+function throughputReceipt(summary) {
+    if (summary.state !== 'resolved') {
+        return summary.state === 'unavailable'
+            ? 'The exact transaction or gas receipt for the newest blocks is temporarily unavailable.'
+            : 'Measuring applied transactions and block gas across the newest blocks.';
+    }
+    const blockWord = summary.blocks === 1 ? 'block' : 'blocks';
+    const counted = `${summary.atFloor ? 'At least ' : ''}${formatCount(summary.transactions)} applied transaction${summary.transactions === 1 ? '' : 's'}`;
+    const measured = `${counted} across ${formatCount(summary.blocks)} ${blockWord} in ${formatSeconds(summary.seconds)}: ${formatThroughputRate(summary.tps)} per second.`;
+    const fullness = `Those blocks used ${formatPct(summary.fullness * 100)}% of the ${formatCount(summary.gasLimit)} gas the protocol allows them.`;
+    const ceiling = summary.ceilingTps === null
+        ? 'No gas was burned, so there is no measured cost per transaction to project a ceiling from.'
+        : `At this exact transaction mix (${formatCount(Math.round(summary.gasPerTransaction))} gas each) a full block would carry about ${formatThroughputRate(summary.ceilingTps)} per second, leaving roughly ${formatThroughputRate(summary.headroomTps)} per second of unused room. That ceiling is an estimate from the current mix, not a protocol maximum.`;
+    const floor = summary.atFloor
+        ? ' One or more blocks filled the transaction page, so the count is a floor.'
+        : '';
+    return `${measured} ${fullness} ${ceiling}${floor}`;
+}
+
+function updateThroughputRail(data, { error = false } = {}) {
+    const rail = document.getElementById('chain-throughput');
+    if (!rail) return;
+    if (!rail.dataset.throughputWired) {
+        rail.dataset.throughputWired = '1';
+        rail.addEventListener('click', openNetworkHealthChamber);
+    }
+
+    const summary = liveHeadThroughput(data);
+    // Keep the last good reading on the surface. Enrichment trails the head, so
+    // a window that cannot measure yet is a pending receipt, not a new zero,
+    // and blanking the figures once per block would be the flicker the quiet
+    // refresh contract exists to prevent.
+    const retaining = summary.state !== 'resolved' && rail.dataset.throughputResolved === 'true';
+    if (retaining) {
+        const pendingSignature = `${summary.signature}:pending`;
+        if (rail.dataset.throughputSignature === pendingSignature) return;
+        rail.dataset.throughputSignature = pendingSignature;
+        rail.dataset.feedState = 'stale';
+        rail.setAttribute('aria-busy', 'false');
+        return;
+    }
+
+    const receipt = throughputReceipt(summary);
+    const signature = `${summary.signature}:${error ? 'stale' : 'live'}`;
+    if (rail.dataset.throughputSignature === signature) return;
+    rail.dataset.throughputSignature = signature;
+
+    const resolved = summary.state === 'resolved';
+    if (resolved) rail.dataset.throughputResolved = 'true';
+    rail.dataset.throughputState = summary.state;
+    rail.dataset.throughputBand = resolved ? summary.band : 'unknown';
+    rail.dataset.feedState = error ? 'stale' : 'live';
+    rail.setAttribute('aria-busy', summary.state === 'loading' ? 'true' : 'false');
+    rail.setAttribute('aria-label', `Open Network Health Chamber. ${receipt}`);
+    rail.title = receipt;
+    // Geometry only. The exact ratio stays in the receipt text above.
+    rail.style.setProperty('--throughput-fill', resolved ? summary.fill.toFixed(4) : '0');
+
+    const value = rail.querySelector('.chain-throughput-value');
+    const ceiling = rail.querySelector('.chain-throughput-ceiling');
+    if (value) {
+        quietlySyncHtml(value, escapeHtml(resolved ? formatThroughputRate(summary.tps) : '--'));
+        if (resolved) delete value.dataset.textPending;
+        else value.dataset.textPending = 'true';
+    }
+    if (ceiling) {
+        const ceilingText = resolved && summary.ceilingTps !== null
+            ? `/ ${formatThroughputRate(summary.ceilingTps)}`
+            : '/ --';
+        quietlySyncHtml(ceiling, escapeHtml(ceilingText));
+    }
+}
+
 function dispatchHotSignal(detail) {
     if (typeof window === 'undefined' || typeof window.CustomEvent !== 'function') return;
     window.dispatchEvent(new CustomEvent('hot-signal', { detail }));
@@ -3163,6 +3259,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     updateChainHealthStrip(data, { error, supplemental, suppressMotion: motionSuppressed || !heartbeatSupplementIsCurrent(latest) });
 
     dispatchContestedRoundHotSignal(latest);
+    updateThroughputRail(data, { error });
     if (!supplemental) fetchUsagePulse({ priority: 'enrichment' }).then(patchTickerUsage);
 
     const status = latestBlockStatus(latest);

@@ -12,6 +12,7 @@ export const STATIC_CHECKS = Object.freeze([
   { "script": "tests/tezos-rpc-check.mjs", "args": [] },
   { "script": "tests/test-layout-check.mjs", "args": [] },
   { "script": "tests/live-head-stall-check.mjs", "args": [] },
+  { "script": "tests/throughput-check.mjs", "args": [] },
   { "script": "tests/unused-code-check.mjs", "args": [] },
   { "script": "tests/text-loading-check.mjs", "args": [] },
   { "script": "tests/maxis-storage-check.mjs", "args": [] },
