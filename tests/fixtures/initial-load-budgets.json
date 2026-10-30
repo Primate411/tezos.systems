@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-10-10",
+  "reviewedAt": "2026-10-30",
   "reference": "tests/fixtures/initial-load-baseline-2026-09-16.json",
   "notes": [
     "Per-profile ceilings selected from the R01 calibration and validated by the three-run CI matrix. These are decoded local bytes, not compressed production transfers.",
@@ -8,7 +8,8 @@
     "Byte gates cover first-party document and resource payloads. Synthetic API fixture bytes and actual HTTP server bytes are separate diagnostics. Timings never gate CI.",
     "Ceiling increases require a reviewed explanation. CI does not rewrite budgets or the historical July baseline.",
     "2026-09-20: fixture fingerprint reviewed after adding the Tez Capital US hostname as an alias for existing RPC payloads. All numeric ceilings are unchanged.",
-    "2026-10-10: compared all 36 runs with passing main 49906e709. The only additional request is the shared 2,232-byte /js/ui/chamber-header.js module introduced by the Chamber UI overhaul. Allow exactly one additional request per profile (desktop 136 to 137, mobile 127 to 128); every byte and DOM ceiling, fixture contract, and historical calibration remains unchanged. Receipt: tests/fixtures/initial-load-review-2026-10-10.json."
+    "2026-10-10: compared all 36 runs with passing main 49906e709. The only additional request is the shared 2,232-byte /js/ui/chamber-header.js module introduced by the Chamber UI overhaul. Allow exactly one additional request per profile (desktop 136 to 137, mobile 127 to 128); every byte and DOM ceiling, fixture contract, and historical calibration remains unchanged. Receipt: tests/fixtures/initial-load-review-2026-10-10.json.",
+    "2026-10-30: compared all 36 runs with main c3d7f8ffb. The only additional request is the 7,197-byte /js/core/throughput.mjs model introduced by the Live blocks throughput rail, imported once by the already-loaded Network Health feature. Allow exactly one additional request per profile (desktop 137 to 138, mobile 128 to 129); every byte and DOM ceiling, fixture contract, and historical calibration remains unchanged. Receipt: tests/fixtures/initial-load-review-2026-10-30.json."
   ],
   "profileContract": {
     "network": "populated",
@@ -22,7 +23,7 @@
       "eagerJsDecodedBytes": 2708480,
       "styleDecodedBytes": 773120,
       "jsonDecodedBytes": 105472,
-      "sameOriginRequests": 137,
+      "sameOriginRequests": 138,
       "domNodes": 4471
     },
     "desktop-anonymous-warm": {
@@ -30,7 +31,7 @@
       "eagerJsDecodedBytes": 2708480,
       "styleDecodedBytes": 773120,
       "jsonDecodedBytes": 105472,
-      "sameOriginRequests": 137,
+      "sameOriginRequests": 138,
       "domNodes": 4541
     },
     "desktop-anonymous-installed-worker": {
@@ -38,7 +39,7 @@
       "eagerJsDecodedBytes": 2708480,
       "styleDecodedBytes": 773120,
       "jsonDecodedBytes": 105472,
-      "sameOriginRequests": 137,
+      "sameOriginRequests": 138,
       "domNodes": 4541
     },
     "desktop-saved-wallet-cold": {
@@ -46,7 +47,7 @@
       "eagerJsDecodedBytes": 2708480,
       "styleDecodedBytes": 773120,
       "jsonDecodedBytes": 105472,
-      "sameOriginRequests": 137,
+      "sameOriginRequests": 138,
       "domNodes": 4990
     },
     "desktop-saved-wallet-warm": {
@@ -54,7 +55,7 @@
       "eagerJsDecodedBytes": 2708480,
       "styleDecodedBytes": 773120,
       "jsonDecodedBytes": 105472,
-      "sameOriginRequests": 137,
+      "sameOriginRequests": 138,
       "domNodes": 4986
     },
     "desktop-saved-wallet-installed-worker": {
@@ -62,7 +63,7 @@
       "eagerJsDecodedBytes": 2708480,
       "styleDecodedBytes": 773120,
       "jsonDecodedBytes": 105472,
-      "sameOriginRequests": 137,
+      "sameOriginRequests": 138,
       "domNodes": 4986
     },
     "mobile-anonymous-cold": {
@@ -70,7 +71,7 @@
       "eagerJsDecodedBytes": 2621440,
       "styleDecodedBytes": 755712,
       "jsonDecodedBytes": 89088,
-      "sameOriginRequests": 128,
+      "sameOriginRequests": 129,
       "domNodes": 4388
     },
     "mobile-anonymous-warm": {
@@ -78,7 +79,7 @@
       "eagerJsDecodedBytes": 2621440,
       "styleDecodedBytes": 755712,
       "jsonDecodedBytes": 89088,
-      "sameOriginRequests": 128,
+      "sameOriginRequests": 129,
       "domNodes": 4460
     },
     "mobile-anonymous-installed-worker": {
@@ -86,7 +87,7 @@
       "eagerJsDecodedBytes": 2621440,
       "styleDecodedBytes": 755712,
       "jsonDecodedBytes": 89088,
-      "sameOriginRequests": 128,
+      "sameOriginRequests": 129,
       "domNodes": 4460
     },
     "mobile-saved-wallet-cold": {
@@ -94,7 +95,7 @@
       "eagerJsDecodedBytes": 2621440,
       "styleDecodedBytes": 755712,
       "jsonDecodedBytes": 89088,
-      "sameOriginRequests": 128,
+      "sameOriginRequests": 129,
       "domNodes": 4908
     },
     "mobile-saved-wallet-warm": {
@@ -102,7 +103,7 @@
       "eagerJsDecodedBytes": 2621440,
       "styleDecodedBytes": 755712,
       "jsonDecodedBytes": 89088,
-      "sameOriginRequests": 128,
+      "sameOriginRequests": 129,
       "domNodes": 4904
     },
     "mobile-saved-wallet-installed-worker": {
@@ -110,7 +111,7 @@
       "eagerJsDecodedBytes": 2621440,
       "styleDecodedBytes": 755712,
       "jsonDecodedBytes": 89088,
-      "sameOriginRequests": 128,
+      "sameOriginRequests": 129,
       "domNodes": 4904
     }
   },

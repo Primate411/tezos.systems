@@ -1,0 +1,99 @@
+{
+  "reviewedAt": "2026-10-30",
+  "reason": "The Live blocks throughput rail adds one first-party ES module to each existing homepage loading profile. js/core/throughput.mjs holds the measured-throughput and block-capacity model as DOM-free functions, imported once by the already-loaded Network Health feature and exercised directly by tests/throughput-check.mjs. Folding it into its single consumer would put the model inside 327 KB of DOM-dependent feature code and remove the unit test's ability to import it in Node.",
+  "baseline": {
+    "revision": "c3d7f8ffb7c5ba3fbd2d10ea420559d52b6220e7",
+    "measurement": "local 12-profile x 3-run matrix; passed with no budget errors"
+  },
+  "release": {
+    "revision": "6538d4cb3bbf2a14de4cf801b8acd013c43b914f",
+    "measurement": "local 12-profile x 3-run matrix; sameOriginRequests the only budget error, in all 36 runs",
+    "pullRequest": "https://github.com/Primate411/tezos.systems/pull/3"
+  },
+  "onlyAddedRequest": {
+    "path": "/js/core/throughput.mjs",
+    "decodedBytes": 7197
+  },
+  "evidence": "Comparing the first-run resource path sets per profile, /js/core/throughput.mjs is the only path added and none is removed, on both desktop and mobile. Request counts show no variance: baseline 137/128 and release 138/129 in every one of the 36 runs on each side.",
+  "unchangedLimits": [
+    "sameOriginDecodedBytes",
+    "eagerJsDecodedBytes",
+    "styleDecodedBytes",
+    "jsonDecodedBytes",
+    "domNodes"
+  ],
+  "profiles": [
+    {
+      "id": "desktop-anonymous-cold",
+      "baselineRequests": 137,
+      "releaseRequests": 138,
+      "comparedRuns": 3
+    },
+    {
+      "id": "desktop-anonymous-warm",
+      "baselineRequests": 137,
+      "releaseRequests": 138,
+      "comparedRuns": 3
+    },
+    {
+      "id": "desktop-anonymous-installed-worker",
+      "baselineRequests": 137,
+      "releaseRequests": 138,
+      "comparedRuns": 3
+    },
+    {
+      "id": "desktop-saved-wallet-cold",
+      "baselineRequests": 137,
+      "releaseRequests": 138,
+      "comparedRuns": 3
+    },
+    {
+      "id": "desktop-saved-wallet-warm",
+      "baselineRequests": 137,
+      "releaseRequests": 138,
+      "comparedRuns": 3
+    },
+    {
+      "id": "desktop-saved-wallet-installed-worker",
+      "baselineRequests": 137,
+      "releaseRequests": 138,
+      "comparedRuns": 3
+    },
+    {
+      "id": "mobile-anonymous-cold",
+      "baselineRequests": 128,
+      "releaseRequests": 129,
+      "comparedRuns": 3
+    },
+    {
+      "id": "mobile-anonymous-warm",
+      "baselineRequests": 128,
+      "releaseRequests": 129,
+      "comparedRuns": 3
+    },
+    {
+      "id": "mobile-anonymous-installed-worker",
+      "baselineRequests": 128,
+      "releaseRequests": 129,
+      "comparedRuns": 3
+    },
+    {
+      "id": "mobile-saved-wallet-cold",
+      "baselineRequests": 128,
+      "releaseRequests": 129,
+      "comparedRuns": 3
+    },
+    {
+      "id": "mobile-saved-wallet-warm",
+      "baselineRequests": 128,
+      "releaseRequests": 129,
+      "comparedRuns": 3
+    },
+    {
+      "id": "mobile-saved-wallet-installed-worker",
+      "baselineRequests": 128,
+      "releaseRequests": 129,
+      "comparedRuns": 3
+    }
+  ]
+}
