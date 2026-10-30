@@ -6,6 +6,9 @@ on:
     - cron: '17,47 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   global-history:
     name: Catch up global history
@@ -45,3 +48,14 @@ jobs:
             exit 0
           fi
           exit "$status"
+
+  audit-delivery:
+    name: Verify delivered freshness
+    needs: [global-history, collect]
+    # Recovery dispatches must verify delivery in this run, even if collection
+    # fails; do not depend on another workflow_run event being scheduled.
+    if: ${{ always() && !cancelled() && github.repository == 'Primate411/tezos.systems' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/audit-generated-freshness.yml

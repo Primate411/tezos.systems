@@ -165,12 +165,44 @@ const [reopened] = await reconcile({ incident: { ...incident, state: 'closed', b
 assert.equal(reopened.state, 'open');
 assert(!reopened.body.includes('## Recovered'), 'a new failure cannot retain the prior recovered state');
 const auditWorkflow = await readFile(new URL('../.github/workflows/audit-generated-freshness.yml', import.meta.url), 'utf8');
-for (const trigger of ['Refresh Generated Surfaces', 'Collect Tezos Stats', 'Collect Chamber History']) assert(auditWorkflow.includes(trigger));
+for (const trigger of ['Refresh Generated Surfaces', 'Collect Tezos Stats']) assert(auditWorkflow.includes(trigger));
 for (const boundary of ["conclusion == 'success'", 'head_repository.full_name == github.repository', "head_branch == 'main'", "event == 'schedule'", "event == 'workflow_dispatch'", 'ref: main', 'persist-credentials: false']) assert(auditWorkflow.includes(boundary));
 assert.match(auditWorkflow, /require\('\.\/\.github\/scripts\/reconcile-freshness-incident\.js'\)/);
+// Recovery-dispatched collectors must prove delivery inside their own run;
+// a downstream workflow_run event is not a dependable completion receipt.
+assert.match(auditWorkflow, /^  workflow_call:/m);
+assert.match(auditWorkflow, /cron: '47 3,9,15,21 \* \* \*'/);
+assert(!auditWorkflow.includes('Collect Chamber History'), 'The collector calls the audit directly, without a duplicate completion trigger');
+assert(!/^concurrency:/m.test(auditWorkflow), 'Reusable audits must not cancel their caller through workflow-level concurrency');
+assert.match(auditWorkflow, /    concurrency:\n      group: tezos-systems-generated-freshness-audit\n      cancel-in-progress: false/);
+const collectorWorkflow = await readFile(new URL('../.github/workflows/collect-chamber-history.yml', import.meta.url), 'utf8');
+const deliveryAudit = collectorWorkflow.split('  audit-delivery:\n')[1];
+assert(deliveryAudit, 'History collection must audit delivered receipts in the same run');
+assert.match(deliveryAudit, /needs: \[global-history, collect\]/);
+assert.match(deliveryAudit, /uses: \.\/\.github\/workflows\/audit-generated-freshness\.yml/);
+assert.match(deliveryAudit, /permissions:\n      contents: read\n      issues: write/);
+const deliveryCondition = deliveryAudit.match(/^    if: (.+)$/m)?.[1].replace(/^\$\{\{\s*|\s*\}\}$/g, '');
+assert(deliveryCondition);
+assert.match(deliveryCondition, /always\(\)/, 'Collector failure must not skip the independent delivery check');
+const evaluateDelivery = new Function('always', 'cancelled', 'github', `return (${deliveryCondition});`);
+for (const event of ['schedule', 'workflow_dispatch', 'pull_request', 'push']) {
+  for (const actor of ['Primate411', 'github-actions[bot]']) {
+    for (const repository of ['Primate411/tezos.systems', 'fixture/fork']) {
+      for (const ref of ['refs/heads/main', 'refs/heads/feature']) {
+        for (const cancelled of [false, true]) {
+          assert.equal(evaluateDelivery(() => true, () => cancelled, { event_name: event, actor, repository, ref }),
+            !cancelled && repository === 'Primate411/tezos.systems' && ref === 'refs/heads/main' && ['schedule', 'workflow_dispatch'].includes(event),
+            `Delivery audit: ${event}, ${actor}, ${repository}, ${ref}, cancelled=${cancelled}`);
+        }
+      }
+    }
+  }
+}
+console.log('ok - scheduled and bot-dispatched history audit both delivered ledgers without relying on downstream events');
+
 // Evaluate the workflow's actual follow-up conditions against the hosted
 // cancellation regression. A failed generated check must still allow history
-// and incident reconciliation; a superseded run must stop even during checkout.
+// and incident reconciliation; a cancelled run must stop even during checkout.
 for (const name of ['Audit historical ledgers', 'Reconcile one freshness incident']) {
   const block = auditWorkflow.split(`      - name: ${name}\n`)[1]?.split('\n      - name:')[0];
   assert(block, `Missing workflow step: ${name}`);
@@ -192,5 +224,5 @@ for (const name of ['Audit historical ledgers', 'Reconcile one freshness inciden
     expected, `${name}: cancelled=${cancelled}, checkout=${checkout}, generated=${generated}, history=${history}`);
   }
 }
-console.log('ok - superseded audits stop after cancellation while real freshness failures retain independent checks');
+console.log('ok - cancelled audits stop while real freshness failures retain independent checks');
 console.log('ok - freshness recovery requires both current checks, reuses one issue and records recovery without comments');

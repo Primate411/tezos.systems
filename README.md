@@ -2051,6 +2051,13 @@ retries are exhausted, the workflow keeps the last-good ledger and records a
 warning; the shared five-hour freshness audit opens one incident only if the
 delivery budget is actually exceeded. Authentication, schema, and other hard
 write failures still fail immediately.
+After both history jobs finish, the chamber workflow directly calls the shared
+freshness audit, including after recovery dispatches and collection failures.
+It checks both generated data and all five stored ledgers before reconciling the
+incident; collector success alone cannot close it. Shared audit jobs serialize
+incident writes without cancelling their collector. The independent six-hour
+alarm remains in place. GitHub scheduling delays can still interrupt capture;
+this follow-up verifies recovery as soon as collection actually runs.
 The Cycle History Chamber reads those domain tables directly for trend charts
 plus expanded `tezos_history` fields such as total staked, APY, tz4 power,
 protocol issuance, and Liquidity Baking EMA. It starts with a captured-signal

@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-10-30',
+        entries: [
+            { type: '🔧', text: 'History recovery now rechecks delivered data immediately, closing freshness incidents only after both generated data and stored history pass their checks' }
+        ]
+    },
+    {
         date: '2026-10-29',
         entries: [
             { type: '🔒', text: 'Build and audit tools receive compatible security patches; the public dashboard stays framework-free' }

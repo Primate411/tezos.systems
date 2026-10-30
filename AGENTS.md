@@ -46,6 +46,12 @@ the highest-risk gotchas.
   six-hour alarm. It enforces an 18-hour generated-data ceiling, the completed
   Monday-to-Monday Ecosystem rollover after an 18-hour grace period, and the
   native Release Radar, comparison, milestone, TezosCRP, and Supabase clocks.
+  The chamber-history workflow also calls this reusable audit directly after
+  both collectors finish, including recovery dispatches and collection failures.
+  Do not rely on a downstream workflow_run to confirm recovery. Keep its shared
+  job-level concurrency non-cancelling so an audit cannot cancel its caller;
+  only both successful freshness checks may close an incident. GitHub schedule
+  delays remain an external capture dependency.
 - `index.html` currently serves `css/styles.min.css`, not `css/styles.css`.
   Edit `styles.css` first, then regenerate/minify `styles.min.css`.
 - Playwright callers should use `scripts/lib/playwright-browser.cjs`. It tries

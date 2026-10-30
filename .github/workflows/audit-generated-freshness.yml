@@ -5,8 +5,9 @@ on:
     # Offset from the repository writer so the audit observes the delivered result.
     - cron: '47 3,9,15,21 * * *'
   workflow_dispatch:
+  workflow_call:
   workflow_run:
-    workflows: [Refresh Generated Surfaces, Collect Tezos Stats, Collect Chamber History, Refresh TezosCRP Awards, Refresh Chain Comparison]
+    workflows: [Refresh Generated Surfaces, Collect Tezos Stats, Refresh TezosCRP Awards, Refresh Chain Comparison]
     types: [completed]
     branches: [main]
 
@@ -14,12 +15,12 @@ permissions:
   contents: read
   issues: write
 
-concurrency:
-  group: tezos-systems-generated-freshness-audit
-  cancel-in-progress: true
-
 jobs:
   audit:
+    # Serialize incident receipts without cancelling a reusable caller.
+    concurrency:
+      group: tezos-systems-generated-freshness-audit
+      cancel-in-progress: false
     # Recheck current main after trusted delivery, never execute PR/fork code.
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch'))
     timeout-minutes: 10
