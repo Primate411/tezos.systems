@@ -8,12 +8,22 @@ import { initShellLifecycle } from './shell-lifecycle.js';
 import { findChamberLauncher } from '../ui/chamber-accessibility.js';
 import { activeOverlayCount } from '../ui/overlay-stack.js';
 import { initChamberThemeEffects } from '../ui/chamber-theme-effects.js';
+import { parseMyTezosPathRoute } from './site-map.js';
 
 const bootScript = document.querySelector('script[data-dashboard-src]');
 const dashboardSrc = bootScript.dataset.dashboardSrc;
 const entryId = document.documentElement.dataset.chamberBoot;
 const chamber = CHAMBER_FEATURES[entryId];
 const room = chamber.standalone;
+if (room.controller === 'my') {
+    const params = new URLSearchParams(location.search);
+    const accountRoute = parseMyTezosPathRoute(params.get('account-route'));
+    if (accountRoute) {
+        params.delete('account-route');
+        params.delete('view');
+        history.replaceState(history.state, '', `${accountRoute.path}${params.size ? `?${params}` : ''}${location.hash}`);
+    }
+}
 const pilotEvents = new AbortController();
 let dashboardPromise = null;
 let dashboardModulePromise = null;
@@ -28,7 +38,7 @@ let roomOpenIntent = 0;
 
 function isRoomRoute() {
     const path = location.pathname.replace(/\/index\.html$/, '/').replace(/\/+$/, '');
-    return (path === `/${room.route}` || room.aliases?.some(alias => path === `/${alias}`)
+    return (path === `/${room.route}` || (room.controller === 'my' && parseMyTezosPathRoute(location.pathname)) || room.aliases?.some(alias => path === `/${alias}`)
         || (room.children && path.startsWith(`/${room.route}/`)))
         && (!location.hash || location.hash.startsWith('#theme='));
 }

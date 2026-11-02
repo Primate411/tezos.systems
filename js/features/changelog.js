@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-11-02',
+        entries: [
+            { type: '✨', text: 'Link directly to any My Tezos tab with an address or .tez name followed by /overview, /signal, /portfolio, /transactions, /collection, /story, or /x' }
+        ]
+    },
+    {
         date: '2026-10-30',
         entries: [
             { type: '🔧', text: 'History recovery now rechecks delivered data immediately, closing freshness incidents only after both generated data and stored history pass their checks' }

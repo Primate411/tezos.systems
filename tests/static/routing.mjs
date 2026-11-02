@@ -22,6 +22,8 @@ export function createRoutingStaticChecks({
       SITE_MAP_RELATIONS,
       findCurrentSiteMapContext,
       findSiteMapDestination,
+      myTezosViewPath,
+      parseMyTezosPathRoute,
       searchSiteMap,
       searchSiteMapIntents,
       siteMapBrowseEntries,
@@ -32,6 +34,26 @@ export function createRoutingStaticChecks({
       siteMapSitemapEntries,
       siteMapStarters
     } = await import(moduleUrl);
+    const account = 'tz1Q7eNkwYGTKZNqQ2mq31rcZtNvCjwhTwU2';
+    const tabPaths = { overview: 'overview', 'baker-signal': 'signal', portfolio: 'portfolio', transactions: 'transactions', collection: 'collection', story: 'story', 'tezos-x': 'x' };
+    for (const target of [account, 'example.tez', 'sub.example.tez', `KT1${'a'.repeat(33)}`]) {
+      for (const [view, slug] of Object.entries(tabPaths)) {
+        const route = `/${target}/${slug}`;
+        assert.equal(myTezosViewPath(target, view), route);
+        assert.deepEqual(parseMyTezosPathRoute(route), { target, view, path: route });
+        assert.deepEqual(parseMyTezosPathRoute(`${route}/`), { target, view, path: route });
+        const context = findCurrentSiteMapContext(new URL(route, 'https://tezos.systems'));
+        assert.equal(context.entryId, 'my-tezos');
+        assert.equal(context.intentId, view === 'overview' ? null : `my-tezos-${view}`);
+        assert.ok(!context.route.includes(target), 'journey memory must keep addresses out of canonical context');
+      }
+    }
+    for (const invalid of [`/${account}/unknown`, `/${account}/signal/extra`, '//example.tez/signal', '/bad/signal', '/%2Fexample.tez/signal', '/%E0%A4%A/signal', '/example.tez/signal?bad', '/my/signal']) {
+      assert.equal(parseMyTezosPathRoute(invalid), null, `Reject invalid account route: ${invalid}`);
+    }
+    assert.equal(myTezosViewPath(account, 'unknown'), null);
+    assert.equal(myTezosViewPath('https://other.example', 'overview'), null);
+
     const journeySource = (await readText('js/core/site-journey.js'))
       .replace("'./site-map.js'", JSON.stringify(moduleUrl))
       .replace(

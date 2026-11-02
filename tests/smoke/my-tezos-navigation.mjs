@@ -634,7 +634,89 @@ export function createMyTezosNavigationSmokeSuites({
       await runMyTezosDeepLinkOverride(browser, baseUrl, scenario);
       log(`ok - ${scenario.label}`);
     }
+    if (routeKind !== 'hash') await smokeMyTezosAccountTabPaths(browser, baseUrl);
     log(`ok - my tezos ${routeKind} deep link override smoke`);
+  }
+
+  async function smokeMyTezosAccountTabPaths(browser, baseUrl) {
+    const fallbackHtml = await fetch(`${baseUrl}/404.html`).then(response => response.text());
+    const tabs = { overview: 'overview', signal: 'baker-signal', portfolio: 'portfolio', transactions: 'transactions', collection: 'collection', story: 'story', x: 'tezos-x' };
+    for (const [label, viewport, theme] of [
+      ['desktop', { width: 1440, height: 1000 }, 'matrix'],
+      ['mobile', { width: 390, height: 844 }, 'clean']
+    ]) {
+      const context = await browser.newContext({ viewport, serviceWorkers: 'block' });
+      await installFeatureMocks(context, { forwardDomainAddress: SAMPLE_ADDRESS_2 });
+      await context.addInitScript(({ stale, theme }) => {
+        localStorage.setItem('tezos-systems-theme', theme);
+        localStorage.setItem('tezos-toured', '1');
+        localStorage.setItem('tezos-welcomed', '1');
+        localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+        localStorage.setItem('tezos-systems-my-baker-address', stale);
+        sessionStorage.setItem('tezos-systems-my-tezos-view', 'story');
+      }, { stale: SAMPLE_ADDRESS, theme });
+      const fallbackRequests = new Set();
+      await context.route(url => url.origin === new URL(baseUrl).origin && (url.pathname.startsWith(`/${SAMPLE_ADDRESS_2}/`) || url.pathname.startsWith('/qa-baker.tez/')), async route => {
+        fallbackRequests.add(route.request().url());
+        await route.fulfill({ status: 404, contentType: 'text/html', body: fallbackHtml });
+      });
+      const page = await context.newPage();
+      const issues = [];
+      attachIssueCollectors(page, `account tab paths ${label}`, issues);
+      const assertSelected = async (view, expectedPath) => {
+        await page.waitForFunction(({ view, expectedPath, address }) => (
+          location.pathname === expectedPath
+          && !location.search.includes('account-route')
+          && !location.search.includes('view=')
+          && !location.hash
+          && document.querySelector('#my-tezos-drawer')?.classList.contains('open')
+          && document.querySelector(`[data-my-tezos-view="${view}"]`)?.getAttribute('aria-selected') === 'true'
+          && document.querySelector(`[data-my-tezos-panel="${view}"]`)?.hidden === false
+          && window._myTezosData?.fullAddress === address
+          && !window._myTezosData?.loading
+          && document.querySelector('#my-tezos-wallet-scope')?.value === address
+          && localStorage.getItem('tezos-systems-my-baker-address') === address
+        ), { view, expectedPath, address: SAMPLE_ADDRESS_2 }, { timeout: 30000 });
+      };
+      for (const [slug, view] of Object.entries(tabs)) {
+        const accountPath = `/${SAMPLE_ADDRESS_2}/${slug}`;
+        await page.goto(`${baseUrl}${accountPath}?theme=${theme}`, { waitUntil: 'domcontentloaded' });
+        await assertSelected(view, accountPath);
+        assert(new URL(page.url()).searchParams.get('theme') === theme, 'Account redirect must preserve theme');
+        if (slug === 'signal') {
+          await page.locator('#drawer-operator-status .drawer-operator-panel[aria-busy="false"]').waitFor({ state: 'visible' });
+          if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `my-tezos-account-signal-${label}.png`) });
+        }
+      }
+      await page.locator('#my-tezos-tab-story').click();
+      await page.locator('#my-tezos-story-content').waitFor({ state: 'visible' });
+      await assertSelected('story', `/${SAMPLE_ADDRESS_2}/story`);
+      await page.goBack();
+      await assertSelected('tezos-x', `/${SAMPLE_ADDRESS_2}/x`);
+      await page.goForward();
+      await assertSelected('story', `/${SAMPLE_ADDRESS_2}/story`);
+      await page.evaluate(address => {
+        const key = 'tezos-systems-saved-addresses';
+        const entries = JSON.parse(localStorage.getItem(key) || '[]');
+        localStorage.setItem(key, JSON.stringify(entries.map(entry => entry.address === address ? { ...entry, included: false } : entry)));
+      }, SAMPLE_ADDRESS_2);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await assertSelected('story', `/${SAMPLE_ADDRESS_2}/story`);
+      await page.goto(`${baseUrl}/qa-baker.tez/signal/`, { waitUntil: 'domcontentloaded' });
+      await assertSelected('baker-signal', '/qa-baker.tez/signal');
+      await page.locator('#my-tezos-wallet-scope').selectOption(SAMPLE_ADDRESS, { force: true });
+      await page.waitForFunction(address => location.pathname === `/${address}/signal` && window._myTezosData?.fullAddress === address && !window._myTezosData?.loading, SAMPLE_ADDRESS);
+      await page.locator('#my-tezos-wallet-scope').selectOption('all', { force: true });
+      assert(new URL(page.url()).pathname === '/my/' && new URL(page.url()).searchParams.get('view') === 'baker-signal', 'All-wallet scope must leave the address-specific URL');
+      await page.goBack();
+      await page.waitForFunction(address => location.pathname === `/${address}/signal` && document.querySelector('#my-tezos-wallet-scope')?.value === address, SAMPLE_ADDRESS);
+      await context.close();
+      // A real Pages fallback reports its initial 404 in the console before
+      // redirecting. Only that exact, deliberately served document is expected.
+      const unexpected = issues.filter(issue => !(issue.includes('404 (Not Found)') && [...fallbackRequests].some(url => issue.endsWith(`(${url})`))));
+      assert(unexpected.length === 0, `Account tab paths ${label}: ${unexpected.join('\n')}`);
+      log(`ok - My Tezos seven account tab paths, Pages fallback, reload, history, domain (${label})`);
+    }
   }
 
   async function smokeMyTezosPrettyRoute(browser, baseUrl) {

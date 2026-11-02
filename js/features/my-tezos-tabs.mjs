@@ -1,3 +1,5 @@
+import { myTezosViewPath, parseMyTezosPathRoute } from '../core/site-map.js';
+
 const VIEW_SESSION_KEY = 'tezos-systems-my-tezos-view';
 export const MY_TEZOS_VIEWS = Object.freeze(['overview', 'baker-signal', 'portfolio', 'transactions', 'collection', 'story', 'tezos-x']);
 
@@ -6,7 +8,7 @@ const viewScrollPositions = new Map();
 let initialized = false;
 
 function routeCanOwnView() {
-    return typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/my';
+    return typeof window !== 'undefined' && (window.location.pathname.replace(/\/+$/, '') === '/my' || Boolean(parseMyTezosPathRoute(window.location.pathname)));
 }
 
 function normalizeView(view) {
@@ -30,7 +32,11 @@ function revealSelectedTab(button) {
 function syncRoute(view, mode = 'replace') {
     if (!routeCanOwnView()) return;
     const url = new URL(window.location.href);
-    if (view === 'overview') url.searchParams.delete('view');
+    const accountRoute = parseMyTezosPathRoute(url.pathname);
+    if (accountRoute) {
+        url.pathname = myTezosViewPath(accountRoute.target, view);
+        url.searchParams.delete('view');
+    } else if (view === 'overview') url.searchParams.delete('view');
     else url.searchParams.set('view', view);
     const next = `${url.pathname}${url.search}${url.hash}`;
     const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -102,7 +108,7 @@ export function initMyTezosTabs() {
         });
     });
     window.addEventListener('my-tezos-view-request', (event) => {
-        setMyTezosView(event.detail?.view || 'overview');
+        setMyTezosView(event.detail?.view || 'overview', { syncRoute: event.detail?.syncRoute !== false });
     });
     window.addEventListener('my-tezos-drawer-opened', () => {
         const selected = document.querySelector('[data-my-tezos-view][aria-selected="true"]')?.dataset.myTezosView || 'overview';
@@ -110,12 +116,22 @@ export function initMyTezosTabs() {
     });
     window.addEventListener('popstate', () => {
         if (!routeCanOwnView()) return;
-        const routeView = new URLSearchParams(window.location.search).get('view');
+        const routeView = parseMyTezosPathRoute(window.location.pathname)?.view || new URLSearchParams(window.location.search).get('view');
         setMyTezosView(routeView || 'overview', { syncRoute: false });
+    });
+    window.addEventListener('my-tezos-scope-changed', (event) => {
+        if (!['control', 'story'].includes(event.detail?.source) || !parseMyTezosPathRoute(location.pathname)) return;
+        const view = document.querySelector('[data-my-tezos-view][aria-selected="true"]')?.dataset.myTezosView || 'overview';
+        const url = new URL(location.href);
+        const path = myTezosViewPath(event.detail?.scope || '', view);
+        url.pathname = path || '/my/';
+        if (path || view === 'overview') url.searchParams.delete('view');
+        else url.searchParams.set('view', view);
+        history.pushState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
     });
 
     let initial = 'overview';
-    const routeView = routeCanOwnView() ? new URLSearchParams(window.location.search).get('view') : '';
+    const routeView = parseMyTezosPathRoute(window.location.pathname)?.view || (routeCanOwnView() ? new URLSearchParams(window.location.search).get('view') : '');
     if (MY_TEZOS_VIEWS.includes(routeView)) {
         initial = routeView;
     } else {

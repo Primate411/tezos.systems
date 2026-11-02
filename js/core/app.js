@@ -17,6 +17,7 @@ import {
     findCurrentSiteMapEntry,
     findSiteMapEntry,
     navigateSiteMapEntry,
+    parseMyTezosPathRoute,
     siteMapCanonicalRoute
 } from './site-map.js';
 import { renderSiteHandoff } from './site-handoff.js';
@@ -67,7 +68,8 @@ import {
     preloadOctezConnect,
     readSavedMyTezosEntries,
     shortAddress,
-    upsertSavedMyTezosEntry
+    upsertSavedMyTezosEntry,
+    writeSavedMyTezosEntries
 } from './wallet.js';
 import { resolveTezReverseNames } from './tezos-domains.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
@@ -6604,6 +6606,11 @@ export async function openStandaloneMyTezos({ isCurrent = () => true } = {}) {
     initMyTezosButton();
     initMyTezos();
     initMyBaker();
+    const accountRoute = parseMyTezosPathRoute(location.pathname);
+    if (accountRoute) {
+        await openMyTezosTarget(accountRoute.target, accountRoute.view);
+        return;
+    }
     await setMyTezosDrawerOpenState(true);
 }
 
@@ -7192,6 +7199,8 @@ function decodeRouteTarget(value) {
 }
 
 function getMyTezosPathTarget() {
+    const accountRoute = parseMyTezosPathRoute(window.location.pathname);
+    if (accountRoute) return accountRoute.target;
     const pathTarget = window.location.pathname.replace(/^\/+|\/+$/g, '');
     if (!pathTarget || pathTarget.includes('/')) return null;
     const target = decodeRouteTarget(pathTarget).trim();
@@ -7239,6 +7248,7 @@ function setMyTezosDrawerOpen(address) {
 }
 
 function renderMyTezosDirectLinkError(label) {
+    window.dispatchEvent(new CustomEvent('my-tezos-view-request', { detail: { view: 'overview', syncRoute: false } }));
     setMyTezosDrawerOpen(true);
     const input = document.getElementById('my-baker-input');
     const results = document.getElementById('my-baker-results');
@@ -7248,14 +7258,22 @@ function renderMyTezosDirectLinkError(label) {
     if (errorMsg) errorMsg.textContent = `Could not resolve "${label}". Domain not found.`;
 }
 
-async function openMyTezosTarget(rawTarget) {
+let myTezosTargetIntent = 0;
+async function openMyTezosTarget(rawTarget, view = 'overview') {
+    const intent = ++myTezosTargetIntent;
+    const requestedRoute = location.href;
+    const requestedHash = location.hash;
+    const accountRoute = parseMyTezosPathRoute(location.pathname);
+    const isCurrent = () => intent === myTezosTargetIntent && (accountRoute
+        ? parseMyTezosPathRoute(location.pathname)?.target === accountRoute.target && location.hash === requestedHash
+        : location.href === requestedRoute);
     const label = String(rawTarget || '').trim();
     if (!label) {
         setMyTezosDrawerOpen(localStorage.getItem('tezos-systems-my-baker-address'));
         return;
     }
 
-    window.dispatchEvent(new CustomEvent('my-tezos-view-request', { detail: { view: 'overview' } }));
+    window.dispatchEvent(new CustomEvent('my-tezos-view-request', { detail: { view, syncRoute: false } }));
 
     const input = document.getElementById('my-baker-input');
     const errorMsg = document.getElementById('my-baker-error-msg');
@@ -7263,15 +7281,28 @@ async function openMyTezosTarget(rawTarget) {
     if (errorMsg && isTezDomainName(label)) errorMsg.textContent = 'Resolving domain...';
 
     const resolved = await resolveMyTezosTarget(label);
+    if (!isCurrent()) return;
     if (!resolved.address) {
         renderMyTezosDirectLinkError(resolved.label || label);
         return;
     }
 
+    const scopeModule = accountRoute ? await import('../features/my-tezos-scope.mjs') : null;
+    if (!isCurrent()) return;
     localStorage.setItem('tezos-systems-my-baker-address', resolved.address);
+    if (scopeModule) {
+        const entries = upsertSavedMyTezosEntry(resolved.address, { source: 'account-route' });
+        // An explicit account link selects that wallet even if it was excluded
+        // from the saved aggregate. Other saved wallets keep their preferences.
+        if (entries.some(entry => entry.address === resolved.address && entry.included === false)) {
+            writeSavedMyTezosEntries(entries.map(entry => entry.address === resolved.address ? { ...entry, included: true } : entry), { source: 'account-route' });
+        }
+        scopeModule.setMyTezosScope(resolved.address, { source: 'account-route' });
+    }
     setMyTezosDrawerOpen(resolved.address);
 
     setTimeout(() => {
+        if (!isCurrent()) return;
         const currentInput = document.getElementById('my-baker-input');
         const saveBtn = document.getElementById('my-baker-save');
         if (currentInput) currentInput.value = resolved.address;
@@ -7626,7 +7657,7 @@ function applyDeepLink() {
 
         const pathTarget = getMyTezosPathTarget();
         if (pathTarget) {
-            openMyTezosTarget(pathTarget);
+            openMyTezosTarget(pathTarget, parseMyTezosPathRoute(location.pathname)?.view || 'overview');
             return;
         }
         if (document.querySelector('.chamber-overlay.active, #history-modal.active, #protocol-history-modal, #native-explorer-overlay.active')) {

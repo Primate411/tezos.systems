@@ -31,12 +31,12 @@ export const SITE_MAP = [
         detail: 'Make a wallet or .tez name the center of a personal Tezos dashboard',
         keywords: ['wallet', 'account', 'portfolio', 'rewards', 'rewards tracker', 'baker', 'baker report card', 'operator health', 'personal brief', 'wallet connect', 'identity', 'my baker'],
         searchIntents: [
-            { id: 'my-tezos-baker-signal', title: 'My Tezos Baker Signal', href: '/my/?view=baker-signal', detail: 'Follow the active wallet’s baker with live health, capacity, participation, governance, and recent activity', keywords: ['baker signal', 'my baker health', 'operator status'], journeyOnly: true },
-            { id: 'my-tezos-portfolio', title: 'My Tezos Portfolio', href: '/my/?view=portfolio', detail: 'Open the browser-local L1 portfolio and exact balance history', keywords: ['my portfolio', 'wallet balances', 'portfolio history'], journeyOnly: true },
-            { id: 'my-tezos-transactions', title: 'My Tezos Transactions', href: '/my/?view=transactions', detail: 'Open account transfers, NFT interactions, and changes since the last visit', keywords: ['my transactions', 'wallet activity', 'what changed'], journeyOnly: true },
-            { id: 'my-tezos-collection', title: 'My Tezos Collection', href: '/my/?view=collection', detail: 'Open collected and created Tezos art across saved accounts', keywords: ['my collection', 'my nfts', 'created art'], journeyOnly: true },
-            { id: 'my-tezos-story', title: 'My Tezos Story', href: '/my/?view=story', detail: 'Open the account dossier and browser-local recent chapter', keywords: ['my story', 'account history', 'personal timeline'], journeyOnly: true },
-            { id: 'my-tezos-tezos-x', title: 'My Tezos X', href: '/my/?view=tezos-x', detail: 'Open explicitly linked, device-local Etherlink accounts', keywords: ['my etherlink', 'linked l2', 'my tezos x'], journeyOnly: true }
+            { id: 'my-tezos-baker-signal', title: 'My Tezos Baker Signal', href: '/my/?view=baker-signal', accountPath: 'signal', detail: 'Follow the active wallet’s baker with live health, capacity, participation, governance, and recent activity', keywords: ['baker signal', 'my baker health', 'operator status'], journeyOnly: true },
+            { id: 'my-tezos-portfolio', title: 'My Tezos Portfolio', href: '/my/?view=portfolio', accountPath: 'portfolio', detail: 'Open the browser-local L1 portfolio and exact balance history', keywords: ['my portfolio', 'wallet balances', 'portfolio history'], journeyOnly: true },
+            { id: 'my-tezos-transactions', title: 'My Tezos Transactions', href: '/my/?view=transactions', accountPath: 'transactions', detail: 'Open account transfers, NFT interactions, and changes since the last visit', keywords: ['my transactions', 'wallet activity', 'what changed'], journeyOnly: true },
+            { id: 'my-tezos-collection', title: 'My Tezos Collection', href: '/my/?view=collection', accountPath: 'collection', detail: 'Open collected and created Tezos art across saved accounts', keywords: ['my collection', 'my nfts', 'created art'], journeyOnly: true },
+            { id: 'my-tezos-story', title: 'My Tezos Story', href: '/my/?view=story', accountPath: 'story', detail: 'Open the account dossier and browser-local recent chapter', keywords: ['my story', 'account history', 'personal timeline'], journeyOnly: true },
+            { id: 'my-tezos-tezos-x', title: 'My Tezos X', href: '/my/?view=tezos-x', accountPath: 'x', detail: 'Open explicitly linked, device-local Etherlink accounts', keywords: ['my etherlink', 'linked l2', 'my tezos x'], journeyOnly: true }
         ],
         sitemap: { changefreq: 'hourly', priority: '0.9' },
         starter: 1,
@@ -1129,6 +1129,34 @@ function intentRouteMatch(intent, pathname, searchParams) {
         .sort((a, b) => b.specificity - a.specificity)[0] || null;
 }
 
+// Address-scoped My Tezos paths share the canonical tab catalog above.
+export function myTezosViewPath(target, view = 'overview') {
+    const entry = findSiteMapEntry('my-tezos');
+    const intent = entry.searchIntents.find(candidate => new URL(candidate.href, 'https://tezos.systems').searchParams.get('view') === view);
+    const slug = view === 'overview' ? 'overview' : intent?.accountPath;
+    if (!slug || !isMyTezosPathIdentity(target)) return null;
+    return `/${encodeURIComponent(target)}/${slug}`;
+}
+
+function isMyTezosPathIdentity(target) {
+    if (typeof target !== 'string') return false;
+    return /^(?:tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(target)
+        || (target.length <= 253 && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i.test(target));
+}
+
+export function parseMyTezosPathRoute(pathname) {
+    const parts = String(pathname || '').replace(/^\/|\/$/g, '').split('/');
+    if (parts.length !== 2) return null;
+    let target;
+    try { target = decodeURIComponent(parts[0]); } catch { return null; }
+    if (!isMyTezosPathIdentity(target)) return null;
+    const slug = parts[1].toLowerCase();
+    const intent = findSiteMapEntry('my-tezos').searchIntents.find(candidate => candidate.accountPath === slug);
+    if (slug !== 'overview' && !intent) return null;
+    const view = intent ? new URL(intent.href, 'https://tezos.systems').searchParams.get('view') : 'overview';
+    return { target, view, path: myTezosViewPath(target, view) };
+}
+
 /**
  * Resolve the exact canonical destination represented by a URL.
  *
@@ -1152,6 +1180,13 @@ export function findCurrentSiteMapContext(locationLike = globalThis.location) {
             candidate.hash === hashKey || (candidate.hashAliases || []).includes(hashKey)
         ));
         if (entry) return { id: entry.id, entry, intent: null, entryId: entry.id, intentId: null, route: entry.href };
+    }
+
+    const accountRoute = parseMyTezosPathRoute(pathname);
+    if (accountRoute && !hash) {
+        const entry = findSiteMapEntry('my-tezos');
+        const intent = entry.searchIntents.find(candidate => new URL(candidate.href, 'https://tezos.systems').searchParams.get('view') === accountRoute.view) || null;
+        return { id: intent?.id || entry.id, entry, intent, entryId: entry.id, intentId: intent?.id || null, route: intent?.href || entry.href };
     }
 
     const childMatches = [];

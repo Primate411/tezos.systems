@@ -1603,10 +1603,14 @@ inline modal styles in `js/core/app.js`.
 Useful deep links include:
 
 - `#my-baker=...`
-- `/my/`, `/my/?view=portfolio`, `/my/?view=transactions`,
-  `/my/?view=collection`, `/my/?view=story`, or `/my/?view=tezos-x` for the six
+- `/my/`, `/my/?view=baker-signal`, `/my/?view=portfolio`, `/my/?view=transactions`,
+  `/my/?view=collection`, `/my/?view=story`, or `/my/?view=tezos-x` for the seven
   My Tezos views
 - `/tz1...`, `/name.tez`, or `/sub.name.tez` to resolve directly into My Tezos
+- Add `/overview`, `/signal`, `/portfolio`, `/transactions`, `/collection`,
+  `/story`, or `/x` after an address or `.tez` name to open that tab directly,
+  for example `/tz1Q7eNkwYGTKZNqQ2mq31rcZtNvCjwhTwU2/signal`.
+  Tab changes retain the account path and support browser Back/Forward.
 - `#baker=...`
 - `#calculator`
 - `#compare`
