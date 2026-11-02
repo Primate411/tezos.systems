@@ -143,6 +143,8 @@
 
 .ecosystem-ranges button,
 .ecosystem-categories button {
+  min-width: 44px;
+  min-height: 44px;
   padding: 7px 10px;
   border-color: var(--ecosystem-line);
   background: rgba(255, 255, 255, .025);
@@ -400,6 +402,7 @@
 }
 
 .ecosystem-app-link {
+  min-height: 44px;
   padding: 0;
   border: 0;
   color: var(--ecosystem-text);
@@ -527,6 +530,9 @@
 .ecosystem-history-ledger summary,
 .ecosystem-methodology summary {
   width: fit-content;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding-block: 12px;
   color: var(--ecosystem-mint);
   cursor: pointer;
   font-size: .8rem;
@@ -851,6 +857,25 @@
   stroke: #55e2c3;
   stroke-width: 2.5;
   vector-effect: non-scaling-stroke;
+}
+
+/* Launcher tiles follow the page palette; the Chamber retains its dark skin. */
+[data-theme="clean"] .ecosystem-entry-card {
+  --ecosystem-mint: var(--chamber-good-color, #047857);
+}
+
+[data-theme="clean"] .ecosystem-entry-card .ecosystem-entry-tile {
+  background: var(--bg-tertiary, #f0f2f8);
+  border-color: var(--border-color, #d5dae2);
+}
+
+[data-theme="clean"] .ecosystem-entry-tile :is(small, em) {
+  color: var(--text-secondary, #4a5568);
+}
+
+[data-theme="clean"] .ecosystem-entry-summary .ecosystem-entry-value,
+[data-theme="clean"] .ecosystem-entry-title-line span {
+  color: var(--chamber-good-color, #047857);
 }
 
 @media (max-width: 980px) {

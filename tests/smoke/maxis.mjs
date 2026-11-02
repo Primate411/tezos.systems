@@ -17,6 +17,29 @@ export function createMaxisSmokeSuites({
   readMaxisLauncherGeometry,
   smokeTezosCrpCompaction
 }) {
+  async function assertMaxisIdentityReadability(page, label) {
+    const facts = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('#maxis-panel-maxis .maxis-identity-card')];
+      return cards.map((card) => {
+        const bounds = card.getBoundingClientRect();
+        const nodes = [...card.querySelectorAll('.maxis-identity-clock, .maxis-identity-leader, .maxis-identity-layer, small, .maxis-identity-cta')];
+        const arrow = card.querySelector('.maxis-identity-cta b');
+        const range = document.createRange();
+        range.selectNodeContents(arrow);
+        const glyph = range.getBoundingClientRect();
+        return {
+          lane: card.dataset.maxisOverviewLane,
+          smallestFont: Math.min(...nodes.map((node) => parseFloat(getComputedStyle(node).fontSize))),
+          overflow: card.scrollWidth - card.clientWidth,
+          arrowContained: glyph.width > 0 && glyph.height > 0 && glyph.left >= bounds.left
+            && glyph.right <= bounds.right && glyph.top >= bounds.top && glyph.bottom <= bounds.bottom
+        };
+      });
+    });
+    assert(facts.length > 0 && facts.every((fact) => fact.smallestFont >= 11 && fact.overflow <= 1 && fact.arrowContained),
+      `tezos maxis ${label}: identity metadata is too small or Inspect arrow escapes its card ${JSON.stringify(facts)}`);
+  }
+
   async function smokeMaxisDomainPassport(browser, baseUrl) {
     const issues = [];
     const context = await browser.newContext({
@@ -303,6 +326,7 @@ export function createMaxisSmokeSuites({
     assert(shellState.seasonOrb === '', `tezos maxis chamber: season selector must not appear above canonical Maxis ${shellState.seasonOrb}`);
     assert(/crowns are objective activity metrics/i.test(shellState.methodology), `tezos maxis chamber: objective-crown disclosure missing ${shellState.methodology}`);
     assert(shellState.directHref === '/maxis/' && shellState.bodyOverflow === 'hidden' && shellState.horizontalOverflow <= 1, `tezos maxis chamber: route, scroll lock, or overflow mismatch ${JSON.stringify(shellState)}`);
+    await assertMaxisIdentityReadability(page, 'desktop');
 
     const expectedClockLabels = new Set(['all time', 'all time · active', 'live', '30d', '90d', 'cross-lane']);
     assert(Object.values(artifact.ongoingClocks).every((clock) => ['all-time', 'all-time-active', 'live', 'rolling-30d', 'rolling-90d', 'mixed'].includes(clock)), `tezos maxis chamber: canonical artifact contains an undeclared natural clock ${JSON.stringify(artifact.ongoingClocks)}`);
@@ -774,6 +798,7 @@ export function createMaxisSmokeSuites({
       && mobileL2GovernanceState.contextLinks === 1 && mobileL2GovernanceState.detailOverflow <= 1
       && mobileL2GovernanceState.contextOverflow <= 1 && mobileL2GovernanceState.pageOverflow <= 1,
     `tezos maxis chamber: mobile L2 Governance board or handoff overflows ${JSON.stringify(mobileL2GovernanceState)}`);
+    await assertMaxisIdentityReadability(page, 'mobile');
 
     await page.locator('#maxis-modal .chamber-close').click();
     await page.waitForFunction(() => !document.querySelector('#maxis-modal')?.classList.contains('active'));

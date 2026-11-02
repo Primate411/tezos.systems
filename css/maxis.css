@@ -1988,17 +1988,19 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     align-items: center;
     gap: 0.25rem;
     width: auto;
+    max-width: 100%;
     padding: 0.22rem 0.4rem;
     border: 1px solid color-mix(in srgb, var(--maxis-cyan) 22%, rgba(255, 255, 255, 0.05));
     border-radius: 999px;
     color: color-mix(in srgb, var(--maxis-cyan) 68%, var(--text-secondary));
     background: color-mix(in srgb, var(--maxis-cyan) 4%, transparent);
     font-family: var(--font-data, "JetBrains Mono"), monospace;
-    font-size: 0.58rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+    white-space: normal;
 }
-.maxis-identity-card .maxis-identity-clock b { font-size: 0.64rem; }
+.maxis-identity-card .maxis-identity-clock b { flex: 0 0 auto; font-size: inherit; }
 .maxis-identity-card > strong {
     display: flex;
     align-items: center;
@@ -2025,21 +2027,35 @@ button.maxis-crown-card { width: 100%; font: inherit; text-align: left; cursor: 
     color: color-mix(in srgb, var(--maxis-cyan) 76%, var(--text-primary));
     background: color-mix(in srgb, var(--maxis-cyan) 7%, transparent);
     font-family: var(--font-data, "JetBrains Mono"), monospace;
-    font-size: 0.52rem;
+    font-size: 0.6875rem;
     font-weight: 900;
     letter-spacing: 0.06em;
     line-height: 1;
 }
-.maxis-identity-card .maxis-identity-leader { margin-top: 0.32rem; color: color-mix(in srgb, var(--maxis-gold) 68%, var(--text-primary)); font-size: 0.68rem; font-weight: 850; }
-.maxis-identity-card > small { margin-top: 0.18rem; color: var(--maxis-readable-muted); font-size: 0.6rem; }
-.maxis-identity-card .maxis-identity-cta {
-    align-self: end;
-    margin-top: 0.62rem;
-    color: var(--text-secondary);
-    font-size: 0.6rem;
-    font-weight: 800;
+.maxis-identity-card .maxis-identity-leader { margin-top: 0.32rem; color: color-mix(in srgb, var(--maxis-gold) 68%, var(--text-primary)); font-size: 0.75rem; font-weight: 850; }
+.maxis-identity-card > small {
+    margin-top: 0.18rem;
+    overflow: visible;
+    color: var(--maxis-readable-muted);
+    font-size: 0.6875rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
-.maxis-identity-card .maxis-identity-cta b { color: var(--maxis-gold); }
+.maxis-identity-card .maxis-identity-cta {
+    display: flex;
+    align-items: center;
+    align-self: end;
+    gap: 0.3rem;
+    margin-top: 0.62rem;
+    overflow: visible;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1.4;
+    white-space: normal;
+}
+.maxis-identity-card .maxis-identity-cta b { flex: 0 0 auto; color: var(--maxis-gold); }
 
 .maxis-maxis-detail {
     scroll-margin-top: 4.5rem;

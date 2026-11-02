@@ -18,6 +18,58 @@ export function createGovernanceSmokeSuites({
   installOctezConnectMock,
   log
 }) {
+  async function assertEtherlinkTabGeometry(page) {
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: width < 600 ? 844 : 1000 });
+      await page.evaluate(() => document.fonts.ready);
+      await page.locator('#etherlink-gov-tab-fast').focus();
+      for (const [key, track] of [['Home', 'fast'], ['ArrowRight', 'slow'], ['End', 'sequencer']]) {
+        await page.keyboard.press(key);
+        await page.waitForFunction((expectedTrack) => (
+          document.activeElement?.id === `etherlink-gov-tab-${expectedTrack}`
+            && document.activeElement?.getAttribute('aria-selected') === 'true'
+        ), track);
+        const geometry = await page.evaluate(() => {
+          const modal = document.querySelector('#etherlink-governance-modal .etherlink-gov-content');
+          const rail = modal.querySelector('.etherlink-gov-tabs');
+          const modalBox = modal.getBoundingClientRect();
+          const modalStyle = getComputedStyle(modal);
+          const railBox = rail.getBoundingClientRect();
+          const rect = (box) => ({ left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height });
+          const tabs = [...rail.querySelectorAll('[role="tab"]')].map((tab) => {
+            const box = tab.getBoundingClientRect();
+            const glyphOverflows = [...tab.querySelectorAll('span, strong')].flatMap((label) => {
+              const labelBox = label.getBoundingClientRect();
+              const range = document.createRange();
+              range.selectNodeContents(label);
+              return [...range.getClientRects()].filter((glyph) => (
+                glyph.width > 0 && (glyph.left < labelBox.left - 2 || glyph.right > labelBox.right + 2
+                  || glyph.top < labelBox.top - 2 || glyph.bottom > labelBox.bottom + 2
+                  || glyph.left < box.left - 2 || glyph.right > box.right + 2
+                  || glyph.top < box.top - 2 || glyph.bottom > box.bottom + 2)
+              )).map((glyph) => ({ text: label.textContent, glyph: rect(glyph), label: rect(labelBox) }));
+            });
+            return { track: tab.dataset.etherlinkTrack, selected: tab.getAttribute('aria-selected') === 'true', box: rect(box), glyphOverflows };
+          });
+          return {
+            width: innerWidth,
+            pageOverflow: document.documentElement.scrollWidth - innerWidth,
+            modalOverflow: modal.scrollWidth - modal.clientWidth,
+            exitReserve: modalBox.right - parseFloat(modalStyle.borderRightWidth) - parseFloat(modalStyle.paddingRight) - railBox.right,
+            rail: rect(railBox),
+            tabs
+          };
+        });
+        const selected = geometry.tabs.find((tab) => tab.selected);
+        assert(geometry.tabs.length === 3 && geometry.tabs.every((tab) => tab.glyphOverflows.length === 0), `Etherlink ${width}px: every track name and status must be fully readable: ${JSON.stringify(geometry)}`);
+        assert(geometry.tabs.every((tab) => tab.box.width >= 44 && tab.box.height >= 44), `Etherlink ${width}px: track tabs must retain 44px touch targets: ${JSON.stringify(geometry)}`);
+        assert(selected?.track === track && selected.box.left >= geometry.rail.left - 2 && selected.box.right <= geometry.rail.right + 2, `Etherlink ${width}px: keyboard selection must reveal the complete ${track} tab: ${JSON.stringify(geometry)}`);
+        assert(geometry.exitReserve >= 66 && geometry.pageOverflow <= 2 && geometry.modalOverflow <= 2, `Etherlink ${width}px: overflowing tabs must preserve the 68px exit column without widening the room: ${JSON.stringify(geometry)}`);
+      }
+    }
+    await page.keyboard.press('Home');
+  }
+
   async function smokeGovernanceTestingPeriod(browser, baseUrl, section = 'all') {
     const issues = [];
     if (section === 'all' || section === 'active') {
@@ -794,7 +846,7 @@ export function createGovernanceSmokeSuites({
     assert(etherlinkMobileState.pageOverflow <= 2 && etherlinkMobileState.modalOverflow <= 2 && etherlinkMobileState.panelOverflows.every((value) => value <= 2), `governance testing period: Etherlink mobile current-state panels overflow: ${JSON.stringify(etherlinkMobileState)}`);
     assert(etherlinkMobileState.tabColumns === 3 && etherlinkMobileState.phaseColumns === 4, `governance testing period: Etherlink mobile governance clock or tabs collapsed incorrectly: ${JSON.stringify(etherlinkMobileState)}`);
     assert(etherlinkMobileState.timelineBelowProposal, `governance testing period: Etherlink mobile action log should stack directly after the proposal panel: ${JSON.stringify(etherlinkMobileState)}`);
-    await page.setViewportSize({ width: 1440, height: 1000 });
+    await assertEtherlinkTabGeometry(page);
 
     const promotionIssues = [];
     const promotionContext = await browser.newContext({

@@ -1100,6 +1100,50 @@ export function createSearchSmokeSuites({
     assert(contractLensState.entrypoints === 2 && contractLensState.sameCode === 1 && /Contract identity/.test(contractLensState.text) && /Smoke Creator/.test(contractLensState.text) && /Related Smoke Deployment/.test(contractLensState.text) && contractLensState.rawCode.includes(`/contracts/${SAMPLE_CONTRACT}/code?format=1`), `hero command bar: native contract lens is incomplete ${JSON.stringify(contractLensState)}`);
     await page.locator('#native-explorer-overlay .native-explorer-close').click();
 
+    const failedBlockPattern = '**/v1/blocks/12345678';
+    let blockSourceAvailable = false;
+    let releaseBlockRetry;
+    const blockRetryGate = new Promise(resolve => { releaseBlockRetry = resolve; });
+    await page.route(failedBlockPattern, async route => {
+      if (!blockSourceAvailable) {
+        await route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"smoke unavailable block"}' });
+        return;
+      }
+      await blockRetryGate;
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+        level: 12345678, hash: 'smoke-recovered-block', timestamp: '2026-10-12T12:00:00Z',
+        attestationPower: 7000, attestationCommittee: 7000, payloadRound: 0, fees: 0,
+        producer: { alias: 'Recovered Smoke Baker' }
+      }) });
+    });
+    try {
+      await page.evaluate(() => window.TezosNativeExplorer.open('block', '12345678'));
+      const failedView = page.locator('#native-explorer-overlay .native-explorer-error');
+      await failedView.waitFor({ state: 'visible', timeout: 5000 });
+      const retry = failedView.locator('[data-native-retry]');
+      assert(await retry.count() === 1, 'hero command bar: a total source failure needs an in-place retry action');
+      assert(await failedView.locator('details:not([open])').count() === 1, 'hero command bar: failed native view should keep diagnostics in a secondary disclosure');
+      blockSourceAvailable = true;
+      await retry.focus();
+      await retry.click();
+      const pending = await retry.evaluate(button => ({
+        busy: button.getAttribute('aria-busy'), disabled: button.getAttribute('aria-disabled'),
+        focused: document.activeElement === button, text: button.textContent.trim()
+      }));
+      assert(pending.busy === 'true' && pending.disabled === 'true' && pending.focused && pending.text === 'Retrying…', `hero command bar: total failure retry lost its pending state ${JSON.stringify(pending)}`);
+      releaseBlockRetry();
+      await page.waitForFunction(() => (
+        document.querySelector('#native-explorer-overlay .native-explorer-hero h2')?.textContent === 'Block 12,345,678'
+          && document.activeElement === document.querySelector('#native-explorer-overlay .native-explorer-close')
+      ), null, { timeout: 5000 });
+      assert(await page.locator('#native-explorer-overlay .native-explorer-error').count() === 0, 'hero command bar: successful block retry retained the failure view');
+      assert(/Recovered Smoke Baker/.test(await page.locator('#native-explorer-overlay').innerText()), 'hero command bar: total failure retry did not render the recovered block');
+      await page.locator('#native-explorer-overlay .native-explorer-close').click();
+    } finally {
+      releaseBlockRetry();
+      await page.unroute(failedBlockPattern);
+    }
+
     const entrypointFailurePattern = `**/v1/contracts/${SAMPLE_CONTRACT}/entrypoints`;
     await page.route(entrypointFailurePattern, (route) => route.fulfill({
       status: 503,

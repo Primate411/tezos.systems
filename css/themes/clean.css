@@ -876,6 +876,18 @@
 [data-theme="clean"] .chamber-content :is(.stat-value, .metric-value, .value-text, .big-number, .large-stat, .protocol-number){
     color: var(--surface-data-color) !important;
 }
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value{
+    -webkit-text-fill-color: currentColor !important;
+}
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value.positive{
+    color: var(--chamber-good-color) !important;
+}
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value.negative{
+    color: var(--chamber-risk-color) !important;
+}
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value.neutral{
+    color: var(--text-secondary) !important;
+}
 [data-theme="clean"] .chamber-content a:hover{
     color: var(--surface-link-hover) !important;
 }

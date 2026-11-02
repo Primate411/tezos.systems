@@ -38,6 +38,33 @@
     scroll-margin-top: 84px;
 }
 
+html[data-chamber-route="chambers"] #main-content > :is(p, nav) > a[href="/"] {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    max-width: 100%;
+    padding: 8px 14px;
+    box-sizing: border-box;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+}
+
+html[data-chamber-route="chambers"] #main-content > :is(p, nav) > a[href="/"]:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+html[data-chamber-route="chambers"] #main-content > :is(p, nav) > a[href="/"]:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 3px;
+}
+
 .site-map-shell,
 .site-map-related {
     --site-map-accent: var(--accent, #45e0c8);

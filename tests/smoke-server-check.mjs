@@ -34,7 +34,16 @@ async function checkServer(args) {
     const redirect = await fetch(`${origin}/health?view=test`, { redirect: 'manual' });
     assert.equal(redirect.status, 301);
     assert.equal(redirect.headers.get('location'), '/health/?view=test');
-    assert.equal((await fetch(`${origin}/no-such-smoke-file`)).status, 404);
+    const fallback = await readFile(new URL('../404.html', import.meta.url));
+    for (const missing of ['/no-such-smoke-file', '/tz1Q7eNkwYGTKZNqQ2mq31rcZtNvCjwhTwU2/signal', '/sub.example.tez/portfolio']) {
+      const response = await fetch(`${origin}${missing}`);
+      assert.equal(response.status, 404, missing);
+      assert.match(response.headers.get('content-type'), /text\/html/);
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), fallback, `${missing}: serve the Pages fallback verbatim`);
+      const missingHead = await fetch(`${origin}${missing}`, { method: 'HEAD' });
+      assert.equal(missingHead.status, 404);
+      assert.equal((await missingHead.arrayBuffer()).byteLength, 0);
+    }
     const head = await fetch(`${origin}/js/core/generated-transport.mjs`, { method: 'HEAD' });
     assert.equal(head.status, 200);
     assert.equal((await head.arrayBuffer()).byteLength, 0);

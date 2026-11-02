@@ -36,13 +36,29 @@ export async function smokeChamberUx(browser, baseUrl, { installFeatureMocks }) 
                     await page.mouse.wheel(0, 220);
                     await page.waitForFunction(before => document.querySelector('.chamber-room-scroll').scrollTop > before + 30, before);
                     const closeButton = page.locator('.chamber-content > .chamber-close');
-                    const chrome = await closeButton.evaluate(node => { const s = getComputedStyle(node); return { background: s.backgroundColor, border: s.borderTopWidth, outline: s.outlineWidth, shadow: s.boxShadow, position: s.position }; });
-                    assert.deepEqual(chrome, { background: 'rgba(0, 0, 0, 0)', border: '0px', outline: '0px', shadow: 'none', position: 'sticky' }, `${route} ${width}: the scrolling exit stays bare`);
+                    const { focusVisible, ...chrome } = await closeButton.evaluate(node => { const s = getComputedStyle(node); return { focusVisible: node.matches(':focus-visible'), background: s.backgroundColor, border: s.borderTopWidth, outline: s.outlineWidth, shadow: s.boxShadow, position: s.position }; });
+                    assert.deepEqual(chrome, { background: 'rgba(0, 0, 0, 0)', border: '0px', outline: focusVisible ? '2px' : '0px', shadow: 'none', position: 'sticky' }, `${route} ${width}: the scrolling exit stays bare with a keyboard-only outline`);
                     const close = await closeButton.boundingBox();
                     assert(close && close.y >= 0 && close.y < 70 && close.height >= 44, `${route} ${width}: visible, usable close control ${JSON.stringify(close)}`);
                     const rail = await page.locator('.market-room-tabs, .whale-watch-tabs, .ecosystem-tabs').boundingBox();
                     assert(rail.x + rail.width <= close.x, `${route} ${width}: the tab rail leaves the exit's column clear`);
                 }
+                // The bare exit still needs a shape-based keyboard cue. A glow
+                // disappears in forced colors, leaving focus indistinguishable.
+                const closeButton = page.locator('.chamber-content > .chamber-close');
+                for (const forcedColors of ['none', 'active']) {
+                    await page.emulateMedia({ forcedColors });
+                    await page.keyboard.press('Tab');
+                    await closeButton.focus();
+                    const focus = await closeButton.evaluate(node => {
+                        const style = getComputedStyle(node);
+                        return { visible: node.matches(':focus-visible'), width: parseFloat(style.outlineWidth), style: style.outlineStyle };
+                    });
+                    assert(focus.visible && focus.width >= 2 && focus.style !== 'none',
+                        `${route} ${width} ${forcedColors}: exit retains a visible keyboard outline ${JSON.stringify(focus)}`);
+                }
+                await page.emulateMedia({ forcedColors: 'none' });
+                await closeButton.evaluate(node => node.blur());
                 if (route === 'capital') {
                     const reading = await room.evaluate(node => node.scrollTop = 520);
                     const tabs = page.locator('.capital-tabs [role="tab"]');

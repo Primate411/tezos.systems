@@ -395,7 +395,7 @@ function lineChart(rows, metricName, title, colorClass) {
 function renderLayerTabs() {
     return `
         <div class="ecosystem-tabs chamber-tabs" role="tablist" aria-label="Ecosystem layer">
-            ${LAYERS.map((layer) => `<button type="button" class="chamber-tab" role="tab" id="ecosystem-tab-${layer.id}" aria-selected="${currentLayer === layer.id}" tabindex="${currentLayer === layer.id ? '0' : '-1'}" data-ecosystem-layer="${layer.id}">${escapeHtml(layer.label)}</button>`).join('')}
+            ${LAYERS.map((layer) => `<button type="button" class="chamber-tab" role="tab" id="ecosystem-tab-${layer.id}" aria-controls="ecosystem-layer-panel" aria-selected="${currentLayer === layer.id}" tabindex="${currentLayer === layer.id ? '0' : '-1'}" data-ecosystem-layer="${layer.id}">${escapeHtml(layer.label)}</button>`).join('')}
         </div>
     `;
 }
@@ -687,6 +687,7 @@ function renderChamber(snapshot) {
             ${renderChamberVerdict(ecosystemReading(snapshot, freshness))}
         </div>
         ${renderLayerTabs()}
+        <div id="ecosystem-layer-panel" role="tabpanel" aria-labelledby="ecosystem-tab-${currentLayer}" data-quiet-key="ecosystem-layer-panel">
         <div class="ecosystem-toolbar" data-quiet-key="ecosystem-toolbar">
             ${renderRangeTabs()}
             ${renderCategoryFilters(snapshot)}
@@ -700,6 +701,7 @@ function renderChamber(snapshot) {
         ${renderDirectory(snapshot)}
         ${renderHistoryPanel(snapshot)}
         ${renderMethodology(snapshot)}
+        </div>
         <footer class="ecosystem-footer">
             <span>Powered by <a href="${escapeHtml(safeExternalUrl(snapshot.sourceReceipts?.tzkt?.url))}" target="_blank" rel="noopener">TzKT API</a> and <a href="${escapeHtml(safeExternalUrl(snapshot.sourceReceipts?.etherlink?.url))}" target="_blank" rel="noopener">Etherlink Blockscout</a>.</span>
             <span><a href="/data/ecosystem-stats.json" target="_blank" rel="noopener">Download full JSON ↗</a> · <a href="/data/ecosystem-apps.json" target="_blank" rel="noopener">Review app manifest ↗</a> · <a href="https://github.com/Primate411/tezos.systems/blob/main/scripts/refresh-ecosystem-stats.mjs" target="_blank" rel="noopener">Rebuild source ↗</a> · <a href="/history/">Network signal history →</a></span>
@@ -900,6 +902,7 @@ function bindBodyEvents(body) {
         if (RANGE_IDS.has(range)) {
             currentRange = range;
             selectAndRender();
+            body.querySelector(`[data-ecosystem-range="${currentRange}"]`)?.focus({ preventScroll: true });
             return;
         }
         const category = event.target.closest('[data-ecosystem-category]')?.dataset.ecosystemCategory;
@@ -907,6 +910,9 @@ function bindBodyEvents(body) {
             currentCategory = category;
             if (currentApp && lastSnapshot?.apps.find((app) => app.id === currentApp)?.category !== category && category !== 'all') currentApp = '';
             selectAndRender();
+            [...body.querySelectorAll('[data-ecosystem-category]')]
+                .find((candidate) => candidate.dataset.ecosystemCategory === currentCategory)
+                ?.focus({ preventScroll: true });
             return;
         }
         const appId = event.target.closest('[data-ecosystem-app]')?.dataset.ecosystemApp;

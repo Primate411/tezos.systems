@@ -133,6 +133,48 @@ export function createEcosystemSmokeSuites({
     const page = await context.newPage();
     attachIssueCollectors(page, 'ecosystem activity', issues);
 
+    // The launcher uses the page theme rather than the dark room palette.
+    // Sample the real painted tile backgrounds so gradients and translucent
+    // layers cannot hide a low-contrast label behind a plausible CSS color.
+    const launcherPage = await context.newPage();
+    await launcherPage.emulateMedia({ reducedMotion: 'reduce' });
+    await launcherPage.goto(`${baseUrl}/chambers/`, { waitUntil: 'domcontentloaded' });
+    await launcherPage.locator('.ecosystem-entry-tile strong').first().waitFor({ state: 'visible' });
+    for (const width of [1440, 390, 320]) {
+      await launcherPage.setViewportSize({ width, height: 1000 });
+      await launcherPage.locator('#ecosystem-entry-card').scrollIntoViewIfNeeded();
+      const receipts = await launcherPage.locator('.ecosystem-entry-tile small, .ecosystem-entry-tile strong, .ecosystem-entry-tile em').evaluateAll(nodes => nodes.flatMap(node => {
+        const rect = node.getBoundingClientRect();
+        if (!rect.width || !rect.height) return [];
+        return [{ text: node.textContent.trim(), fill: getComputedStyle(node).webkitTextFillColor,
+          x: rect.x, y: rect.y, width: rect.width, height: rect.height }];
+      }));
+      assert(receipts.length >= 12, `Ecosystem Clean launcher ${width}: populated visible tile labels required`);
+      const hiddenInk = await launcherPage.addStyleTag({ content: '.ecosystem-entry-tile small, .ecosystem-entry-tile strong, .ecosystem-entry-tile em { opacity: 0 !important; }' });
+      const background = (await launcherPage.screenshot()).toString('base64');
+      await hiddenInk.evaluate(node => node.remove());
+      const contrasts = await launcherPage.evaluate(async ({ receipts, background }) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = innerWidth; canvas.height = innerHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const image = new Image(); image.src = `data:image/png;base64,${background}`; await image.decode();
+        ctx.drawImage(image, 0, 0);
+        const luminance = rgb => rgb.slice(0, 3).reduce((sum, value, i) => {
+          const c = value / 255;
+          return sum + (c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4) * [.2126, .7152, .0722][i];
+        }, 0);
+        return receipts.map(receipt => {
+          const samples = [.15, .5, .85].map(fraction => luminance([...ctx.getImageData(
+            Math.floor(receipt.x + receipt.width * fraction), Math.floor(receipt.y + receipt.height / 2), 1, 1).data]));
+          ctx.fillStyle = receipt.fill; ctx.fillRect(0, 0, 1, 1);
+          const ink = luminance([...ctx.getImageData(0, 0, 1, 1).data]);
+          return { text: receipt.text, fill: receipt.fill, ratio: Math.min(...samples.map(bg => (Math.max(ink, bg) + .05) / (Math.min(ink, bg) + .05))) };
+        });
+      }, { receipts, background });
+      assert(contrasts.every(receipt => receipt.ratio >= 4.5), `Ecosystem Clean launcher ${width}: painted tile labels require 4.5:1 contrast ${JSON.stringify(contrasts)}`);
+    }
+    await launcherPage.close();
+
     const response = await page.goto(`${baseUrl}/ecosystem/?layer=tezos&range=all`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `ecosystem activity: pretty route failed with HTTP ${response?.status()}`);
     await page.locator('#ecosystem-activity-modal.active .ecosystem-content').waitFor({ state: 'visible', timeout: 20000 });
@@ -374,6 +416,33 @@ export function createEcosystemSmokeSuites({
       && mobile.proofCards === 1 && mobile.visibleContracts === 24 && mobile.proofLinks === 4
       && /3 more frozen addresses/i.test(mobile.moreContracts),
     `ecosystem activity mobile: route or containment failed ${JSON.stringify(mobile)}`);
+    for (const [attribute, value] of [['range', '12w'], ['category', 'defi']]) {
+      const selector = `#ecosystem-activity-modal [data-ecosystem-${attribute}="${value}"]`;
+      await mobilePage.locator(selector).focus();
+      const scrollBefore = await mobilePage.evaluate(() => document.querySelector('#ecosystem-chamber-body').closest('.chamber-room-scroll').scrollTop);
+      await mobilePage.locator(selector).press('Enter');
+      const state = await mobilePage.evaluate(({ attribute, value }) => ({
+        focused: document.activeElement?.getAttribute(`data-ecosystem-${attribute}`),
+        selected: document.activeElement?.getAttribute('aria-pressed'),
+        scrollTop: document.querySelector('#ecosystem-chamber-body').closest('.chamber-room-scroll').scrollTop,
+        route: new URL(location.href).searchParams.get(attribute)
+      }), { attribute, value });
+      assert(state.focused === value && state.selected === 'true' && state.route === value
+        && Math.abs(state.scrollTop - scrollBefore) <= 1,
+      `ecosystem activity mobile: ${attribute} keyboard activation lost focus or moved the reader ${JSON.stringify({ scrollBefore, ...state })}`);
+    }
+    const mobileControls = await mobilePage.evaluate(() => ({
+      undersized: [...document.querySelectorAll('.ecosystem-ranges button, .ecosystem-categories button, .ecosystem-app-link, .ecosystem-history-ledger summary, .ecosystem-methodology summary')]
+        .filter((node) => node.getBoundingClientRect().height < 44)
+        .map((node) => ({ text: node.textContent.trim(), height: node.getBoundingClientRect().height })),
+      linkedPanel: [...document.querySelectorAll('.ecosystem-tabs [role="tab"]')].every((tab) => {
+        const panel = document.getElementById(tab.getAttribute('aria-controls'));
+        return panel?.getAttribute('role') === 'tabpanel'
+          && (tab.getAttribute('aria-selected') !== 'true' || panel.getAttribute('aria-labelledby') === tab.id);
+      })
+    }));
+    assert(!mobileControls.undersized.length && mobileControls.linkedPanel,
+      `ecosystem activity mobile: touch targets or tab relationships failed ${JSON.stringify(mobileControls)}`);
     await mobileContext.close();
 
     assert(issues.length === 0, `ecosystem activity browser issues:\n${issues.join('\n')}`);

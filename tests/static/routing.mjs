@@ -293,6 +293,12 @@ export function createRoutingStaticChecks({
     }
 
     const rankedSubfeatureIntent = {
+      'my portfolio': ['my-tezos-portfolio', '/my/?view=portfolio'],
+      'my transactions': ['my-tezos-transactions', '/my/?view=transactions'],
+      'my collection': ['my-tezos-collection', '/my/?view=collection'],
+      'my story': ['my-tezos-story', '/my/?view=story'],
+      'my baker health': ['my-tezos-baker-signal', '/my/?view=baker-signal'],
+      'my etherlink': ['my-tezos-tezos-x', '/my/?view=tezos-x'],
       season: ['maxis-season', '/maxis/?view=season'],
       passport: ['maxis-passport', '/maxis/?view=passport'],
       champions: ['maxis-champions', '/maxis/?view=champions'],
@@ -311,6 +317,12 @@ export function createRoutingStaticChecks({
       const actual = searchSiteMapIntents(query)[0];
       if (actual?.id !== expectedId || actual?.href !== expectedHref) {
         fail(`site map subfeature search ${JSON.stringify(query)} should rank ${expectedId} at ${expectedHref}, got ${actual?.id || 'none'} at ${actual?.href || 'none'}`);
+      }
+    }
+
+    for (const query of ['my tezos', 'wallet', 'my', 'tezos']) {
+      if (searchSiteMapIntents(query).some((intent) => intent.parentId === 'my-tezos')) {
+        fail(`broad search ${JSON.stringify(query)} must not flood results with personal subviews`);
       }
     }
 

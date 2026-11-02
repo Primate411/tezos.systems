@@ -28,9 +28,26 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
       await page.waitForFunction(() => document.querySelector('#my-tezos-css')?.sheet && document.querySelector('#drawer-connected')?.offsetHeight > 0);
       await page.evaluate(() => document.fonts.ready);
       await page.waitForFunction(() => document.querySelector('[data-my-tezos-scope-total="total"] strong')?.textContent.includes('1,500,000'));
+      await page.waitForFunction(() => window._myTezosData?.participation && !window._myTezosData.loading);
       for (const view of VIEWS) {
         await page.locator(`#my-tezos-tab-${view}`).click();
         await page.waitForFunction(view => document.querySelector(`[data-my-tezos-panel="${view}"]`)?.hidden === false, view);
+        // A fitted skeleton does not establish that the completed content fits.
+        // Each populated capture must wait for its own source-backed content.
+        if (view === 'overview') await page.locator('#my-tezos-overview-activity-list .portfolio-activity-item').first().waitFor();
+        if (view === 'baker-signal') {
+          await page.locator('#my-baker-results .my-baker-grid:not(.my-baker-loading-grid)').waitFor();
+          await page.locator('.drawer-baker-grade[data-grade-state="current"]').waitFor();
+          await page.locator('.drawer-baker-schedule[data-schedule-state="fresh"]').waitFor();
+        }
+        if (view === 'transactions') await page.locator('#portfolio-activity-list .portfolio-activity-item').first().waitFor();
+        if (view === 'collection') await page.waitForFunction(() => document.querySelector('#collection-status')?.dataset.state === 'complete');
+        // This scope deliberately has no linked L2 account. The layout-states
+        // suite separately requires completed, populated Etherlink receipts.
+        if (view === 'tezos-x') {
+          await page.waitForFunction(() => document.querySelector('#tezosx-status')?.dataset.state === 'empty');
+          assert((await page.locator('#tezosx-account-list').innerText()).includes('No linked Etherlink accounts'));
+        }
         const geometry = await page.evaluate(view => {
           const body = document.getElementById('drawer-body');
           const panel = document.querySelector(`[data-my-tezos-panel="${view}"]`);
@@ -88,6 +105,40 @@ export async function smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks
           await mkdir(artifactsDir, { recursive: true });
           await page.evaluate(() => { document.getElementById('drawer-body').scrollTop = 0; });
           await page.screenshot({ path: path.join(artifactsDir, `my-tezos-${width}-${view}.png`) });
+        }
+        if (view === 'baker-signal') {
+          // The live-signal suite tests the failed-read transition. Exercise its
+          // presentation state here on the populated responsive/theme matrix.
+          const contrast = await page.locator('.drawer-baker-schedule').evaluate(schedule => {
+            const state = schedule.dataset.scheduleState;
+            schedule.dataset.scheduleState = 'stale';
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 1;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const color = value => {
+              ctx.clearRect(0, 0, 1, 1);
+              ctx.fillStyle = value;
+              ctx.fillRect(0, 0, 1, 1);
+              return [...ctx.getImageData(0, 0, 1, 1).data].map((value, index) => index === 3 ? value / 255 : value);
+            };
+            const over = (fg, bg) => fg.slice(0, 3).map((value, index) => value * fg[3] + bg[index] * (1 - fg[3]));
+            const luminance = rgb => rgb.reduce((sum, value, index) => {
+              const c = value / 255;
+              return sum + (c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4) * [.2126, .7152, .0722][index];
+            }, 0);
+            const receipts = [...schedule.querySelectorAll('.drawer-schedule-right .drawer-operator-value')].map(node => {
+              const ancestors = [];
+              for (let current = node; current; current = current.parentElement) ancestors.unshift(current);
+              const background = ancestors.reduce((back, current) => over(color(getComputedStyle(current).backgroundColor), back), [255, 255, 255]);
+              const foreground = over(color(getComputedStyle(node).color), background);
+              const a = luminance(foreground), b = luminance(background);
+              return { text: node.textContent, ratio: (Math.max(a, b) + .05) / (Math.min(a, b) + .05), foreground, background };
+            });
+            schedule.dataset.scheduleState = state;
+            return receipts;
+          });
+          assert.equal(contrast.length, 3, 'All three retained schedule values need stale-state contrast coverage');
+          assert(contrast.every(receipt => receipt.ratio >= 4.5), `${width} ${theme}: stale schedule values must remain readable: ${JSON.stringify(contrast)}`);
         }
       }
       // Each tab owns its reading position, including a second/cached visit.

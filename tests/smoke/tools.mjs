@@ -1122,18 +1122,50 @@ export function createToolsSmokeSuites({
     await expectCount(page, '#theme-grid .theme-btn[data-theme="transparent"]', 1, 'widget builder transparent theme');
     await page.waitForFunction(() => new URL(document.querySelector('#preview-frame')?.src || location.href).searchParams.get('theme') === 'aurora', null, { timeout: 5000 });
 
-    await page.locator('.widget-type-btn[data-type="price"]').click();
+    for (const label of ['Custom Accent Color', 'Custom accent color hex value', 'Width (px)', 'Height (px)', 'Refresh Interval (seconds)', 'Baker Address']) {
+      assert(await page.getByLabel(label, { exact: true }).count() === 1, `widget builder: missing unique accessible label ${label}`);
+    }
+    assert(await page.locator('#preview-frame').getAttribute('title') === 'Tezos widget live preview', 'widget builder: preview frame needs a descriptive title');
+    await expectCount(page, '.widget-type-btn[aria-pressed="true"]', 1, 'widget builder initial selected type');
+    await expectCount(page, '.theme-btn[aria-pressed="true"]', 1, 'widget builder initial selected theme');
+    await expectCount(page, '.size-preset[aria-pressed="true"]', 1, 'widget builder initial selected size');
+
+    const refreshSlider = page.getByLabel('Refresh Interval (seconds)', { exact: true });
+    await refreshSlider.focus();
+    await page.keyboard.press('ArrowRight');
+    assert(await refreshSlider.inputValue() === '65', 'widget builder: keyboard should adjust the refresh interval');
+    assert(await refreshSlider.evaluate((slider) => {
+      const style = getComputedStyle(slider);
+      return slider.matches(':focus-visible') && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) >= 2;
+    }), 'widget builder: keyboard slider focus must stay visible');
+
+    await page.locator('.theme-btn[data-theme="transparent"]').focus();
+    await page.keyboard.press('Enter');
+    await expectCount(page, '.theme-btn[data-theme="transparent"][aria-pressed="true"]', 1, 'widget builder keyboard selected theme');
+    await expectCount(page, '.theme-btn[aria-pressed="true"]', 1, 'widget builder exclusive theme selection');
+    await page.locator('.size-preset[data-w="400"]').focus();
+    await page.keyboard.press('Space');
+    await expectCount(page, '.size-preset[data-w="400"][aria-pressed="true"]', 1, 'widget builder keyboard selected size');
+    await expectCount(page, '.size-preset[aria-pressed="true"]', 1, 'widget builder exclusive size selection');
+
+    await page.locator('.widget-type-btn[data-type="price"]').focus();
+    await page.keyboard.press('Enter');
     await expectClassContains(page.locator('.widget-type-btn[data-type="price"]'), 'active', 'widget builder price type');
+    await expectCount(page, '.widget-type-btn[data-type="price"][aria-pressed="true"]', 1, 'widget builder keyboard selected type');
+    await expectCount(page, '.widget-type-btn[aria-pressed="true"]', 1, 'widget builder exclusive type selection');
     await page.waitForFunction(() => document.querySelector('#preview-frame')?.src.includes('/widgets/price.html'), null, { timeout: 5000 });
 
-    await page.locator('#width-input').fill('420');
-    await page.locator('#height-input').fill('180');
+    await page.getByLabel('Width (px)', { exact: true }).fill('420');
+    await page.getByLabel('Height (px)', { exact: true }).fill('180');
+    await expectCount(page, '.size-preset[aria-pressed="true"]', 0, 'widget builder custom size clears preset selection');
     await page.waitForFunction(() => {
       const frame = document.querySelector('#preview-frame');
       return frame?.getAttribute('width') === '420' && frame?.getAttribute('height') === '180';
     }, null, { timeout: 5000 });
 
     await page.locator('.code-tab[data-tab="markdown"]').click();
+    await expectCount(page, '.code-tab[data-tab="markdown"][aria-pressed="true"]', 1, 'widget builder selected code format');
+    await expectCount(page, '.code-tab[aria-pressed="true"]', 1, 'widget builder exclusive code format');
     const markdownCode = await page.locator('#code-text').innerText();
     assert(markdownCode.startsWith('[Open the Tezos price widget]('), `widget builder Markdown should render a direct widget link: ${markdownCode}`);
     assert(markdownCode.includes('utm_medium=widget_markdown') && markdownCode.includes('utm_campaign=tezos_systems_widgets'), `widget builder markdown should carry attribution params: ${markdownCode}`);

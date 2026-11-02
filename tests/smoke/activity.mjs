@@ -924,6 +924,57 @@ export function createActivitySmokeSuites({
       && directState.sourceCoverage.some((label) => /observed median ~/.test(label)), `Cycle History: scheduled and observed cadence truth missing ${JSON.stringify(directState)}`);
     assert(!directState.launcherFreshness && !directState.launcherFooter, 'Cycle History direct boot must not build a hidden home launcher');
 
+    // Clean rooms have dark surfaces. Test the actual painted text-fill against
+    // sampled pixels from their gradient, including every semantic change state.
+    await page.addStyleTag({ url: `${baseUrl}/css/themes/clean.min.css` });
+    const settledContrast = await page.addStyleTag({ content: '.cycle-history-content, .cycle-history-content * { transition: none !important; }' });
+    await page.evaluate(() => { document.body.dataset.theme = 'clean'; });
+    for (const width of [1366, 390, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      const chart = page.locator('.chart-section[data-history-metric="price"]');
+      await chart.scrollIntoViewIfNeeded();
+      const receipts = await chart.locator('.chart-stats .stat-value').evaluateAll(values => {
+        const result = values.map(node => {
+          const rect = node.getBoundingClientRect();
+          return { text: node.textContent, tone: 'value', fill: getComputedStyle(node).webkitTextFillColor, x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        });
+        const node = values[0];
+        const original = node.className;
+        for (const tone of ['positive', 'negative', 'neutral']) {
+          node.className = `stat-value ${tone}`;
+          result.push({ ...result[0], tone, fill: getComputedStyle(node).webkitTextFillColor });
+        }
+        node.className = original;
+        return result;
+      });
+      assert(receipts.length === 6, `Cycle History Clean ${width}: populated change/high/low values required`);
+      const hiddenInk = await page.addStyleTag({ content: '.chart-stats .stat-value { opacity: 0 !important; }' });
+      const background = (await page.screenshot()).toString('base64');
+      await hiddenInk.evaluate(node => node.remove());
+      const contrasts = await page.evaluate(async ({ receipts, background }) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = innerWidth; canvas.height = innerHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const image = new Image(); image.src = `data:image/png;base64,${background}`; await image.decode();
+        ctx.drawImage(image, 0, 0);
+        const luminance = rgb => rgb.slice(0, 3).reduce((sum, value, i) => {
+          const c = value / 255;
+          return sum + (c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4) * [.2126, .7152, .0722][i];
+        }, 0);
+        return receipts.map(receipt => {
+          const samples = [.15, .5, .85].map(fraction => luminance([...ctx.getImageData(
+            Math.floor(receipt.x + receipt.width * fraction), Math.floor(receipt.y + receipt.height / 2), 1, 1).data]));
+          ctx.fillStyle = receipt.fill; ctx.fillRect(0, 0, 1, 1);
+          const ink = luminance([...ctx.getImageData(0, 0, 1, 1).data]);
+          return { tone: receipt.tone, text: receipt.text, fill: receipt.fill, ratio: Math.min(...samples.map(bg => (Math.max(ink, bg) + .05) / (Math.min(ink, bg) + .05))) };
+        });
+      }, { receipts, background });
+      assert(contrasts.every(receipt => receipt.ratio >= 4.5), `Cycle History Clean ${width}: painted chart values require 4.5:1 contrast ${JSON.stringify(contrasts)}`);
+    }
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await page.evaluate(() => { document.body.dataset.theme = 'matrix'; });
+    await settledContrast.evaluate(node => node.remove());
+
     await page.locator('.history-controls .time-range-btn[data-range="7d"]').click();
     await page.waitForFunction(() => document.querySelector('#history-modal')?.dataset.historyRange === '7d' && document.querySelector('#history-modal')?.getAttribute('aria-busy') !== 'true', null, { timeout: 15000 });
     await page.waitForFunction(() => document.querySelector('#history-digest')?.textContent?.includes('7d'), null, { timeout: 10000 });

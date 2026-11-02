@@ -31,12 +31,12 @@ export const SITE_MAP = [
         detail: 'Make a wallet or .tez name the center of a personal Tezos dashboard',
         keywords: ['wallet', 'account', 'portfolio', 'rewards', 'rewards tracker', 'baker', 'baker report card', 'operator health', 'personal brief', 'wallet connect', 'identity', 'my baker'],
         searchIntents: [
-            { id: 'my-tezos-baker-signal', title: 'My Tezos Baker Signal', href: '/my/?view=baker-signal', accountPath: 'signal', detail: 'Follow the active wallet’s baker with live health, capacity, participation, governance, and recent activity', keywords: ['baker signal', 'my baker health', 'operator status'], journeyOnly: true },
-            { id: 'my-tezos-portfolio', title: 'My Tezos Portfolio', href: '/my/?view=portfolio', accountPath: 'portfolio', detail: 'Open the browser-local L1 portfolio and exact balance history', keywords: ['my portfolio', 'wallet balances', 'portfolio history'], journeyOnly: true },
-            { id: 'my-tezos-transactions', title: 'My Tezos Transactions', href: '/my/?view=transactions', accountPath: 'transactions', detail: 'Open account transfers, NFT interactions, and changes since the last visit', keywords: ['my transactions', 'wallet activity', 'what changed'], journeyOnly: true },
-            { id: 'my-tezos-collection', title: 'My Tezos Collection', href: '/my/?view=collection', accountPath: 'collection', detail: 'Open collected and created Tezos art across saved accounts', keywords: ['my collection', 'my nfts', 'created art'], journeyOnly: true },
-            { id: 'my-tezos-story', title: 'My Tezos Story', href: '/my/?view=story', accountPath: 'story', detail: 'Open the account dossier and browser-local recent chapter', keywords: ['my story', 'account history', 'personal timeline'], journeyOnly: true },
-            { id: 'my-tezos-tezos-x', title: 'My Tezos X', href: '/my/?view=tezos-x', accountPath: 'x', detail: 'Open explicitly linked, device-local Etherlink accounts', keywords: ['my etherlink', 'linked l2', 'my tezos x'], journeyOnly: true }
+            { id: 'my-tezos-baker-signal', title: 'My Tezos Baker Signal', href: '/my/?view=baker-signal', accountPath: 'signal', detail: 'Follow the active wallet’s baker with live health, capacity, participation, governance, and recent activity', keywords: ['baker signal', 'my baker health', 'operator status'], searchExact: true },
+            { id: 'my-tezos-portfolio', title: 'My Tezos Portfolio', href: '/my/?view=portfolio', accountPath: 'portfolio', detail: 'Open the browser-local L1 portfolio and exact balance history', keywords: ['my portfolio', 'wallet balances', 'portfolio history'], searchExact: true },
+            { id: 'my-tezos-transactions', title: 'My Tezos Transactions', href: '/my/?view=transactions', accountPath: 'transactions', detail: 'Open account transfers, NFT interactions, and changes since the last visit', keywords: ['my transactions', 'wallet activity', 'what changed'], searchExact: true },
+            { id: 'my-tezos-collection', title: 'My Tezos Collection', href: '/my/?view=collection', accountPath: 'collection', detail: 'Open collected and created Tezos art across saved accounts', keywords: ['my collection', 'my nfts', 'created art'], searchExact: true },
+            { id: 'my-tezos-story', title: 'My Tezos Story', href: '/my/?view=story', accountPath: 'story', detail: 'Open the account dossier and browser-local recent chapter', keywords: ['my story', 'account history', 'personal timeline'], searchExact: true },
+            { id: 'my-tezos-tezos-x', title: 'My Tezos X', href: '/my/?view=tezos-x', accountPath: 'x', detail: 'Open explicitly linked, device-local Etherlink accounts', keywords: ['my etherlink', 'linked l2', 'my tezos x'], searchExact: true }
         ],
         sitemap: { changefreq: 'hourly', priority: '0.9' },
         starter: 1,
@@ -916,6 +916,10 @@ export function searchSiteMapIntents(query) {
     return SITE_MAP
         .flatMap((entry, parentIndex) => (entry.searchIntents || [])
             .filter((intent) => !intent.journeyOnly)
+            // Personal subviews are useful for explicit requests, while a broad
+            // wallet/Tezos search should continue to lead with the main room.
+            .filter((intent) => !intent.searchExact || [intent.title, ...(intent.keywords || [])]
+                .some((phrase) => normalizedSearchValue(phrase) === normalizedSearchValue(raw)))
             .map((intent, intentIndex) => {
             const seasonVariant = wantsSeason && intent.seasonHref;
             return {

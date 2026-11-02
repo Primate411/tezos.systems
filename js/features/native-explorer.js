@@ -609,11 +609,16 @@ function renderError(type, value, error, options = {}) {
             <span>${escapeHtml(type)}</span>
             <h2>Native view could not load</h2>
             <code>${escapeHtml(value)}</code>
-            <p>${escapeHtml(error?.message || 'The API did not return data for this entity.')}</p>
+            <p>This view is unavailable. Retry the read or check the source directly.</p>
             <div class="native-explorer-actions">
+                <button type="button" data-native-retry>Retry this view</button>
                 ${externalTzktLink(value, 'Check TzKT directly')}
                 ${circulationLinks()}
             </div>
+            <details>
+                <summary>Read details</summary>
+                <p>${escapeHtml(error?.message || 'The API did not return data for this entity.')}</p>
+            </details>
         </div>
     `, options);
 }

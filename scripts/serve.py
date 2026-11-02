@@ -2,6 +2,27 @@
 import argparse
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+
+class PreviewHandler(SimpleHTTPRequestHandler):
+    def send_error(self, code, message=None, explain=None):
+        # Match GitHub Pages: dynamic account routes boot through the actual
+        # 404 document, retaining the 404 status until its client redirect.
+        if code == 404:
+            try:
+                content = (Path(self.directory) / "404.html").read_bytes()
+            except OSError:
+                pass
+            else:
+                self.send_response(404)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                if self.command != "HEAD":
+                    self.wfile.write(content)
+                return
+        super().send_error(code, message, explain)
 
 
 class PreviewServer(ThreadingHTTPServer):
@@ -15,7 +36,7 @@ def main(default_port=9000):
     parser.add_argument("--bind", default="127.0.0.1")
     parser.add_argument("--directory", default=".")
     args = parser.parse_args()
-    handler = partial(SimpleHTTPRequestHandler, directory=args.directory)
+    handler = partial(PreviewHandler, directory=args.directory)
     with PreviewServer((args.bind, args.port), handler) as server:
         print(f"http://{args.bind}:{server.server_port}", flush=True)
         try:

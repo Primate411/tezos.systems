@@ -1,5 +1,5 @@
 import { renderChamberVerdict, syncChamberReading } from '../ui/chamber-reading.js';
-import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
+import { requestChamberClose, bindChamberVisibility, focusChamberTab } from '../ui/chamber-accessibility.js';
 /**
  * Tezos X Governance Chamber
  * Read-only FAST / SLOW / Sequencer governance backed by TzKT receipts and
@@ -1706,7 +1706,7 @@ function renderChamber(data, container, { quiet = false } = {}) {
             activeTrackKey = tracks[next];
             selectActiveTrackOnNextRender = false;
             if (lastRenderedChamberData) renderChamber(lastRenderedChamberData, container, { quiet: true });
-            document.getElementById(`etherlink-gov-tab-${activeTrackKey}`)?.focus({ preventScroll: true });
+            focusChamberTab(document.getElementById(`etherlink-gov-tab-${activeTrackKey}`));
         });
     }
 }

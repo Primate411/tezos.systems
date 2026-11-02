@@ -7,7 +7,12 @@ export const CHANGELOG = [
     {
         date: '2026-11-02',
         entries: [
-            { type: '✨', text: 'Link directly to any My Tezos tab with an address or .tez name followed by /overview, /signal, /portfolio, /transactions, /collection, /story, or /x' }
+            { type: '🔧', text: 'Chamber controls keep visible keyboard focus, readable mobile tabs, and larger touch targets; widget controls expose their labels and selected states' },
+            { type: '🎨', text: 'Improved Clean-theme contrast, Baker Signal stale values, Metals captions, and Maxis identity labels; HEN artwork remains visible with reduced motion' },
+            { type: '✨', text: 'Search opens My Tezos tabs directly for phrases such as my portfolio, my story, baker signal, and my etherlink' },
+            { type: '🔧', text: 'Local previews support the same address and .tez tab links as the live site' },
+            { type: '✨', text: 'Link directly to any My Tezos tab with an address or .tez name followed by /overview, /signal, /portfolio, /transactions, /collection, /story, or /x' },
+            { type: '🔧', text: 'Native Explorer offers an in-place retry after a failed read, with clear progress and keyboard focus preserved' }
         ]
     },
     {

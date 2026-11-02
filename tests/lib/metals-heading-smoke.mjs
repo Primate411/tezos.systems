@@ -20,8 +20,20 @@ export async function assertMetalsHeadingWords(page) {
           };
         });
       });
-      assert.ok(words.length >= 6, `${width}: populated Metals headline`);
+      assert.deepEqual(words.map(({ word }) => word), ['Every', 'precious', 'metal.', 'No', 'synthetic', 'completeness.'], `${width}: populated Metals headline`);
       assert.ok(words.every(word => word.lines === 1 && word.contained), `${width}: Metals headline splits or clips a word: ${JSON.stringify(words)}`);
+      const captions = await page.locator('.metals-hero-metrics small').evaluateAll(labels => labels.map(label => {
+        const bounds = label.parentElement.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        return {
+          text: label.textContent,
+          fontSize: parseFloat(getComputedStyle(label).fontSize),
+          contained: [...range.getClientRects()].every(rect => rect.left >= bounds.left + 4 && rect.right <= bounds.right - 4 && rect.bottom <= bounds.bottom - 4)
+        };
+      }));
+      assert.ok(captions.length >= 4, `${width}: populated Metals source-status captions`);
+      assert.ok(captions.every(caption => caption.fontSize >= 11 && caption.contained), `${width}: Metals source-status captions are too small or clipped: ${JSON.stringify(captions)}`);
     }
   } finally {
     await page.setViewportSize(original);

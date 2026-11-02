@@ -1013,7 +1013,8 @@
     background: color-mix(in srgb, #f5b84b 6%, transparent);
 }
 
-.native-explorer-source-status button {
+.native-explorer-source-status button,
+.native-explorer-error [data-native-retry] {
     min-height: 44px;
     flex: 0 0 auto;
     padding: 0.45rem 0.75rem;
@@ -1024,6 +1025,11 @@
     font: inherit;
     font-weight: 850;
     cursor: pointer;
+}
+
+.native-explorer-content [data-native-retry]:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 3px;
 }
 
 .native-explorer-body,
@@ -6228,7 +6234,18 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     box-shadow: none !important;
     outline: 0 !important;
 }
-.chamber-content > .chamber-close:focus-visible { color: var(--accent-cyan) !important; text-shadow: 0 0 10px currentColor; }
+.chamber-room-shell > :is(.chamber-close, .modal-close):focus-visible {
+    color: var(--accent-cyan, #68d7e7) !important;
+    outline: 2px solid currentColor !important;
+    outline-offset: -4px;
+    text-shadow: 0 0 10px currentColor;
+}
+@media (forced-colors: active) {
+    .chamber-room-shell > :is(.chamber-close, .modal-close):focus-visible {
+        outline-color: Highlight !important;
+        text-shadow: none;
+    }
+}
 /* Once the reader scrolls, an opaque band sits behind the bare exit so the X
    never floats over content. Rooms with a sticky control rail already give
    the exit's column an opaque backing, so they keep their rail instead. */
@@ -6342,6 +6359,9 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     place-items: center;
     z-index: 2;
     background: var(--chamber-rail-bg, var(--bg-primary, #10151e));
+    /* Sticky flex items stop at the content edge. Extend the backing by its
+       exact width, without a gap, across the rail's trailing padding. */
+    box-shadow: 20px 0 0 var(--chamber-rail-bg, var(--bg-primary, #10151e));
     color: var(--text-primary, #edf5ff);
     font: 700 24px/1 system-ui, sans-serif;
     pointer-events: none;

@@ -182,6 +182,24 @@ export function createHenSmokeSuites({
         assert(geometry[key].left >= -1 && geometry[key].right <= width + 1, `HEN ${width}: ${key} escapes viewport: ${JSON.stringify(geometry)}`);
       }
       if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `hen-standalone-${width}.png`) });
+      // Exercise the real expanded image, including a live preference change.
+      // isVisible() alone does not detect opacity: 0 on a rendered artwork.
+      await page.locator('#hen-grid .hen-card').first().click();
+      await page.locator('#hen-expanded.active img.hen-expanded-media').waitFor({ state: 'visible' });
+      for (const motion of ['no-preference', 'reduce', 'no-preference']) {
+        await page.emulateMedia({ reducedMotion: motion });
+        await page.waitForFunction(expectedMotion => {
+          const media = document.querySelector('#hen-expanded.active .hen-expanded-media');
+          if (!media) return false;
+          const style = getComputedStyle(media);
+          const bounds = media.getBoundingClientRect();
+          const settled = style.transform === 'none' || style.transform === 'matrix(1, 0, 0, 1, 0, 0)';
+          return media.naturalWidth > 0 && Number(style.opacity) === 1 && settled
+            && bounds.width > 0 && bounds.height > 0
+            && (expectedMotion !== 'reduce' || style.animationName === 'none');
+        }, motion, { timeout: 5000 });
+      }
+      await page.keyboard.press('Escape');
       await page.locator('#hen-profile-toggle').click();
       await page.locator('#hen-profile-body').waitFor({ state: 'visible' });
       await page.waitForFunction(() => Array.from(document.querySelectorAll('.hen-profile-recent-item img, img.hen-profile-row-logo')).every(img => img.naturalWidth > 0), null, { timeout: 5000 });

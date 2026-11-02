@@ -127,6 +127,27 @@ export async function smokeStandaloneChamberLifecycle(browser, baseUrl, { instal
       await context.route('**/css/staking-chamber.min.css*', route => route.abort('failed'));
       await page.goto(`${baseUrl}/chambers/`, { waitUntil: 'domcontentloaded' });
       await ready(page, 'chambers');
+      const returnLink = page.getByRole('link', { name: 'Return to Tezos Systems', exact: true });
+      await returnLink.focus();
+      const returnControl = await returnLink.evaluate(link => {
+        const style = getComputedStyle(link), rect = link.getBoundingClientRect();
+        const luminance = color => {
+          const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
+            const channel = value / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+          return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+        };
+        const foreground = luminance(style.color), background = luminance(style.backgroundColor);
+        return {
+          height: rect.height, fits: rect.left >= 0 && rect.right <= innerWidth,
+          contrast: (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05),
+          focused: document.activeElement === link && style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) >= 2
+        };
+      });
+      assert(returnControl.height >= 44 && returnControl.fits, 'Directory return link has a contained 44px touch target');
+      assert(returnControl.contrast >= 4.5, 'Directory return link has readable theme contrast');
+      assert(returnControl.focused, 'Directory return link has visible keyboard focus');
       await page.locator('#customize-home-btn').click();
       await page.locator('#home-layout-modal.active').waitFor();
       await page.keyboard.press('Escape');

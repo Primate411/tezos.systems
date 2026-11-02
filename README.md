@@ -6,7 +6,8 @@ state, baker activity, and ecosystem signals.
 Live site: [tezos.systems](https://tezos.systems)
 
 Chambers keep one main reading scroller and a reachable, bare X close control
-near the upper-right corner. The 44px control stays with the reading scroller.
+near the upper-right corner. The 44px control stays with the reading scroller and
+shows a visible outline for keyboard focus, including in forced-color mode.
 Release Radar and ctez retain their own overlay controls.
 Compact view rails, search, and chart controls lead into the data; methodology and full source
 receipts expand on demand. Open receipt disclosures and compatible view reading
@@ -14,6 +15,10 @@ positions are retained, while background refreshes preserve the reader’s place
 Artifact validation describes the generated file, not independent verification of
 issuer claims. The complete Chamber directory derives its count from the canonical
 site map.
+
+Search also opens personal views directly with phrases such as `my portfolio`,
+`my transactions`, `my collection`, `my story`, `baker signal`, and `my etherlink`.
+Broad wallet searches continue to lead with the My Tezos overview.
 
 ## Community Funding
 
@@ -2099,6 +2104,8 @@ For a LAN preview, run `npm run serve -- 9998 --bind 0.0.0.0` and open
 `http://<your-LAN-address>:9998` from another device. The preview and smoke
 servers share a larger connection queue so parallel browser module requests
 do not reset on Python versions with a small default queue.
+Missing paths serve the repository's `404.html` with a 404 status, matching
+GitHub Pages so address and `.tez` tab links work in local and tailnet previews.
 
 The lockfile is tracked so fresh clones can use `npm ci`. Compatible security patches for image generation and audit-tool parsers are retained in that lockfile and checked with `npm audit`. Repo Playwright
 callers use `scripts/lib/playwright-browser.cjs`, which tries Playwright's

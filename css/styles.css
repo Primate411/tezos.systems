@@ -3971,15 +3971,18 @@ body::before {
 
 .etherlink-gov-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(min-content, 1fr));
     gap: 8px;
     margin: 16px 0 0;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .etherlink-gov-tab {
     display: grid;
     gap: 4px;
-    min-width: 0;
+    min-width: min-content;
+    min-height: 44px;
     padding: 10px 12px;
     border: 1px solid rgba(255, 255, 255, 0.075);
     border-radius: 6px;
@@ -4002,19 +4005,20 @@ body::before {
 
 .etherlink-gov-tab span,
 .etherlink-gov-tab strong {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    /* Preserve each label's intrinsic width through the nested button grid.
+       A zero minimum lets the outer min-content tracks shrink below glyphs. */
+    min-width: min-content;
 }
 
 .etherlink-gov-tab span {
+    white-space: nowrap;
     font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0.08em;
 }
 
 .etherlink-gov-tab strong {
+    white-space: normal;
     color: var(--text-tertiary);
     font-size: 0.62rem;
     font-weight: 750;
@@ -4229,10 +4233,6 @@ body::before {
 @media (max-width: 768px) {
     #chambers-grid .etherlink-governance-entry-card.chamber-entry-wide {
         min-height: 258px;
-    }
-
-    .etherlink-gov-tabs {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .etherlink-gov-tab {
@@ -12046,6 +12046,24 @@ body[data-theme="valley"]::after {
 
 [data-theme="clean"] .chamber-content :is(.stat-value, .metric-value, .value-text, .big-number, .large-stat, .protocol-number) {
     color: var(--surface-data-color) !important;
+}
+
+/* History retains dark chart surfaces in Clean. The dashboard text-fill
+   override must not paint these values with light-page ink. */
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value {
+    -webkit-text-fill-color: currentColor !important;
+}
+
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value.positive {
+    color: var(--chamber-good-color) !important;
+}
+
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value.negative {
+    color: var(--chamber-risk-color) !important;
+}
+
+[data-theme="clean"] .cycle-history-content .chart-stats .stat-value.neutral {
+    color: var(--text-secondary) !important;
 }
 
 [data-theme="clean"] .chamber-content a:hover {
@@ -26754,7 +26772,6 @@ body[data-theme="hen"]::after {
 .drawer-schedule-notes details[open] { padding-bottom: 8px; }
 .drawer-schedule-notes details p { padding-bottom: 8px; }
 #my-tezos-drawer [data-schedule-state="stale"] .drawer-schedule-right .drawer-operator-value { color: var(--text-secondary); }
-#my-tezos-drawer [data-schedule-state="stale"] .drawer-schedule-right:first-child .drawer-operator-value { color: #514019; }
 @media (max-width: 1100px) {
     #my-tezos-drawer .drawer-baker-schedule { grid-template-columns: minmax(0, 1fr); }
 }
