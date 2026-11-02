@@ -379,7 +379,7 @@
     align-items: center;
     gap: 0.72rem;
     min-width: 0;
-    font-size: clamp(1.85rem, 2.6vw, 2.4rem);
+    font-size: clamp(1.5rem, 2vw, 1.8rem);
     line-height: 0.96;
     white-space: nowrap;
 }
@@ -391,7 +391,7 @@
     margin-inline: 0;
     color: var(--text-primary);
     font-family: var(--font-runtime);
-    font-size: 1.08em;
+    font-size: 1em;
     font-weight: 700;
     letter-spacing: 0.01em;
     line-height: 0.96;
@@ -414,14 +414,16 @@
 .top-continuity-time-unit {
     margin-left: 0.36em;
     color: var(--uptime-badge-label);
-    font-size: 0.52em;
+    font-size: 0.68em;
     font-weight: 500;
     letter-spacing: 0.02em;
 }
 
 .top-continuity-subline .top-continuity-claim {
-    font-weight: 500;
-    letter-spacing: 0.055em;
+    font-size: clamp(1rem, 1.2vw, 1.0625rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
     text-transform: none;
 }
 
@@ -540,14 +542,13 @@
     }
 
     .top-continuity-runtime {
-        font-size: 1.08em;
         text-align: center;
     }
 
     .top-continuity-primary-line {
         justify-content: center;
         width: auto;
-        font-size: clamp(1.65rem, 7vw, 1.9rem);
+        font-size: clamp(1.4rem, 5.8vw, 1.6rem);
     }
 
     .top-uptime-cluster {
@@ -565,6 +566,10 @@
     .top-continuity-origin {
         font-size: clamp(0.62rem, 2.8vw, 0.78rem);
         letter-spacing: 0.12em;
+    }
+
+    .top-continuity-subline .top-continuity-claim {
+        font-size: clamp(0.9375rem, 3.9vw, 1rem);
     }
 
     .top-continuity-separator,

@@ -55,10 +55,33 @@ export async function smokeChainContinuity(browser, baseUrl, { installFeatureMoc
       assert.equal(calendar.after, '8 years 4 months 0 days');
       assert(calendar.sameNodes && calendar.fits, 'Calendar rollover preserves the existing numerals and fits the viewport');
       assert.match(calendar.label, /8 years, 4 months, 0 days/);
-      if (artifactsDir) {
-        await page.screenshot({ path: path.join(artifactsDir, `uptime-clean-${width}.png`) });
-        await page.evaluate(async () => (await import('/js/ui/theme.js')).setTheme('dark'));
-        await page.screenshot({ path: path.join(artifactsDir, `uptime-dark-${width}.png`) });
+      const typography = [];
+      for (const theme of ['clean', 'dark']) {
+        await page.evaluate(async theme => (await import('/js/ui/theme.js')).setTheme(theme), theme);
+        const reading = await page.evaluate(() => {
+          const button = document.getElementById('top-continuity-history');
+          const number = button.querySelector('.top-continuity-time-number');
+          const unit = button.querySelector('.top-continuity-time-unit');
+          const claim = button.querySelector('.top-continuity-claim');
+          const clock = button.querySelector('.top-continuity-runtime');
+          const zoom = Number.parseFloat(getComputedStyle(button).zoom) || 1;
+          const size = node => Number.parseFloat(getComputedStyle(node).fontSize) * zoom;
+          const clockRect = clock.getBoundingClientRect();
+          const claimRect = claim.getBoundingClientRect();
+          return {
+            number: size(number), unit: size(unit), claim: size(claim),
+            text: claim.textContent.trim(),
+            fits: [clockRect, claimRect].every(rect => rect.left >= 0 && rect.right <= innerWidth),
+            separateLines: clockRect.bottom <= claimRect.top
+          };
+        });
+        assert(reading.number <= 24 && reading.claim >= 11 && reading.unit >= 11
+          && reading.number / reading.claim <= 1.85,
+        `${theme} ${width}: uptime numerals should remain restrained and Zero outages readable: ${JSON.stringify(reading)}`);
+        assert(reading.fits && reading.separateLines && reading.text === 'Zero outages',
+          `${theme} ${width}: the uptime statement must fit without overlapping its caption`);
+        typography.push({ theme, ...reading });
+        if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `uptime-${theme}-${width}.png`) });
       }
       const idle = await page.evaluate(async () => {
         const { readDashboardContinuity } = await import('/js/core/chain-continuity.js');
@@ -151,7 +174,7 @@ export async function smokeChainContinuity(browser, baseUrl, { installFeatureMoc
       assert.equal(await page.evaluate(() => performance.timeOrigin), origin, 'Home handoff keeps the document');
       assert(await page.evaluate(async () => Boolean((await import('/js/core/chain-continuity.js')).readDashboardContinuity())), 'Home takes ownership explicitly after handoff');
       assert.deepEqual(errors, []);
-      receipts.push({ width, idle, reading, hidden, standaloneHandoff: true });
+      receipts.push({ width, typography, idle, reading, hidden, standaloneHandoff: true });
     } finally { await context.close(); }
   }
   if (artifactsDir) await writeFile(path.join(artifactsDir, 'chain-continuity.json'), JSON.stringify(receipts, null, 2));
