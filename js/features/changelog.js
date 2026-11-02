@@ -13,7 +13,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Local previews support the same address and .tez tab links as the live site' },
             { type: '✨', text: 'Link directly to any My Tezos tab with an address or .tez name followed by /overview, /signal, /portfolio, /transactions, /collection, /story, or /x' },
             { type: '🔧', text: 'Native Explorer offers an in-place retry after a failed read, with clear progress and keyboard focus preserved' },
-            { type: '🎨', text: 'Balanced the homepage uptime display with smaller calendar numerals and a clearer, more prominent Zero outages line' }
+            { type: '🎨', text: 'Balanced the homepage uptime display with smaller calendar numerals and a clearer, more prominent Zero outages line' },
+            { type: '✨', text: 'Compact throughput estimates show extra contract calls or batched XTZ transfers, with a measured FA2 example and clear assumptions in the details' }
         ]
     },
     {

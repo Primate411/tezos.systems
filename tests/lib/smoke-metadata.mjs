@@ -1,6 +1,7 @@
 import { SMOKE_MODULE_RULES } from './smoke-module-owners.mjs';
 
 const RULES = [
+  { suites: /^throughput-capacity$/, files: ['js/core/throughput.mjs', 'js/features/network-health.js', 'css/hero-search*', 'index.html', 'tests/throughput-smoke.mjs', 'tests/fixtures/throughput-*-receipt.json'], tags: ['live-data', 'quiet-refresh', 'visual'], risk: 'high' },
   ...SMOKE_MODULE_RULES,
   { suites: /^ux-regressions$/, files: ['tests/lib/chamber-overhaul-smoke.mjs'], tags: ['visual', 'responsive'], risk: 'normal' },
   { suites: /^capital-chamber$/, files: ['tests/lib/serialization-upgrade-smoke.mjs'], tags: ['cache', 'deployment'], risk: 'normal' },

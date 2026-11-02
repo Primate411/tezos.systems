@@ -571,6 +571,24 @@ inline modal styles in `js/core/app.js`.
   Desktop `1H ACTIVITY` and `CHAIN HEALTH • 1/25 LOW |` headings stay on one line.
   Below 720px Activity and Chain Health share one row, with compact labels and
   TX/Moved/NFT visible inside Activity. Setup sits beside the Live Blocks title.
+  The TPS strip reports measured transactions and two alternative estimates of
+  spare capacity: external contract calls at their recent average execution cost,
+  or individual simple XTZ transfers in batches of up to 250. The latter uses a
+  protocol-pinned, read-only Ushuaia simulation recorded in
+  `tests/fixtures/throughput-batch-receipt.json`; unknown protocols or incomplete
+  receipts show an unavailable estimate. Both account for consumed gas and a
+  conservative serialized-input byte allowance, assume gas limits sized to
+  execution, and use the observed block interval. Tap the strip for the method
+  and source context. Its detail popup holds a reading lock until dismissed.
+  The compact strip stays beside Activity and Chain Health at laptop widths.
+  Native batching still pays about 2,100 gas per transfer: Rio added a 2,000-gas
+  charge per transfer to user accounts, retained in Ushuaia. At exactly 25% of
+  a 1,040,000-gas block and a six-second interval, the reviewed model fits 123
+  additional transfers, or 20.5/s. This is execution headroom, not admission
+  capacity: submitted gas reservations can fill a block before execution does.
+  The details also show a distinct FA2 example for the USDt contract, packing
+  only simulated list sizes of 1, 10, 100 and 250. Its pinned receipt is
+  `tests/fixtures/throughput-fa2-receipt.json`; it is not an FA2-wide ceiling.
   Chain Health shows the latest 10 blocks with a matching count and accessible
   summary. Between 720px and 900px the controls occupy separate rows.
   Chain Health reserves two digits for the numerator, centers its divider in

@@ -7,10 +7,12 @@
 import assert from 'node:assert/strict';
 import {
     summarizeThroughput,
+    FA2_TRANSFER_LISTS,
     throughputBand,
     THROUGHPUT_WINDOW_BLOCKS,
     THROUGHPUT_TX_PAGE_LIMIT,
-    THROUGHPUT_MAX_LEADING_SKIP
+    THROUGHPUT_MAX_LEADING_SKIP,
+    measureCapacityWorkloads, TRANSFER_BATCH
 } from '../js/core/throughput.mjs';
 
 assert.equal(THROUGHPUT_MAX_LEADING_SKIP, 3, 'the head-skip bound is part of the contract');
@@ -184,6 +186,74 @@ const heroCss = read('css/hero-search.css');
 const styles = read('css/styles.css');
 const cleanTheme = read('css/themes/clean.css');
 
+// The two workloads are independent, but spend the same spare gas/bytes.
+// Contract-generated transfers belong to their parent call's cost, not its count.
+{
+    const metadata = { protocol: TRANSFER_BATCH.protocol, max_operation_data_length: 32768,
+        max_operation_list_length: [{}, {}, {}, { max_size: 524288 }] };
+    const call = { kind: 'transaction', destination: 'KT1Example',
+        metadata: { operation_result: { status: 'applied', consumed_milligas: '8000000' },
+            internal_operation_results: [{ kind: 'transaction', result: { status: 'applied', consumed_milligas: '2000000' } }] } };
+    const transfer = { kind: 'transaction', destination: 'tz1Example',
+        metadata: { operation_result: { status: 'applied', consumed_milligas: '2100040' } } };
+    const group = { branch: 'BExample', signature: 'sigExample', contents: [call, transfer] };
+    const capacity = measureCapacityWorkloads([group], metadata);
+    assert.equal(capacity.calls, 1);
+    assert.equal(capacity.callGas, 10000);
+    const get = (overrides = {}) => {
+        const { blocks, lookup } = window([{ intervalSeconds: 6,
+            activity: { txCount: 3, gasUsed: 12000.04, gasLimit: 1040000, capacity, ...overrides } }]);
+        return summarizeThroughput(blocks, lookup);
+    };
+    const summary = get();
+    near(summary.room.calls, 102 / 6);
+    // 489 transfers fit in two batches; 490 plus overhead exceed the gas left.
+    near(summary.room.transfers, 489 / 6);
+    // 25% spare execution gas fits 123 transfers per six-second block.
+    near(get({ gasUsed: 780000 }).room.transfers, 20.5);
+    near(get({ gasUsed: 780000 }).room.fa2Transfers, 211 / 6);
+    near(get({ gasUsed: 0 }).room.fa2Transfers, 871 / 6);
+    assert.equal(get({ gasUsed: 1040000 }).room.fa2Transfers, 0);
+    assert.equal(get({ capacity: null }).room.fa2Transfers, null);
+    near(get({ gasUsed: 0 }).room.transfers, 494 / 6);
+    assert.equal(summary.room.sampledCalls, 1);
+    assert(summary.room.transfers > summary.room.calls);
+    assert.equal(get({ gasUsed: 1040000 }).room.calls, 0);
+    assert.equal(get({ gasUsed: 1040000 }).room.transfers, 0);
+    assert.equal(get({ capacity: null }).room.transfers, null);
+    assert.equal(measureCapacityWorkloads([group], { ...metadata, protocol: 'new-protocol' }), null);
+    assert.equal(measureCapacityWorkloads(null, metadata), null);
+    assert.equal(measureCapacityWorkloads([group], { ...metadata, max_operation_list_length: [] }), null);
+    const noCalls = measureCapacityWorkloads([{ ...group, contents: [transfer] }], metadata);
+    assert.equal(get({ capacity: noCalls }).room.calls, null, 'empty sample is unknown, not zero');
+    assert(get({ capacity: noCalls }).room.transfers > 0, 'native model does not depend on recent calls');
+    const byteBound = get({ capacity: { ...capacity, byteLimit: capacity.bytes + 200 } });
+    near(byteBound.room.transfers, 1 / 6); // One signed transfer fits in 200 spare bytes.
+    assert.equal(get({ capacity: { ...capacity, byteLimit: 1 } }).room.transfers, null,
+        'an oversized conservative bound is unknown, not proof of a full block');
+    const missingGas = structuredClone(group);
+    delete missingGas.contents[0].metadata.internal_operation_results[0].result.consumed_milligas;
+    assert.equal(measureCapacityWorkloads([missingGas], metadata), null, 'missing internal costs must not become free');
+    assert.notEqual(summary.signature, get({ capacity: noCalls }).signature);
+    const receipt = JSON.parse(read('tests/fixtures/throughput-batch-receipt.json'));
+    assert.equal(receipt.protocol, TRANSFER_BATCH.protocol);
+    assert.equal(receipt.level, TRANSFER_BATCH.level);
+    near(receipt.gas.batch, TRANSFER_BATCH.gas);
+    assert.equal(receipt.signedBytes, TRANSFER_BATCH.bytes);
+    assert.equal(receipt.contents.count, TRANSFER_BATCH.count);
+    assert.equal(new Set(receipt.contents.destinations).size, TRANSFER_BATCH.count);
+    assert(receipt.allApplied);
+    const fa2 = JSON.parse(read('tests/fixtures/throughput-fa2-receipt.json'));
+    assert.equal(fa2.protocol, TRANSFER_BATCH.protocol);
+    assert.equal(fa2.block, receipt.block);
+    for (const list of FA2_TRANSFER_LISTS) {
+        const measurement = fa2.benchmarks.find(item => item.transfers === list.count);
+        assert.equal(measurement.status, 'applied');
+        near(measurement.gas, list.gas);
+        assert.equal(measurement.signedBytes, list.bytes);
+    }
+}
+
 // The rail is a real control with its own receipt, not decoration.
 assert(index.includes('id="chain-throughput"'), 'index.html must carry the throughput control');
 assert(index.includes('aria-describedby="chain-throughput-legend"'), 'the rail must point at its legend');
@@ -217,7 +287,7 @@ assert(
         'the rail must remember that it has resolved before'
     );
     assert(
-        /const retaining = summary\.state !== 'resolved' && rail\.dataset\.throughputResolved === 'true';[\s\S]*?if \(retaining\) \{[\s\S]*?rail\.dataset\.feedState = 'stale';[\s\S]*?return;/.test(updater),
+        /const retaining = \(summary\.state !== 'resolved' \|\| capacityPending\) && rail\.dataset\.throughputResolved === 'true';[\s\S]*?if \(retaining\) \{[\s\S]*?rail\.dataset\.feedState = 'stale';[\s\S]*?return;/.test(updater),
         'a pending window must retain the last good reading and mark the surface stale'
     );
     const ticker = health.match(/function updateBlockTicker[\s\S]*?\n\}/)?.[0] || '';
@@ -306,23 +376,16 @@ assert(
         'the phone rail track must flex to the row width instead of staying at its desktop size'
     );
     assert(
-        phone.includes('.chain-throughput-heading { display: contents; }'),
-        'the phone card splits into a kicker line and a figures line through display: contents'
+        phone.includes('.chain-throughput-heading { grid-column: 1; grid-row: 1; display: inline-flex; }'),
+        'the phone card keeps current TPS above the two spare-capacity figures'
     );
     // The desktop fixed track must not leak into the phone block.
     assert(!/grid-template-columns:\s*max-content 56px/.test(phone), 'no fixed desktop track on phones');
 }
 
-// Regression: the rail is a fourth control in a row laid out from its right
-// edge, where the activity card is the only item that gives ground, so a rail
-// standing in a row too narrow for it pushed TX/Moved/NFT past the activity
-// card's own edge (95px at 901, 22px at 1101). Letting the rail shrink was not
-// enough on its own: even with its bar down to a 24px floor the row was still
-// 65px short at 901. Two separate squeezes caused it. Below about 1010px the
-// row is short of width outright, and the rail takes its own line there. Just
-// above the point where the row stops spanning the grid it loses ~125px at a
-// stroke, which is why that breakpoint moved up rather than growing a second
-// band. Everywhere else the rail keeps its inline width.
+// Regression: adding two capacity figures made the rail claim a full row on
+// Mac laptops. Default to a compact inline control; only tablet widths may
+// wrap it. Browser coverage also checks the actual shared row and sibling fit.
 {
     // Anchor on the multi-line declaration block, not the one-line media-query
     // placement rules that share the selector.
@@ -330,11 +393,11 @@ assert(
     assert(component.includes('--throughput-fill'), 'the component block must be the one carrying the rail geometry');
     assert(
         /flex:\s*0 0 auto/.test(component),
-        'the rail must not shrink: width it gives up is paid for in clipped activity figures'
+        'the rail stays inline on laptops'
     );
     assert(
-        /grid-template-columns:\s*max-content 56px max-content/.test(component),
-        'the inline rail keeps a fixed bar track'
+        /grid-template-columns:\s*max-content 24px max-content/.test(component),
+        'a small gas indicator leaves space for both capacity estimates'
     );
 
     const activity = heroCss.match(/\.live-head-controls \.header-activity-button \{[\s\S]*?\n\}/)?.[0] || '';
@@ -359,8 +422,8 @@ assert(
         `the rail needs its own line up to about 1010px, not ${band[1]}px`
     );
     assert(
-        Number(band[1]) < 1024,
-        `the rail must stay inline at common laptop widths; a band to ${band[1]}px swallows 1024px`
+        Number(band[1]) < 1110,
+        `the rail must stay inline on laptops; a band to ${band[1]}px is too broad`
     );
     assert(band[0].includes('flex-wrap: wrap'), 'the controls row must be allowed to take a second line there');
     assert(/\.chain-throughput \{[\s\S]*?flex-basis: 100%/.test(band[0]), 'the rail takes that line whole');

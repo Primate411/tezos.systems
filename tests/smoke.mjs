@@ -26,6 +26,7 @@ import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
 import { createSmokeLifecycle, SmokeCancelledError } from './lib/smoke-lifecycle.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 import { chooseLiveHeadDepth } from './live-head-depth-smoke.mjs';
+import { smokeThroughputCapacity } from './throughput-smoke.mjs';
 import { smokeTallScreen } from './tall-screen-smoke.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
@@ -6068,6 +6069,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tall-screen', description: 'Tall Chambers use available height and health lines and pills remain crisp at 1x/2x pixel density across desktop/mobile', run: () => smokeTallScreen(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'network-health-inspector-refresh', description: 'Supplemental block receipts preserve the exact inspector button while its accessible description updates', run: () => checkInspectorTriggerRefresh(browser, baseUrl, { installFeatureMocks }) },
     { name: 'live-head-stall', description: 'Centered stall overlay, responsive geometry, quiet elapsed ticks, retained rows and recovery', run: () => smokeLiveHeadStall(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'throughput-capacity', description: 'Contract and batched-transfer room preserve live reading state and fit desktop/mobile themes', run: () => smokeThroughputCapacity(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'network-health', description: 'Live Head stories and Network Health expose block cadence, missed rights, live 33/66 Nakamoto coefficients, reports, and saved-baker context', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
     { name: 'maxis-domain-passport', description: 'Maxi Passport resolves .tez names and subdomains without mutating My Tezos or assigning KT1 activity to an owner', run: () => smokeMaxisDomainPassport(browser, baseUrl) },

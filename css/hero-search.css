@@ -1852,10 +1852,9 @@
 .chain-health[data-feed-state="stale"] { border-style: dashed; }
 .chain-health[data-feed-state="stale"] .chain-health-readout { color: var(--text-secondary); }
 
-/* The controls row takes a line of its own once it can no longer sit beside
-   the heading. The throughput rail made it a fourth control, so it reaches
-   that point about thirty pixels earlier than it used to. */
-@media (max-width: 1130px) {
+/* Keep all three readings together when the controls no longer fit beside
+   the heading. Laptop widths retain a single controls row. */
+@media (max-width: 1280px) {
     .live-head-topline .live-head-controls { grid-column: 1 / -1; }
 }
 
@@ -3154,21 +3153,17 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     --throughput-heat: var(--text-secondary);
     position: relative;
     display: grid;
-    /* The row is laid out from its right edge, and the activity card is the
-       only control in it that gives ground, so width the rail took by
-       shrinking would be paid for in clipped TX/Moved/NFT figures. It holds
-       its own width; where the row cannot spare it, the rail takes its own
-       line instead. */
+    /* Stay beside Activity and Chain Health; do not claim a desktop row. */
     flex: 0 0 auto;
-    grid-template-columns: max-content 56px max-content;
+    grid-template-columns: max-content 24px max-content;
     grid-template-rows: 22px;
     align-content: center;
     align-items: center;
-    column-gap: 7px;
+    column-gap: 5px;
     width: max-content;
     min-width: 0;
     height: var(--live-head-control-height);
-    padding: 3px 9px;
+    padding: 3px 7px;
     border: 1px solid color-mix(in srgb, var(--throughput-heat) 30%, var(--glass-border));
     border-radius: 7px;
     background:
@@ -3178,7 +3173,7 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent);
     text-align: left;
     cursor: pointer;
-    transition: border-color 420ms ease, box-shadow 420ms ease;
+    transition: none;
 }
 
 .chain-throughput-heading {
@@ -3205,7 +3200,7 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     color: var(--throughput-heat);
-    transition: color 420ms ease;
+    transition: none;
 }
 
 .chain-throughput-rail {
@@ -3233,7 +3228,7 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     transform-origin: left center;
     border-radius: inherit;
     background: linear-gradient(90deg, color-mix(in srgb, var(--throughput-heat) 55%, transparent), var(--throughput-heat));
-    transition: transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1), background-color 420ms ease;
+    transition: none;
 }
 
 .chain-throughput-ember {
@@ -3246,19 +3241,48 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     opacity: 0;
     /* A hatch, not a hue: the top bands stay distinguishable without colour. */
     background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.34) 0 1px, transparent 1px 5px);
-    transition: transform 520ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 420ms ease;
+    transition: none;
 }
 
-.chain-throughput-ceiling {
+.chain-throughput-room {
     grid-column: 3;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.58rem;
-    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    font-size: 9px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     color: var(--text-secondary);
-    opacity: 0.85;
 }
+.chain-throughput-room strong { display: inline-block; min-width: 3ch; color: var(--text-primary); font-weight: 600; text-align: right; }
+.chain-throughput-room-label { font-size: 8px; }
+.chain-throughput-mobile-note { display: none; }
+.chain-throughput-or { opacity: 0.7; }
+.chain-throughput-detail {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: min(380px, calc(100vw - 24px));
+    max-height: min(440px, calc(100dvh - 24px));
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-shadow: 0 12px 40px #0005;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.chain-throughput-detail p { margin: 8px 0 12px; color: var(--text-secondary); }
+.chain-throughput-estimates { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.chain-throughput-estimates caption { text-align: left; color: var(--text-secondary); font-size: 11px; }
+.chain-throughput-estimates th { text-align: left; font-weight: 400; }
+.chain-throughput-estimates th, .chain-throughput-estimates td { padding: 5px 0; border-bottom: 1px solid var(--glass-border); }
+.chain-throughput-estimates td, .chain-throughput-estimates thead th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.chain-throughput-sources { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.chain-throughput-sources a, .chain-throughput-sources button { color: var(--accent-cyan); font: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
 
 .chain-throughput[data-throughput-band="open"] { --throughput-heat: var(--throughput-open); }
 .chain-throughput[data-throughput-band="active"] { --throughput-heat: var(--throughput-active); }
@@ -3279,7 +3303,7 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 /* The one moving part, and only while the chain is actually against its
    ceiling. It is decoration over a settled value, never a data update. */
 .chain-throughput[data-throughput-band="peak"] .chain-throughput-fill {
-    animation: throughput-forge 1.9s ease-in-out infinite;
+    animation: none;
 }
 
 @keyframes throughput-forge {
@@ -3294,18 +3318,15 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 .chain-throughput:is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--throughput-heat) 60%, var(--glass-border)); }
 .chain-throughput:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
 
-/* Above 900px the activity card has to sit beside Chain health, and even with
-   the controls row to itself there is no width for a fourth control below
-   about 1010px: the rail measures 164px and the row is short by 111px at
-   901px. Rather than crowd the metrics or vanish, it takes the next line whole
-   and spends the width on its bar. Row one keeps the exact geometry it has
-   without the rail. */
-@media (min-width: 901px) and (max-width: 1010px) {
+/* Tablet widths need a second controls row. Keep this exception below the
+   laptop range; the default rail must never claim a full desktop row. */
+@media (min-width: 901px) and (max-width: 1100px) {
     .live-head-topline .live-head-controls { flex-wrap: wrap; }
     .chain-throughput {
         order: 1;
         flex-basis: 100%;
         width: 100%;
+        max-width: none;
         grid-template-columns: max-content minmax(0, 1fr) max-content;
     }
 }
@@ -6842,7 +6863,7 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
         grid-column: 1 / -1;
         grid-row: 2;
         width: 100%;
-        height: var(--live-head-control-height);
+        height: 48px;
         grid-template-columns: max-content minmax(0, 1fr) max-content;
         grid-template-rows: auto auto;
         align-content: center;
@@ -6850,16 +6871,16 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
         row-gap: 3px;
         padding-inline: 9px;
     }
-    .chain-throughput-heading { display: contents; }
+    .chain-throughput-heading { grid-column: 1; grid-row: 1; display: inline-flex; }
     .chain-throughput-label {
-        grid-column: 1 / -1;
-        grid-row: 1;
         font-size: 9px;
         line-height: 1;
     }
-    .chain-throughput-value { grid-column: 1; grid-row: 2; font-size: 0.82rem; }
-    .chain-throughput-rail { grid-column: 2; grid-row: 2; height: 10px; }
-    .chain-throughput-ceiling { grid-column: 3; grid-row: 2; font-size: 0.62rem; }
+    .chain-throughput-value { font-size: 0.82rem; }
+    .chain-throughput-rail { grid-column: 2; grid-row: 1; height: 8px; }
+    .chain-throughput-room { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 3px; font-size: 9px; }
+    .chain-throughput-room-label { display: none; }
+    .chain-throughput-mobile-note { display: block; grid-column: 3; grid-row: 1; font-size: 9px; }
 
     .live-head-controls .live-head-filter {
         position: absolute;

@@ -1,0 +1,64 @@
+{
+  "block": "BKxLSFXbLjYPznSMJbFDsp4w15u2PhvqeBNJXZZuUWLx2QTHJei",
+  "level": 15643273,
+  "protocol": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
+  "contract": "KT1XnTn74bUtxHfDtBmm2bGZAQfhPbvKWR8o",
+  "source": "tz1Q3jvYU9knekDYJfyvj3GjUy6898MNjvb2",
+  "counter": "3356576",
+  "benchmarks": [
+    {
+      "transfers": 1,
+      "status": "applied",
+      "gas": 3479.088,
+      "signedBytes": 272,
+      "storage": "69",
+      "errors": null,
+      "resultSha256": "d233aec4d9be956dc8af69aeab45fa350ea69bea3e524a324bf68872735b6297"
+    },
+    {
+      "transfers": 10,
+      "status": "applied",
+      "gas": 14040.449,
+      "signedBytes": 731,
+      "storage": "690",
+      "errors": null,
+      "resultSha256": "2a7d701b2965cd0723a8e4b7010dc5bd08ac0b2e718834197b2fcf44464634dc"
+    },
+    {
+      "transfers": 100,
+      "status": "applied",
+      "gas": 119657.114,
+      "signedBytes": 5321,
+      "storage": "6900",
+      "errors": null,
+      "resultSha256": "6f4acdd8c57a79dc0a57b643ad0e2769f587daf5e4bad4b674b3ddbc6b96e4da"
+    },
+    {
+      "transfers": 250,
+      "status": "applied",
+      "gas": 295687.761,
+      "signedBytes": 12971,
+      "storage": "17250",
+      "errors": null,
+      "resultSha256": "c0e714223f135db415698a790c2da106804eeaea5578da2ec946b5a69b8005f2"
+    }
+  ],
+  "reviewedAt": "2026-11-02",
+  "rpc": "https://rpc.tzkt.io/mainnet",
+  "method": "helpers/scripts/run_operation (unsigned simulation only, nothing injected) and helpers/forge/operations",
+  "description": "USDt FA2 transfer entrypoint; token 0; 1000000 units (one USDt) per distinct destination; all recipient token balances newly allocated (69 storage bytes each). Not representative of every FA2 contract.",
+  "contents": {
+    "kind": "transaction",
+    "fee": "1000",
+    "gas_limit": "1040000",
+    "storage_limit": "60000",
+    "amount": "0",
+    "entrypoint": "transfer",
+    "tokenId": "0",
+    "tokenAmount": "1000000",
+    "sourceIsOwner": true
+  },
+  "destinationsFixture": "throughput-batch-receipt.json: contents.destinations (first N for each list size)",
+  "signatureFixture": "Same syntactically valid signature as the native simulation; signature checks are disabled by run_operation.",
+  "interpretation": "Pack whole measured list sizes, largest first, under both remaining execution gas and conservative byte allowance. Count recipients rather than contract calls; alternatives spend the same capacity. This is an illustrative workload estimate with tightly sized gas reservations, not actual block admission or an FA2 maximum."
+}

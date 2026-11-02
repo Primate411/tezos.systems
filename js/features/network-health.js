@@ -16,7 +16,7 @@ import { readSavedMyTezosEntries } from '../core/wallet.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
-import { summarizeThroughput, THROUGHPUT_WINDOW_BLOCKS } from '../core/throughput.mjs';
+import { summarizeThroughput, measureCapacityWorkloads, THROUGHPUT_WINDOW_BLOCKS } from '../core/throughput.mjs';
 import { loadDataAsset } from '../core/data-assets.js';
 import { BLOCK_STORY_FILTER_TYPES, classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
 import { ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS } from '../core/etherlink-governance-contracts.mjs';
@@ -180,6 +180,7 @@ let liveHeadInspectorAnchor = null;
 let liveHeadPointerPosition = { x: null, y: null };
 let liveHeadInspectorSuppressedPointerPosition = null;
 let liveHeadPendingUpdate = null;
+let throughputPendingUpdate = null;
 let liveHeadConfirmedAt = 0;
 let liveHeadConfirmedLevel = 0;
 let liveHeadStallLatchedLevel = 0;
@@ -2600,9 +2601,16 @@ function throughputReceipt(summary) {
     const counted = `${summary.atFloor ? 'At least ' : ''}${formatCount(summary.transactions)} applied transaction${summary.transactions === 1 ? '' : 's'}`;
     const measured = `${counted} across ${formatCount(summary.blocks)} ${blockWord} in ${formatSeconds(summary.seconds)}: ${formatThroughputRate(summary.tps)} per second.`;
     const fullness = `Those blocks used ${formatPct(summary.fullness * 100)}% of the ${formatCount(summary.gasLimit)} gas the protocol allows them.`;
-    const ceiling = summary.ceilingTps === null
-        ? 'No gas was burned, so there is no measured cost per transaction to project a ceiling from.'
-        : `At this exact transaction mix (${formatCount(Math.round(summary.gasPerTransaction))} gas each) a full block would carry about ${formatThroughputRate(summary.ceilingTps)} per second, leaving roughly ${formatThroughputRate(summary.headroomTps)} per second of unused room. That ceiling is an estimate from the current mix, not a protocol maximum.`;
+    const calls = summary.room.calls === null
+        ? 'Contract-call room is unavailable until a complete window contains applied external contract calls.'
+        : `Estimated room for ${formatThroughputRate(summary.room.calls)} more contract calls per second, at the average cost of ${formatCount(summary.room.sampledCalls)} recent external calls including their internal execution.`;
+    const transfers = summary.room.transfers === null
+        ? 'The batched-transfer estimate is unavailable for this receipt or protocol.'
+        : `Alternatively, about ${formatThroughputRate(summary.room.transfers)} more simple XTZ transfers per second, using the reviewed Ushuaia simulation of up to 250 one-XTZ transfers per batch to existing accounts. Individual transfers are counted, not batches.`;
+    const fa2 = summary.room.fa2Transfers === null
+        ? 'The FA2 example is unavailable for this receipt or protocol.'
+        : `FA2 example: about ${formatThroughputRate(summary.room.fa2Transfers)} extra token transfers per second for the USDt contract, packing tested lists of 1, 10, 100 or 250 one-USDt transfers to distinct new token holders. Other FA2 contracts and recipient states have different costs; this is not an FA2-wide maximum.`;
+    const ceiling = `${calls} ${transfers} ${fa2} All three spend the same spare capacity, so choose one; do not add them. Estimates use the measured interval, consumed gas and a conservative byte allowance. They assume gas limits sized to execution; submitted reservations can already fill a block. Native transfers still cost about 2,100 gas each inside a batch. These are execution estimates, not guaranteed inclusion.`;
     const floor = summary.atFloor
         ? ' One or more blocks filled the transaction page, so the count is a floor.'
         : '';
@@ -2614,20 +2622,53 @@ function updateThroughputRail(data, { error = false } = {}) {
     if (!rail) return;
     if (!rail.dataset.throughputWired) {
         rail.dataset.throughputWired = '1';
-        rail.addEventListener('click', openNetworkHealthChamber);
+        const detail = document.getElementById('chain-throughput-detail');
+        rail.addEventListener('click', () => {
+            if (!detail) return;
+            if (detail.matches(':popover-open')) detail.hidePopover();
+            else {
+                const rect = rail.getBoundingClientRect();
+                detail.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - Math.min(380, window.innerWidth - 24) - 12))}px`;
+                detail.showPopover();
+                detail.style.top = `${Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - detail.getBoundingClientRect().height - 12))}px`;
+            }
+        });
+        detail?.addEventListener('toggle', () => {
+            const open = detail.matches(':popover-open');
+            rail.setAttribute('aria-expanded', String(open));
+            if (!open && throughputPendingUpdate && document.visibilityState === 'visible') {
+                const pending = throughputPendingUpdate;
+                throughputPendingUpdate = null;
+                updateThroughputRail(pending.data, { error: pending.error });
+            }
+        });
+        detail?.querySelector('[data-throughput-health]')?.addEventListener('click', () => {
+            detail.hidePopover();
+            openNetworkHealthChamber();
+        });
     }
+
+    if (document.getElementById('chain-throughput-detail')?.matches(':popover-open')) {
+        throughputPendingUpdate = { data, error };
+        return;
+    }
+    throughputPendingUpdate = null;
 
     const summary = liveHeadThroughput(data);
     // Keep the last good reading on the surface. Enrichment trails the head, so
     // a window that cannot measure yet is a pending receipt, not a new zero,
     // and blanking the figures once per block would be the flicker the quiet
     // refresh contract exists to prevent.
-    const retaining = summary.state !== 'resolved' && rail.dataset.throughputResolved === 'true';
+    const capacityPending = summary.room?.state === 'unavailable' && rail.dataset.capacityResolved === 'true';
+    const retaining = (summary.state !== 'resolved' || capacityPending) && rail.dataset.throughputResolved === 'true';
     if (retaining) {
         const pendingSignature = `${summary.signature}:pending`;
         if (rail.dataset.throughputSignature === pendingSignature) return;
         rail.dataset.throughputSignature = pendingSignature;
         rail.dataset.feedState = 'stale';
+        rail.title = 'Last good throughput estimate. Waiting for complete source receipts.';
+        rail.setAttribute('aria-label', 'Last good throughput estimate. Current source receipts are incomplete. Select for details.');
+        document.querySelector('[data-throughput-freshness]')?.removeAttribute('hidden');
         rail.setAttribute('aria-busy', 'false');
         return;
     }
@@ -2639,27 +2680,39 @@ function updateThroughputRail(data, { error = false } = {}) {
 
     const resolved = summary.state === 'resolved';
     if (resolved) rail.dataset.throughputResolved = 'true';
+    if (summary.room?.state === 'resolved') rail.dataset.capacityResolved = 'true';
+    else delete rail.dataset.capacityResolved;
     rail.dataset.throughputState = summary.state;
     rail.dataset.throughputBand = resolved ? summary.band : 'unknown';
     rail.dataset.feedState = error ? 'stale' : 'live';
     rail.setAttribute('aria-busy', summary.state === 'loading' ? 'true' : 'false');
-    rail.setAttribute('aria-label', `Open Network Health Chamber. ${receipt}`);
-    rail.title = receipt;
+    rail.setAttribute('aria-label', `Network throughput and estimated room. ${receipt}`);
+    rail.title = 'Estimated extra contract calls or batched XTZ transfers. Select for details.';
+    document.querySelector('[data-throughput-freshness]')?.setAttribute('hidden', '');
     // Geometry only. The exact ratio stays in the receipt text above.
     rail.style.setProperty('--throughput-fill', resolved ? summary.fill.toFixed(4) : '0');
 
     const value = rail.querySelector('.chain-throughput-value');
-    const ceiling = rail.querySelector('.chain-throughput-ceiling');
+    const calls = rail.querySelector('[data-throughput-calls]');
+    const transfers = rail.querySelector('[data-throughput-transfers]');
     if (value) {
         quietlySyncHtml(value, escapeHtml(resolved ? formatThroughputRate(summary.tps) : '--'));
         if (resolved) delete value.dataset.textPending;
         else value.dataset.textPending = 'true';
     }
-    if (ceiling) {
-        const ceilingText = resolved && summary.ceilingTps !== null
-            ? `/ ${formatThroughputRate(summary.ceilingTps)}`
-            : '/ --';
-        quietlySyncHtml(ceiling, escapeHtml(ceilingText));
+    const roomRate = value => Number.isFinite(value) ? `+${value >= 10 ? Math.floor(value).toLocaleString('en-US') : value.toFixed(1)}` : '—';
+    if (calls) quietlySyncHtml(calls, escapeHtml(roomRate(resolved ? summary.room.calls : null)));
+    if (transfers) quietlySyncHtml(transfers, escapeHtml(roomRate(resolved ? summary.room.transfers : null)));
+    const detailText = document.querySelector('#chain-throughput-detail p');
+    const method = resolved
+        ? `${formatCount(summary.blocks)} blocks over ${formatSeconds(summary.seconds)}; ${formatPct(summary.fullness * 100)}% consumed gas. Calls use recent external-call costs, including internal execution. XTZ uses up to 250 transfers to existing accounts per batch. The USDt example uses tested lists of 1, 10, 100 or 250 transfers to new token holders; other FA2 contracts differ. All estimates share the same spare gas and byte allowance. They assume tightly sized gas limits; submitted reservations can already fill a block. These are execution estimates, not guaranteed inclusion.`
+        : receipt;
+    if (detailText) quietlySyncHtml(detailText, escapeHtml(method));
+    for (const [selector, rate] of [
+        ['calls', summary.room?.calls], ['xtz', summary.room?.transfers], ['fa2', summary.room?.fa2Transfers]
+    ]) {
+        const cell = document.querySelector(`[data-throughput-detail-${selector}]`);
+        if (cell) quietlySyncHtml(cell, escapeHtml(resolved && Number.isFinite(rate) ? `+${formatThroughputRate(rate)}` : '—'));
     }
 }
 
@@ -2954,6 +3007,8 @@ async function fetchHeartbeatActivity(level, { block = null, l1VotingCoverage = 
                     && !l1VotingClipped,
                 gasUsed: Number.isFinite(gas?.gasUsed) ? gas.gasUsed : null,
                 gasLimit: Number.isFinite(gas?.gasLimit) ? gas.gasLimit : null,
+                capacity: gas?.capacity || null,
+                capacityProtocol: gas?.capacityProtocol || null,
                 story,
                 complete: story?.complete === true && gas?.complete === true,
                 updatedAt: Date.now()
@@ -3128,10 +3183,11 @@ async function fetchHeartbeatGasLimit() {
 }
 
 async function fetchHeartbeatGas(level) {
-    const [managerResult, evidenceResult, gasLimitResult] = await Promise.allSettled([
+    const [managerResult, evidenceResult, gasLimitResult, metadataResult] = await Promise.allSettled([
         fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/3`, 1, { priority: 'enrichment' }),
         fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/2`, 1, { priority: 'enrichment' }),
-        fetchHeartbeatGasLimit()
+        fetchHeartbeatGasLimit(),
+        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/metadata`, 1, { priority: 'enrichment' })
     ]);
     const groups = managerResult.status === 'fulfilled' && Array.isArray(managerResult.value)
         ? managerResult.value
@@ -3145,9 +3201,11 @@ async function fetchHeartbeatGas(level) {
     return {
         gasUsed: groups ? sumManagerOperationMilligas(groups) / 1000 : null,
         gasLimit,
+        capacity: measureCapacityWorkloads(groups, metadataResult.status === 'fulfilled' ? metadataResult.value : null),
+        capacityProtocol: metadataResult.status === 'fulfilled' ? metadataResult.value?.protocol || null : null,
         managerOperations: groups ? flattenAppliedManagerOperations(groups) : null,
         evidenceRows: evidenceGroups ? flattenAppliedEvidenceOperations(evidenceGroups) : null,
-        complete: groups !== null && evidenceGroups !== null && gasLimit !== null
+        complete: groups !== null && evidenceGroups !== null && gasLimit !== null && metadataResult.status === 'fulfilled'
     };
 }
 
