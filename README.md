@@ -589,6 +589,8 @@ inline modal styles in `js/core/app.js`.
   The details also show a distinct FA2 example for the USDt contract, packing
   only simulated list sizes of 1, 10, 100 and 250. Its pinned receipt is
   `tests/fixtures/throughput-fa2-receipt.json`; it is not an FA2-wide ceiling.
+  That model yields 35.2 additional token transfers/s at the same 25% spare gas
+  and six-second interval. The alternatives spend the same gas and cannot be added.
   Chain Health shows the latest 10 blocks with a matching count and accessible
   summary. Between 720px and 900px the controls occupy separate rows.
   Chain Health reserves two digits for the numerator, centers its divider in
