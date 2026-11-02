@@ -3256,7 +3256,6 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 }
 .chain-throughput-room strong { display: inline-block; min-width: 3ch; color: var(--text-primary); font-weight: 600; text-align: right; }
 .chain-throughput-room-label { font-size: 8px; }
-.chain-throughput-mobile-note { display: none; }
 .chain-throughput-or { opacity: 0.7; }
 .chain-throughput-detail {
     position: fixed;
@@ -6855,21 +6854,18 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
     .chain-health-status { width: auto; }
     .chain-health-readout { font-size: 8px; }
     .chain-health-window { --chain-health-count: 10; }
-    /* The phone row above is full: Activity and Chain health already use both
-       columns. The rail takes the next row whole rather than sitting in half
-       of it, and splits into a kicker line plus figures so it reads as a
-       sibling card instead of a stray chip. */
+    /* Keep TPS, the gas indicator and both estimates on one compact line.
+       Let the indicator give up width before any text wraps. */
     .chain-throughput {
         grid-column: 1 / -1;
         grid-row: 2;
         width: 100%;
-        height: 48px;
+        height: 30px;
         grid-template-columns: max-content minmax(0, 1fr) max-content;
-        grid-template-rows: auto auto;
+        grid-template-rows: 22px;
         align-content: center;
-        column-gap: 9px;
-        row-gap: 3px;
-        padding-inline: 9px;
+        column-gap: 5px;
+        padding-inline: 7px;
     }
     .chain-throughput-heading { grid-column: 1; grid-row: 1; display: inline-flex; }
     .chain-throughput-label {
@@ -6878,9 +6874,7 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
     }
     .chain-throughput-value { font-size: 0.82rem; }
     .chain-throughput-rail { grid-column: 2; grid-row: 1; height: 8px; }
-    .chain-throughput-room { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 3px; font-size: 9px; }
-    .chain-throughput-room-label { display: none; }
-    .chain-throughput-mobile-note { display: block; grid-column: 3; grid-row: 1; font-size: 9px; }
+    .chain-throughput-room { grid-column: 3; grid-row: 1; gap: 3px; font-size: 9px; }
 
     .live-head-controls .live-head-filter {
         position: absolute;

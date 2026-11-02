@@ -377,8 +377,12 @@ assert(
     );
     assert(
         phone.includes('.chain-throughput-heading { grid-column: 1; grid-row: 1; display: inline-flex; }'),
-        'the phone card keeps current TPS above the two spare-capacity figures'
+        'the phone card keeps current TPS on its single line'
     );
+    assert(rail.includes('grid-template-rows: 22px;') && rail.includes('height: 30px;'),
+        'the phone strip must remain one compact line');
+    assert(/\.chain-throughput-room \{ grid-column: 3; grid-row: 1;/.test(phone),
+        'both capacity estimates must sit beside TPS on phones');
     // The desktop fixed track must not leak into the phone block.
     assert(!/grid-template-columns:\s*max-content 56px/.test(phone), 'no fixed desktop track on phones');
 }

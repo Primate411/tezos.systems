@@ -127,7 +127,7 @@ export async function smokeThroughputCapacity(browser, baseUrl, { installFeature
 
     for (const theme of ['aurora', 'clean']) {
         await page.evaluate(async theme => { const { setTheme } = await import('/js/ui/theme.js'); setTheme(theme); }, theme);
-        for (const width of [1512, 1440, 1366, 1281, 1280, 1131, 1101, 1024, 901, 762, 390, 320]) {
+        for (const width of [1512, 1440, 1366, 1281, 1280, 1131, 1101, 1024, 901, 762, 719, 430, 393, 390, 375, 360, 320]) {
             await page.setViewportSize({ width, height: 1000 });
             await rail.scrollIntoViewIfNeeded();
             const geometry = await rail.evaluate(el => {
@@ -136,6 +136,8 @@ export async function smokeThroughputCapacity(browser, baseUrl, { installFeature
                 return { width: box.width, height: box.height,
                     sameRow: siblings.every(sibling => Math.abs(sibling.getBoundingClientRect().top - box.top) < 2),
                     siblingOverflow: siblings.some(sibling => sibling.scrollWidth > sibling.clientWidth + 1),
+                    singleLine: [...el.querySelectorAll('.chain-throughput-heading, .chain-throughput-rail, .chain-throughput-room')]
+                        .every(child => Math.abs(child.getBoundingClientRect().top + child.getBoundingClientRect().height / 2 - (box.top + box.height / 2)) < 3),
                     overflow: el.scrollWidth > el.clientWidth + 1,
                     outside: [...el.querySelectorAll('.chain-throughput-heading, .chain-throughput-room')].some(child => {
                         const r = child.getBoundingClientRect(); return r.left < box.left || r.right > box.right + 1;
@@ -150,6 +152,8 @@ export async function smokeThroughputCapacity(browser, baseUrl, { installFeature
                 assert(geometry.sameRow && !geometry.siblingOverflow && geometry.width <= 300 && geometry.height <= 30,
                     `laptop capacity stays compact on the Activity/Health row at ${width}px in ${theme}: ${JSON.stringify(geometry)}`);
             }
+            if (width <= 719) assert(geometry.singleLine && geometry.height <= 30,
+                `phone throughput stays on one line at ${width}px in ${theme}: ${JSON.stringify(geometry)}`);
             if (width === 390) {
                 await page.setViewportSize({ width, height: 500 });
                 await rail.evaluate(el => scrollBy({ top: el.getBoundingClientRect().bottom - (innerHeight - 40), behavior: 'instant' }));

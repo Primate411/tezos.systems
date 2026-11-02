@@ -581,6 +581,8 @@ inline modal styles in `js/core/app.js`.
   execution, and use the observed block interval. Tap the strip for the method
   and source context. Its detail popup holds a reading lock until dismissed.
   The compact strip stays beside Activity and Chain Health at laptop widths.
+  On phones, TPS, the flexible gas indicator and both capacity estimates share
+  one 30px-high line.
   Native batching still pays about 2,100 gas per transfer: Rio added a 2,000-gas
   charge per transfer to user accounts, retained in Ushuaia. At exactly 25% of
   a 1,040,000-gas block and a six-second interval, the reviewed model fits 123
