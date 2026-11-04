@@ -155,11 +155,24 @@ export async function reviewSources({ receipt, baseline, force = false, collect 
   const catalog = collect ? sourceCatalog(receipt) : validateBaseline(receipt, baseline);
   const report = { schemaVersion: 1, checkedAt: new Date(now).toISOString(), status: 'not_due', ageHours: age / HOUR, reviewAfterHours: REVIEW_AFTER_HOURS, staleAfterHours: 36, sources: [], problems: [] };
   if (!force && !collect && age < REVIEW_AFTER_HOURS * HOUR && !(baseline.notAfter && now >= Date.parse(baseline.notAfter))) return { report, receipt };
-  for (const source of catalog) {
-    try {
-      const result = await fetcher(source);report.sources.push(result);
-      if (!collect && result.sha256 !== baseline.sources.find(s => s.url === source.url).sha256) report.problems.push({ url: source.url, reason: 'Source evidence changed; substantive review required' });
-    } catch (error) { report.problems.push({ url: source.url, reason: error.message }); }
+  // Four bounded requests at once keep a broad outage within the hosted job's
+  // deadline (23 sources, three 30s attempts plus backoff: at most 10.5 minutes).
+  // Settle every source and retain catalog order; never let one failed lane
+  // discard the remaining evidence or prevent the early-review report.
+  for (let offset = 0; offset < catalog.length; offset += 4) {
+    const group = catalog.slice(offset, offset + 4);
+    const results = await Promise.allSettled(group.map(source => fetcher(source)));
+    for (const [index, result] of results.entries()) {
+      const source = group[index];
+      if (result.status === 'rejected') {
+        report.problems.push({ url: source.url, reason: result.reason.message });
+      } else {
+        report.sources.push(result.value);
+        if (!collect && result.value.sha256 !== baseline.sources.find(s => s.url === source.url).sha256) {
+          report.problems.push({ url: source.url, reason: 'Source evidence changed; substantive review required' });
+        }
+      }
+    }
   }
   if (!collect && baseline.notAfter && now >= Date.parse(baseline.notAfter)) report.problems.push({ reason: 'A reviewed future-event boundary has passed; substantive review required' });
   report.status = report.problems.length ? 'review_required' : collect ? 'collected' : 'reviewed';

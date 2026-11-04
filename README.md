@@ -2035,6 +2035,8 @@ complete match to `data/release-radar-review.json` can renew the receipt. The
 baseline binds the reviewed facts as well as every source. Known future-event
 boundaries force substantive review even if the source text has not changed.
 
+Source reads run in groups of four with bounded retries and body deadlines, so
+a broad outage can finish its early-review report within the hosted job limit.
 The report retains complete normalized source content, raw/content hashes,
 retrieval time, HTTP publication/cache metadata, and each publication attempt.
 HTML compares text and links; scripts/styles are excluded. JSON retains all

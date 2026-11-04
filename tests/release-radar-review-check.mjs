@@ -27,6 +27,14 @@ assert.equal(result.receipt.updatedAt, new Date(now).toISOString());
 assert(result.receipt.candidates.every(c => c.evidence.every(e => e.observedAt === result.receipt.updatedAt)));
 assert.equal(result.receipt.staleAfterHours, 36);
 assert(normalizeReleaseRadarSnapshot(receipt).staleAtMs < start + 37 * 3600000, 'Failed renewal still expires at the existing limit');
+let active = 0, peak = 0, attempted = 0;
+const outage = await reviewSources({ receipt, baseline: base, now, fetcher: async () => {
+ active++;attempted++;peak = Math.max(peak, active);
+ await new Promise(resolve => setTimeout(resolve, 1));active--;throw new Error('Upstream timeout');
+} });
+assert.equal(peak, 4, 'Broad outages run in bounded groups, not unbounded or serial requests');
+assert.equal(attempted, catalog.length);assert.equal(outage.report.problems.length, catalog.length);
+assert.deepEqual(outage.receipt, receipt);assert.deepEqual(outage.report.problems.map(p => p.url), catalog.map(s => s.url));
 for (const source of catalog) {
  const changed = await reviewSources({ receipt, baseline: base, now, fetcher: async s => ({ ...await fetcher(s), ...(s.url === source.url ? { sha256: 'f'.repeat(64) } : {}) }) });
  assert.equal(changed.report.status, 'review_required', source.url);assert.deepEqual(changed.receipt, receipt);
