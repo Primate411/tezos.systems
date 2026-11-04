@@ -20,7 +20,7 @@ module.exports = async ({ github, context, core, env = process.env }) => {
       '', '**No review clocks were advanced. The 36-hour freshness limit remains enforced.**',
       `The routine review starts after 12 hours. Review run: ${runUrl}`, '',
       ...problems.map(p => `- ${p.url || 'Review boundary'}: ${p.reason}`), '',
-      'Review the complete canonical sources, update the honest Radar receipt and human baseline together, then verify CI and deployment. Do not accept collected fingerprints without reading the sources.'
+      'Review the complete canonical sources, update the honest Radar receipt and reviewed baseline together, then verify CI and deployment. Do not accept collected fingerprints without reading the sources.'
     ].join('\n');
     const params = { ...context.repo, title: 'Release Radar source review required', body };
     if (!incident) await github.rest.issues.create(params);

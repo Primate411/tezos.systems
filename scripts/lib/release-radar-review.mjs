@@ -107,8 +107,8 @@ export function normalizeSource(source, body) {
 }
 
 export function validateBaseline(receipt, baseline) {
-  if (baseline?.schemaVersion !== 1 || baseline.receiptDigest !== digest(receiptFacts(receipt))) throw new Error('Radar facts differ from the human-reviewed baseline');
-  if (!Number.isFinite(Date.parse(baseline.reviewedAt)) || (baseline.notAfter && !Number.isFinite(Date.parse(baseline.notAfter))) || !Array.isArray(baseline.sources)) throw new Error('Missing human source review');
+  if (baseline?.schemaVersion !== 1 || baseline.receiptDigest !== digest(receiptFacts(receipt))) throw new Error('Radar facts differ from the substantively reviewed baseline');
+  if (!Number.isFinite(Date.parse(baseline.reviewedAt)) || (baseline.notAfter && !Number.isFinite(Date.parse(baseline.notAfter))) || !Array.isArray(baseline.sources)) throw new Error('Missing substantive source review');
   const catalog = sourceCatalog(receipt);
   if (baseline.sources.length !== catalog.length || new Set(baseline.sources.map(s => s.url)).size !== catalog.length) throw new Error('Incomplete baseline source inventory');
   for (const source of catalog) {
@@ -150,7 +150,7 @@ export async function fetchSource(source, { fetchImpl = fetch, sleep = ms => new
 export async function reviewSources({ receipt, baseline, force = false, collect = false, now = Date.now(), fetcher = fetchSource }) {
   if (receipt.staleAfterHours !== 36 || !Number.isFinite(Date.parse(receipt.updatedAt))) throw new Error('Invalid Radar freshness policy');
   const age = now - Date.parse(receipt.updatedAt);
-  if (!collect && Date.parse(baseline.reviewedAt) > now) throw new Error('Human source review clock is in the future');
+  if (!collect && Date.parse(baseline.reviewedAt) > now) throw new Error('Substantive source review clock is in the future');
   if (age < 0) throw new Error('Radar review clock is in the future');
   const catalog = collect ? sourceCatalog(receipt) : validateBaseline(receipt, baseline);
   const report = { schemaVersion: 1, checkedAt: new Date(now).toISOString(), status: 'not_due', ageHours: age / HOUR, reviewAfterHours: REVIEW_AFTER_HOURS, staleAfterHours: 36, sources: [], problems: [] };

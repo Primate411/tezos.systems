@@ -736,7 +736,7 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   next daily audit (current review age plus 24 hours). Renew the review and 14-day
   expiry only after checking the sources; preserve upstream publication clocks
   and keep the 36-hour freshness alarm unchanged.
-- `data/release-radar-review.json`: human-reviewed source fingerprints bound to
+- `data/release-radar-review.json`: substantively reviewed source fingerprints bound to
   the exact Radar facts. `review-release-radar.yml` rechecks all canonical sources
   after 12 hours, on a four-hour schedule and trusted delivery events. Unchanged,
   complete evidence can renew clocks; changed/unavailable evidence preserves
