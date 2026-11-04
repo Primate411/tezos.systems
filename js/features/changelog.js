@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-11-03',
+        entries: [
+            { type: '🔧', text: 'Release Radar rechecks its complete source evidence before expiry and requests early review when sources change, preserving last-good facts and the existing freshness limit' }
+        ]
+    },
+    {
         date: '2026-11-02',
         entries: [
             { type: '🔧', text: 'Chamber controls keep visible keyboard focus, readable mobile tabs, and larger touch targets; widget controls expose their labels and selected states' },

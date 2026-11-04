@@ -62,5 +62,5 @@ for (const file of await readdir(new URL('.github/workflows/', root))) {
     assert(!match[1].includes('overwrite:'), 'replacement is controlled only inside failed retries');
   }
 }
-assert.equal(callers, 9, 'CI, nightly, scheduled-refresh and recovery report uploads are covered');
+assert.equal(callers, 10, 'CI, nightly, scheduled-refresh, Release Radar and recovery report uploads are covered');
 console.log('ok - artifact uploads recover bounded failures, stop after success/cancellation, and fail on exhaustion');

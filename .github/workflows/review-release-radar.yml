@@ -1,0 +1,79 @@
+name: Review Release Radar
+
+on:
+  schedule:
+    - cron: '7 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      force_review:
+        description: 'Review every source now; never bypass evidence checks'
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: [Collect Chamber History, Refresh Generated Surfaces]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: tezos-systems-repository-writer
+  cancel-in-progress: false
+
+jobs:
+  review:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main' && (github.event.workflow_run.event == 'schedule' || github.event.workflow_run.event == 'workflow_dispatch'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout trusted main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Review sources and publish only a complete match
+        id: review
+        env:
+          FORCE_REVIEW: ${{ inputs.force_review == true }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          args=()
+          if [ "$FORCE_REVIEW" = "true" ]; then args+=(--force-review); fi
+          node scripts/publish-release-radar.mjs --report "$RUNNER_TEMP/release-radar-review.json" "${args[@]}"
+
+      - name: Validate and deploy the published review
+        if: steps.review.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run ci.yml --ref main
+          gh workflow run audit-generated-freshness.yml --ref main
+
+      - name: Reconcile one early source-review incident
+        if: ${{ !cancelled() && steps.review.outcome == 'success' }}
+        uses: actions/github-script@v8
+        env:
+          REVIEW_REPORT: ${{ runner.temp }}/release-radar-review.json
+        with:
+          script: |
+            await require('./.github/scripts/reconcile-release-review.js')({ github, context, core });
+
+      - name: Upload complete source and publication evidence
+        if: always() && !cancelled()
+        uses: ./.github/actions/upload-artifact
+        with:
+          name: release-radar-review
+          path: ${{ runner.temp }}/release-radar-review.json
+          if-no-files-found: error
+          retention-days: 14

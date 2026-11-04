@@ -2026,6 +2026,40 @@ through the whole pointer gesture; only explicit reads disable it. The live-refr
 smoke holds a real pointer press across a delayed background response on desktop
 and mobile, then verifies that releasing it loads the older page.
 
+`.github/workflows/review-release-radar.yml` prevents missed routine Radar reviews
+without depending on a local computer. It runs every four hours and after trusted
+history/data deliveries, reviewing when evidence is 12 hours old (24 hours before
+the unchanged 36-hour limit). It re-fetches every evidence URL, current release
+discovery, all FAST/SLOW/Sequencer periods, and the operator status feed. Only a
+complete match to `data/release-radar-review.json` can renew the receipt. The
+baseline binds the reviewed facts as well as every source. Known future-event
+boundaries force substantive review even if the source text has not changed.
+
+The report retains complete normalized source content, raw/content hashes,
+retrieval time, HTTP publication/cache metadata, and each publication attempt.
+HTML compares text and links; scripts/styles are excluded. JSON retains all
+release, vote, deployment and incident evidence, excluding avatar URLs and the
+status provider's polling timestamp and availability/history counters. CDN age
+is disclosed, not relabelled as an origin publication time; explicitly stale
+responses are refused. Changed, incomplete or unavailable evidence preserves
+last-good bytes and opens one deduplicated **Release Radar source review required**
+issue. This is a visible review handoff, never a successful evidence renewal.
+Execution, validation and publication errors still fail the workflow.
+
+For a substantive review, run `npm run review:release-radar -- --collect --report
+/tmp/release-review.json`, read the canonical sources and full collected evidence,
+update the honest receipt, then update its reviewed baseline fingerprints and
+fact digest together. Collection never accepts fingerprints or changes clocks.
+Keep `notAfter` at the next time boundary for future-tense claims; remove it only
+after reviewing their outcome. Preserve corrections, release publication clocks,
+all source receipts and the 20 KiB browser allowance. After pushing, dispatch
+**Review Release Radar** with `force_review=true` to verify the baseline, then
+verify its exact resulting commit in CI, Pages and the live site. The publisher
+uses isolated worktrees, the full static gate and three bounded attempts; moving
+main requires fresh source review against the new tree, never a force push or
+rebase of old evidence. GitHub-token publications explicitly dispatch CI and the
+independent freshness audit.
+
 `.github/workflows/audit-generated-freshness.yml` independently checks the
 committed result every six hours and after successful main-branch data refreshes
 and history collections. It checks current main and fresh history clocks, so

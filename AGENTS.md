@@ -736,6 +736,16 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   next daily audit (current review age plus 24 hours). Renew the review and 14-day
   expiry only after checking the sources; preserve upstream publication clocks
   and keep the 36-hour freshness alarm unchanged.
+- `data/release-radar-review.json`: human-reviewed source fingerprints bound to
+  the exact Radar facts. `review-release-radar.yml` rechecks all canonical sources
+  after 12 hours, on a four-hour schedule and trusted delivery events. Unchanged,
+  complete evidence can renew clocks; changed/unavailable evidence preserves
+  last-good data and opens one early review issue. Technical failures stay red.
+  Never accept `--collect` output without reading sources. Update this baseline
+  and the honest Radar receipt together after substantive review; preserve any
+  `notAfter` future-event boundary until its outcome is reviewed. Dispatch the
+  workflow with `force_review=true` to verify a new baseline. See README's review
+  procedure. Keep the independent 36-hour freshness contract unchanged.
 - `data/nakamoto-sources.json`: dated external Nakamoto reports with their
   original thresholds, windows, entity bases, and source provenance.
 

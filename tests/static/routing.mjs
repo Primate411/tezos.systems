@@ -700,6 +700,8 @@ export function createRoutingStaticChecks({
     }
 
     const internalArtifactPatterns = [
+      // Operational review baseline; never loaded by the browser data interface.
+      /^data\/release-radar-review\.json$/,
       // Versioned browser encodings derive exact bytes from the public sources;
       // the expanded source schemas remain the supported public data interface.
       /^data\/transports\/v1\/data\/(?:capital-snapshot|minerals-snapshot|ecosystem-stats)\.json$/,
