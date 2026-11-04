@@ -705,6 +705,7 @@ export function createPulseSmokeSuites({
           bodyOverflow: getComputedStyle(document.body).overflow,
           htmlOverflow: getComputedStyle(document.documentElement).overflow,
           text: dialog?.textContent?.replace(/\s+/g, ' ').trim() || '',
+          sourceCaption: overlay?.querySelector('.release-radar-overlay-source')?.textContent?.replace(/\s+/g, ' ').trim() || '',
           laneCount: overlay?.querySelectorAll('.release-radar-lane').length || 0,
           gateCount: overlay?.querySelectorAll('.release-radar-overlay-gate').length || 0,
           boundaryCount: boundaryGrid?.querySelectorAll(':scope > p').length || 0,
@@ -741,14 +742,16 @@ export function createPulseSmokeSuites({
         `release radar pulse ${label}: full intelligence overlay lost lanes or receipts ${JSON.stringify(overlayPresentation)}`
       );
       assert(
-        /Octez 25\.2/.test(overlayPresentation.text)
+        /Octez 25\.3/.test(overlayPresentation.text)
+          && /Octez 25\.2/.test(overlayPresentation.text)
           && /EVM Node 0\.67/.test(overlayPresentation.text)
           && /Mainnet proposal readiness/.test(overlayPresentation.text)
           && /Dependency boundaries/.test(overlayPresentation.text)
           && /Status-change ledger/.test(overlayPresentation.text)
           && /Every receipt used in the current review/.test(overlayPresentation.text)
           && /(?:Current review receipt|This receipt is past its review deadline)/.test(overlayPresentation.text)
-          && /Review due within 36 hours/.test(overlayPresentation.text),
+          && overlayPresentation.sourceCaption.includes(releaseRadarFixture.sourceRun.cadence)
+          && overlayPresentation.sourceCaption.includes(releaseRadarFixture.sourceRun.method),
         `release radar pulse ${label}: expanded forecast context drifted ${JSON.stringify(overlayPresentation)}`
       );
       assert(

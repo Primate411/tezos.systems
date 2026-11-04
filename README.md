@@ -2033,7 +2033,9 @@ the unchanged 36-hour limit). It re-fetches every evidence URL, current release
 discovery, all FAST/SLOW/Sequencer periods, and the operator status feed. Only a
 complete match to `data/release-radar-review.json` can renew the receipt. The
 baseline binds the reviewed facts as well as every source. The receipt explicitly
-attributes substantive assessment and subsequent automated verification. Known future-event
+attributes substantive assessment and subsequent automated verification. Browser
+coverage checks the displayed source caption against its policy-validated receipt,
+including the 12-hour review threshold and unchanged 36-hour stale limit. Known future-event
 boundaries force substantive review even if the source text has not changed.
 
 Source reads run in groups of four with bounded retries and body deadlines, so
