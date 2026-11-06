@@ -44,19 +44,26 @@ await assert.rejects(exercise([[expected]], { attempts: 13 }), /bounded/);
 await assert.rejects(exercise([[]], { sleep: async () => { throw new Error('cancelled'); } }), /cancelled/);
 
 const checkRetry = require('../.github/scripts/pages-artifact-ready/check-retry.cjs');
-async function retryAfter({ age = 600_000, url = 'https://tezos.systems/', status = '', head = 'validated', artifactError } = {}) {
+async function retryAfter({ age = 600_000, url = 'https://tezos.systems/', status = '', statusAfterWait = status, head = 'validated', artifactError, waitError } = {}) {
   const repo = { owner: 'test-owner', repo: 'test-site' };
   const calls = [];
+  let waited = false;
   await checkRetry({
     context: { repo, sha: 'validated' },
     env: { PAGES_ACCEPTED_URL: url, PAGES_READY_AT: '1000', PAGES_ARTIFACT_ID: '12345' },
     now: () => 1000 + age,
+    async sleep(ms) {
+      assert.equal(ms, 20 * 60_000);
+      if (waitError) throw waitError;
+      calls.push('wait');
+      waited = true;
+    },
     github: {
       async request(route, args) {
         assert.equal(route, 'GET /repos/{owner}/{repo}/pages/deployments/{pages_deployment_id}');
         assert.deepEqual(args, { ...repo, pages_deployment_id: 'validated' });
         calls.push('status');
-        return { data: { status } };
+        return { data: { status: waited ? statusAfterWait : status } };
       },
       rest: { git: { async getRef(args) {
         assert.deepEqual(args, { ...repo, ref: 'heads/main' });
@@ -68,18 +75,21 @@ async function retryAfter({ age = 600_000, url = 'https://tezos.systems/', statu
       if (artifactError) throw artifactError;
       calls.push('artifact');
     },
-    core: { warning: () => calls.push('retry') }
+    core: { info: () => {}, warning: () => calls.push('retry') }
   });
   return calls;
 }
 for (const status of ['', 'deployment_cancelled']) {
-  assert.deepEqual(await retryAfter({ status }), ['status', 'artifact', 'main', 'retry']);
+  assert.deepEqual(await retryAfter({ status }), ['status', 'wait', 'status', 'artifact', 'main', 'retry']);
 }
 await assert.rejects(retryAfter({ age: 599_999 }), /ten-minute timeout/);
 await assert.rejects(retryAfter({ url: '' }), /after accepting/);
 for (const status of ['deployment_content_failed', 'syncing_files', 'succeed', 'unexpected', null]) {
-  await assert.rejects(retryAfter({ status }), /withholding/);
+  await assert.rejects(retryAfter({ status, waitError: new Error('unexpected cooldown') }), /withholding/);
 }
+await assert.rejects(retryAfter({ statusAfterWait: 'syncing_files' }), /withholding/);
+await assert.rejects(retryAfter({ statusAfterWait: 'succeed' }), /withholding/);
+await assert.rejects(retryAfter({ waitError: new Error('cancelled') }), /cancelled/);
 await assert.rejects(retryAfter({ head: 'newer' }), /Main moved/);
 await assert.rejects(retryAfter({ artifactError: new Error('ambiguous artifact') }), /ambiguous artifact/);
 
@@ -90,10 +100,11 @@ const ready = job.indexOf('name: Wait for the uploaded Pages artifact');
 const deploy = job.indexOf('uses: actions/deploy-pages@v5');
 assert(upload > 0 && ready > upload && deploy > ready, 'readiness gates deployment after successful upload');
 assert.match(job, /PAGES_ARTIFACT_ID: \$\{\{ steps.pages-artifact.outputs.artifact_id \}\}/);
-assert.match(job, /timeout-minutes: 3/);
+assert.match(job.slice(ready, deploy), /timeout-minutes: 3\b/);
 const retryCheck = job.indexOf('name: Verify timed-out Pages deployment before retry');
 const retry = job.indexOf('name: Retry the verified Pages deployment once');
 assert(deploy < retryCheck && retryCheck < retry);
+assert.match(job.slice(retryCheck, retry), /timeout-minutes: 23\b/);
 assert.equal(job.match(/continue-on-error:/g)?.length, 1, 'only the first deployment can recover');
 assert.match(job, /id: deployment\n +continue-on-error: true\n +uses: actions\/deploy-pages@v5/);
 assert.equal(job.match(/uses: actions\/deploy-pages@v5/g)?.length, 2);

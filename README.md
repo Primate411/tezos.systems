@@ -2773,8 +2773,9 @@ seconds apart and a three-minute step deadline. Missing, ambiguous or empty
 artifacts still fail; upload success alone does not authorize deployment. The
 pinned client and lockfile live under `.github/scripts/pages-artifact-ready`,
 which is excluded from the published archive. If Pages accepts the upload and
-times out during deployment, CI checks the service status, the artifact ID and
-the current main commit before making one more deployment attempt. A persistent
+times out during deployment, CI checks the service status and waits 20
+minutes. It then rechecks the service status, the artifact ID and the current
+main commit before making one more deployment attempt. A persistent
 timeout or a failed verification leaves the job red.
 
 CI, nightly and recovery report uploads share `.github/actions/upload-artifact`,
