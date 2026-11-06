@@ -230,7 +230,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.retry_deployment.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout validated repository
         uses: actions/checkout@v7
@@ -256,13 +256,35 @@ jobs:
           include-hidden-files: true
 
       - name: Wait for the uploaded Pages artifact
+        id: artifact_ready
         uses: actions/github-script@v8
         timeout-minutes: 3
         env:
           PAGES_ARTIFACT_ID: ${{ steps.pages-artifact.outputs.artifact_id }}
         with:
-          script: await require('./.github/scripts/pages-artifact-ready/run.cjs')({ core });
+          script: |
+            await require('./.github/scripts/pages-artifact-ready/run.cjs')({ core });
+            core.setOutput('ready_at', Date.now());
 
       - name: Deploy validated site
         id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Verify timed-out Pages deployment before retry
+        id: retry_check
+        if: ${{ !cancelled() && steps.deployment.outcome == 'failure' }}
+        timeout-minutes: 3
+        uses: actions/github-script@v8
+        env:
+          PAGES_ARTIFACT_ID: ${{ steps.pages-artifact.outputs.artifact_id }}
+          PAGES_READY_AT: ${{ steps.artifact_ready.outputs.ready_at }}
+          PAGES_ACCEPTED_URL: ${{ steps.deployment.outputs.page_url }}
+        with:
+          script: |
+            await require('./.github/scripts/pages-artifact-ready/check-retry.cjs')({ core, github, context });
+
+      - name: Retry the verified Pages deployment once
+        id: retry_deployment
+        if: ${{ success() && steps.retry_check.outcome == 'success' }}
         uses: actions/deploy-pages@v5
