@@ -121,8 +121,12 @@ export function validateBaseline(receipt, baseline) {
 export async function fetchSource(source, { fetchImpl = fetch, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now } = {}) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const response = await fetchImpl(source.url, { headers: { 'Cache-Control': 'no-cache', 'User-Agent': 'TezosSystems-ReleaseReview/1.0' }, redirect: 'error', signal: AbortSignal.timeout(30_000) });
+      const response = await fetchImpl(source.url, { headers: { 'Cache-Control': 'no-cache', 'User-Agent': 'TezosSystems-ReleaseReview/1.0' }, redirect: 'manual', signal: AbortSignal.timeout(30_000) });
       if (!response.ok) {
+        await response.body?.cancel();
+        if ([301, 302, 303, 307, 308].includes(response.status)) {
+          throw new Error(`HTTP ${response.status} redirect; review the canonical source URL`);
+        }
         const error = new Error(`HTTP ${response.status}`);
         error.transient = [408, 429, 500, 502, 503, 504].includes(response.status);
         throw error;

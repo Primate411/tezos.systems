@@ -83,6 +83,14 @@ let requests = 0;
 const response = () => new Response(html, { headers: { date: new Date(now).toUTCString(), age: '1000' } });
 const fetched = await fetchSource(htmlSource, { now: () => now, sleep: async () => {}, fetchImpl: async () => ++requests < 3 ? new Response('', { status: 503 }) : response() });
 assert.equal(requests, 3);assert.equal(fetched.sha256, digest(normalized));assert.equal(fetched.cacheAgeSeconds, '1000', 'Disclose CDN age without conflating it with origin publication');
+await assert.rejects(fetchSource(htmlSource, {
+  sleep: () => assert.fail('A source redirect must request review immediately'),
+  fetchImpl: async (url, options) => {
+    assert.equal(url, htmlSource.url);
+    assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { location: '/tezos-x/' } });
+  }
+}), /HTTP 302 redirect; review the canonical source URL/);
 for (const makeResponse of [() => new Response(html, { status: 404 }), () => new Response('<html>challenge</html>'), () => new Response(html, { headers: { warning: '110 - "Response is stale"' } }), () => new Response(html, { headers: { 'content-length': String(MAX_BODY_BYTES + 1) } })]) {
  requests = 0;await assert.rejects(fetchSource(htmlSource, { sleep: async () => {}, fetchImpl: async () => { requests++;return makeResponse(); } }));assert.equal(requests, 1);
 }

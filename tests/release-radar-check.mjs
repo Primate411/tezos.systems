@@ -36,7 +36,7 @@ for (const url of [
   'https://governance.etherlink.com/api/slow/pastPeriods',
   'https://governance.etherlink.com/api/fast/pastPeriods',
   'https://status.etherlink.com/incident/1040145',
-  'https://tezos.com/tezos-x'
+  'https://tezos.com/tezos-x/'
 ]) assert(tezosX.evidence.some(receipt => receipt.url === url), `current rollout judgment keeps its primary receipt: ${url}`);
 assert(tezosX.history.some(row => /Retracted the earlier FAST-null inference/.test(row.reason)), 'the prior mistaken inference is explicitly corrected in history');
 assert.equal(octez.confidence, 'high', 'published binaries and a canonical release support confirmed release confidence');
