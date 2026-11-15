@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-14T06:25:56.681Z",
-  "status": "ok",
+  "generatedAt": "2026-11-15T20:08:03.925Z",
+  "status": "warning",
   "source": {
     "tzktEpochs": "https://api.tzkt.io/v1/voting/epochs?limit=1000&sort.asc=index",
     "tzktCurrentPeriod": "https://api.tzkt.io/v1/voting/periods/current",
@@ -33,16 +33,19 @@
     "kind": "proposal",
     "status": "active",
     "startTime": "2026-11-04T18:18:13Z",
-    "endTime": "2026-11-18T20:24:07Z",
-    "proposalHash": null,
-    "proposalName": null,
-    "proposalStatus": null,
+    "endTime": "2026-11-18T20:40:58Z",
+    "proposalHash": "PtSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBS5VTrmo",
+    "proposalName": "PtSEBSEB...",
+    "proposalStatus": "active",
     "proposalAccepted": false,
     "proposalHasLore": false,
     "proposalAgoraTopic": null,
-    "initiator": null,
-    "upvotes": null,
-    "votingPower": null,
+    "initiator": {
+      "alias": "Sebuh.net",
+      "address": "tz1R664EP6wjcM1RSUVJ7nrJisTpBW9QyJzP"
+    },
+    "upvotes": 1,
+    "votingPower": 22125036531,
     "tally": {
       "yayVotingPower": null,
       "nayVotingPower": null,
@@ -59,8 +62,15 @@
       "missing": []
     },
     "activeProposalLore": {
-      "ok": true,
-      "missing": []
+      "ok": false,
+      "missing": [
+        {
+          "name": "PtSEBSEB...",
+          "hash": "PtSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBS5VTrmo",
+          "status": "active",
+          "periodKind": "proposal"
+        }
+      ]
     },
     "voteHistory": {
       "epochCount": 101,
@@ -214,6 +224,17 @@
       "update": "Add concise user-facing entries for governance data controls, lore, and front-page behavior changes."
     }
   ],
-  "warnings": [],
+  "warnings": [
+    {
+      "code": "active-proposal-needs-research-watch",
+      "message": "Active proposal is not in protocol-data.json yet. Track TezosAgora, X, and official docs now; add balanced lore if it reaches Adoption/current protocol.",
+      "proposal": {
+        "name": "PtSEBSEB...",
+        "hash": "PtSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBSEBS5VTrmo",
+        "status": "active",
+        "periodKind": "proposal"
+      }
+    }
+  ],
   "blockers": []
 }

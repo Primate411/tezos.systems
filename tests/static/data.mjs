@@ -91,7 +91,11 @@ export function createDataStaticChecks({
       fail(`feed.xml should include active proposal name ${activeName}`);
     }
     const activeHashPrefix = report.currentGovernance?.proposalHash?.slice(0, 8);
-    if (activeName && activeHashPrefix && feed.includes(activeHashPrefix)) {
+    // Unnamed proposals display as `${hash.slice(0, 8)}...`, so their own
+    // placeholder name necessarily contains the raw prefix; only flag raw
+    // prefix usage when a real proposal name exists.
+    const nameIsHashDerived = Boolean(activeName && activeHashPrefix && activeName.startsWith(activeHashPrefix));
+    if (activeName && activeHashPrefix && !nameIsHashDerived && feed.includes(activeHashPrefix)) {
       fail(`feed.xml should use active proposal name ${activeName}, not raw hash prefix ${activeHashPrefix}`);
     }
 
