@@ -14,6 +14,20 @@ export function createPulseSmokeSuites({
   releaseRadarFixture,
   waitForIntentionalRealTime
 }) {
+  // Released-lane overlay copy is fixture-driven so a published version bump
+  // (e.g. EVM Node 0.67 → 0.68) cannot silently invalidate these assertions.
+  const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const releasedLaneContext = (kind, tagPattern) => {
+    const candidate = releaseRadarFixture.candidates.find((entry) => entry.kind === kind);
+    const version = candidate.label.replace(/^.* /, '');
+    const priorVersion = candidate.evidence
+      .map((receipt) => receipt.url.match(tagPattern)?.[1])
+      .find((candidateVersion) => candidateVersion && candidateVersion !== version);
+    return { labelPattern: new RegExp(escapeRegExp(candidate.label)), version, priorVersion };
+  };
+  const octezRelease = releasedLaneContext('octez_release', /octez-v(\d+\.\d+)$/);
+  const evmNodeRelease = releasedLaneContext('evm_node_release', /octez-evm-node-v(\d+\.\d+)$/);
+
   async function smokeNetworkPulseLauncher(browser, baseUrl) {
     const label = 'network pulse launcher';
     const issues = [];
@@ -742,9 +756,10 @@ export function createPulseSmokeSuites({
         `release radar pulse ${label}: full intelligence overlay lost lanes or receipts ${JSON.stringify(overlayPresentation)}`
       );
       assert(
-        /Octez 25\.3/.test(overlayPresentation.text)
-          && /Octez 25\.2/.test(overlayPresentation.text)
-          && /EVM Node 0\.67/.test(overlayPresentation.text)
+        octezRelease.labelPattern.test(overlayPresentation.text)
+          && overlayPresentation.text.includes(octezRelease.priorVersion)
+          && evmNodeRelease.labelPattern.test(overlayPresentation.text)
+          && overlayPresentation.text.includes(evmNodeRelease.priorVersion)
           && /Mainnet proposal readiness/.test(overlayPresentation.text)
           && /Dependency boundaries/.test(overlayPresentation.text)
           && /Status-change ledger/.test(overlayPresentation.text)
