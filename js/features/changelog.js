@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-11-18',
+        entries: [
+            { type: '🔧', text: 'Release Radar confirms EVM Node 0.68 from its November 10 publication receipt and corrects the Tezos X roadmap evidence to the ongoing H2 2026-H1 2027 rollout while keeping the full launch unconfirmed' }
+        ]
+    },
+    {
         date: '2026-11-03',
         entries: [
             { type: '🔧', text: 'Release Radar rechecks its complete source evidence before expiry and requests early review when sources change, preserving last-good facts and the existing freshness limit' }

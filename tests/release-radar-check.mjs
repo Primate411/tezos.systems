@@ -28,8 +28,8 @@ assert.deepEqual(tezosX.gates.map((gate) => gate.id), RELEASE_RADAR_TEZOS_X_GATE
 assert.equal(tezosX.gates.find((gate) => gate.id === 'proposal')?.status, 'complete', 'a recorded public proposal cannot be erased by an empty current FAST window');
 assert.equal(tezosX.confidence, 'low', 'conflicting platform roadmap and deployment scope prevent a high-confidence full-launch claim');
 assert.equal(tezosX.lifecycle, 'forecast', 'kernel deployment does not silently become a full-platform release');
-assert.equal(tezosX.horizon, 'Q3 2026 target elapsed', 'the reviewed past quarter must not read as an upcoming ETA');
-assert.match(tezosX.summary, /Q3 target elapsed.*Full Tezos X rollout remains unconfirmed/, 'an elapsed target does not prove either launch completion or a replacement date');
+assert.equal(tezosX.horizon, 'H2 2026-H1 2027 rollout ongoing', 'the reviewed roadmap phase must not read as a completed launch');
+assert.match(tezosX.summary, /Ongoing H2 2026-H1 2027 rollout.*Full Tezos X rollout remains unconfirmed/, 'an ongoing phased rollout does not prove launch completion');
 assert.match(tezosX.summary, /Kernel 7\.1 mainnet deployment is confirmed/, 'the reviewed lane distinguishes deployed kernel infrastructure');
 assert.match(tezosX.highlight, /Kernel deployment and full Tezos X rollout are separate claims/, 'the scope boundary remains explicit');
 for (const url of [
@@ -46,9 +46,10 @@ assert.equal(octez.releasedAt, '2026-10-20T08:19:14.336Z', 'Octez publication mu
 assert(octez.evidence.some(receipt => receipt.url.endsWith('/releases/octez-v25.2')), 'the superseded publication receipt remains inspectable');
 assert(octez.history.some(row => /confirm Octez 25.3, superseding 25.2/.test(row.reason)), 'a material release change appends history');
 assert(octez.evidence.some((receipt) => receipt.url === 'https://octez.tezos.com/releases/'), 'the Octez lane checks the canonical public release page');
-assert.equal(evmNode.lifecycle, 'released', 'the direct 0.67 publication is a confirmed release');
-assert.equal(evmNode.label, 'EVM Node 0.67');
-assert.equal(evmNode.releasedAt, '2026-09-29T09:30:34.058Z', 'EVM node publication keeps its separate canonical release clock');
+assert.equal(evmNode.lifecycle, 'released', 'the direct 0.68 publication is a confirmed release');
+assert.equal(evmNode.label, 'EVM Node 0.68');
+assert.equal(evmNode.releasedAt, '2026-11-10T16:06:21.036Z', 'EVM node publication keeps its separate canonical release clock');
+assert(evmNode.evidence.some(receipt => receipt.url.endsWith('/releases/octez-evm-node-v0.67')), 'the superseded 0.67 publication receipt remains inspectable');
 for (const candidate of [octez, evmNode]) {
   assert.equal(candidate.horizon, '', 'released artifacts cannot retain a forecast ETA');
   assert(candidate.evidence.some(receipt => receipt.url.includes('/api/v4/') && receipt.note.includes(candidate.releasedAt)), 'publication time has a directly inspectable primary receipt');
