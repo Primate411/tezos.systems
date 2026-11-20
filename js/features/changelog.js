@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-11-20',
+        entries: [
+            { type: '🔧', text: 'Release Radar confirms EVM Node 0.69 from its November 19 publication receipt: it aligns sequencer prevalidation with the kernel and is required before storage version 70+ kernels; full Tezos X launch remains unconfirmed' }
+        ]
+    },
+    {
         date: '2026-11-18',
         entries: [
             { type: '🔧', text: 'Release Radar confirms EVM Node 0.68 from its November 10 publication receipt and corrects the Tezos X roadmap evidence to the ongoing H2 2026-H1 2027 rollout while keeping the full launch unconfirmed' }

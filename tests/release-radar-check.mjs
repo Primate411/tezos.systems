@@ -46,9 +46,9 @@ assert.equal(octez.releasedAt, '2026-10-20T08:19:14.336Z', 'Octez publication mu
 assert(octez.evidence.some(receipt => receipt.url.endsWith('/releases/octez-v25.2')), 'the superseded publication receipt remains inspectable');
 assert(octez.history.some(row => /confirm Octez 25.3, superseding 25.2/.test(row.reason)), 'a material release change appends history');
 assert(octez.evidence.some((receipt) => receipt.url === 'https://octez.tezos.com/releases/'), 'the Octez lane checks the canonical public release page');
-assert.equal(evmNode.lifecycle, 'released', 'the direct 0.68 publication is a confirmed release');
-assert.equal(evmNode.label, 'EVM Node 0.68');
-assert.equal(evmNode.releasedAt, '2026-11-10T16:06:21.036Z', 'EVM node publication keeps its separate canonical release clock');
+assert.equal(evmNode.lifecycle, 'released', 'the direct 0.69 publication is a confirmed release');
+assert.equal(evmNode.label, 'EVM Node 0.69');
+assert.equal(evmNode.releasedAt, '2026-11-19T11:38:03.619Z', 'EVM node publication keeps its separate canonical release clock');
 assert(evmNode.evidence.some(receipt => receipt.url.endsWith('/releases/octez-evm-node-v0.67')), 'the superseded 0.67 publication receipt remains inspectable');
 for (const candidate of [octez, evmNode]) {
   assert.equal(candidate.horizon, '', 'released artifacts cannot retain a forecast ETA');
