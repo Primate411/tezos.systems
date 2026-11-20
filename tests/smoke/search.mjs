@@ -2190,16 +2190,30 @@ export function createSearchSmokeSuites({
       };
     }));
     await page.waitForTimeout(760);
+    const translateIsSettled = (translate) => translate === 'none'
+      || translate.split(/\s+/).every((token) => Math.abs(Number.parseFloat(token)) <= 0.001);
     await page.waitForFunction(() => [...document.querySelectorAll('#recruit-section [data-handoff-question] > span')].every((word) => {
       const translate = getComputedStyle(word).translate;
       return translate === 'none'
         || translate.split(/\s+/).every((token) => Math.abs(Number.parseFloat(token)) <= 0.001);
     }), null, { timeout: 2000 });
     const settledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
-    await page.waitForTimeout(900);
-    const heldSettledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
-    const translateIsSettled = (translate) => translate === 'none'
-      || translate.split(/\s+/).every((token) => Math.abs(Number.parseFloat(token)) <= 0.001);
+    // A later hot-signal render (for example the async Release Radar forecast
+    // arriving after page load) legitimately re-targets the constellation with
+    // a fresh settle animation. Hold the sample once motion stays settled for
+    // a continuous quiet window instead of a fixed delay after the first
+    // settle, so a genuinely new signal cannot masquerade as endless motion.
+    let heldSettledMotion = [];
+    for (let holdAttempt = 0; holdAttempt < 5; holdAttempt += 1) {
+      await page.waitForTimeout(900);
+      heldSettledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
+      if (heldSettledMotion.every(translateIsSettled)) break;
+      await page.waitForFunction(() => [...document.querySelectorAll('#recruit-section [data-handoff-question] > span')].every((word) => {
+        const translate = getComputedStyle(word).translate;
+        return translate === 'none'
+          || translate.split(/\s+/).every((token) => Math.abs(Number.parseFloat(token)) <= 0.001);
+      }), null, { timeout: 3000 });
+    }
     assert(
       motionBefore.every((before, index) => (
         before.id === motionDuring[index]?.id
